@@ -47,6 +47,8 @@ spec:
 | **DXDamCollection** | Creates the collection and uploads every file; a changed file becomes a new version of the same asset (same URL) |
 | **DXTheme** | Uploads a theme to the WebDAV store and registers it with XMLAccess; pages use it with `spec.theme` |
 | **DXDatabase** | Creates the database of a backend and its owner in an existing PostgreSQL, Oracle or SQL Server, and writes a Secret for the backend |
+| **DXWCMLibraryImport** | Imports WCM libraries from a library export into the base portal or a virtual portal, with a dry run first, once per change |
+| **DXXMLAccess** | Runs XMLAccess requests of your own (inline, from Git, a URL or a registry), checked before anything is sent, once per change; exports kept in a ConfigMap |
 
 And for every resource: **dependencies** (`dependsOn`), **drift policy** (`Restore` or `Report`), **deletion policy**
 (`Retain` or `Delete`), `suspend`, a **status** with conditions and **Kubernetes events**. With the health checks of
@@ -81,6 +83,7 @@ Samples, from one HTML file in a ConfigMap to a backend with its own database an
 | | |
 |---|---|
 | [How it works](how-it-works.md) | The pieces, the reconciliation loop of each resource, concurrency, status and events |
+| [Guide: migrate a portal, XMLAccess](migration-guide.md) | Libraries, Portal Site, pages, themes and XMLAccess requests, as YAML or from Backstage |
 | [Restrictions and limitations](limitations.md) | What DX allows and what the operator cannot do (complete HTML documents, 4.5 MB per file, anonymous pages...) |
 | [API reference](reference.md) | Every field of every resource, generated from the CRDs |
 | [How we work](workflow.md) | Issues, the project board and the specs |

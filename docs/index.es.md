@@ -49,6 +49,8 @@ spec:
 | **DXDamCollection** | Crea la colección y sube cada fichero; un fichero cambiado pasa a ser una versión nueva del mismo asset (misma URL) |
 | **DXTheme** | Sube un tema al almacén WebDAV y lo registra con XMLAccess; las páginas lo usan con `spec.theme` |
 | **DXDatabase** | Crea la base de datos de un backend y su propietario en un PostgreSQL, Oracle o SQL Server existente, y escribe un Secret para el backend |
+| **DXWCMLibraryImport** | Importa bibliotecas WCM de un export en el portal base o en un portal virtual, con una simulación primero, una vez por cambio |
+| **DXXMLAccess** | Ejecuta peticiones XMLAccess propias (en línea, desde Git, una URL o un registro), comprobadas antes de enviar nada, una vez por cambio; los exports se guardan en un ConfigMap |
 
 Y en todos los recursos: **dependencias** (`dependsOn`), **política de deriva** (`Restore` o `Report`),
 **política de borrado** (`Retain` o `Delete`), `suspend`, un **status** con condiciones y **eventos de
@@ -82,6 +84,7 @@ hasta un backend con su propia base de datos y un tema: [samples/](https://githu
 | | |
 |---|---|
 | [Cómo funciona](how-it-works.es.md) | Las piezas, el bucle de reconciliación de cada recurso, concurrencia, status y eventos |
+| [Guía: migrar un portal, XMLAccess](migration-guide.es.md) | Bibliotecas, Portal Site, páginas, temas y peticiones XMLAccess, como YAML o desde Backstage |
 | [Restricciones y limitaciones](limitations.es.md) | Lo que DX permite y lo que el operador no puede hacer (documentos HTML completos, 4,5 MB por fichero, páginas anónimas...) |
 | [Referencia de la API](reference.md) (en inglés) | Todos los campos de todos los recursos, generada a partir de los CRD |
 | [Cómo trabajamos](workflow.es.md) | Issues, el tablero del proyecto y las especificaciones |

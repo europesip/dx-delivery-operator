@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver "pgx"
+	_ "github.com/jackc/pgx/v5/stdlib"  // database/sql driver "pgx"
 	_ "github.com/microsoft/go-mssqldb" // database/sql driver "sqlserver"
 	go_ora "github.com/sijms/go-ora/v2"
 )

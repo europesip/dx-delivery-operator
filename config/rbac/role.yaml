@@ -8,13 +8,6 @@ rules:
   - ""
   resources:
   - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - secrets
   verbs:
   - create
@@ -58,6 +51,7 @@ rules:
   - dxscriptapplications/status
   - dxthemes/status
   - dxwcmlibraryimports/status
+  - dxxmlaccesses/status
   verbs:
   - get
   - patch
@@ -71,6 +65,7 @@ rules:
   - dxscriptapplications
   - dxthemes
   - dxwcmlibraryimports
+  - dxxmlaccesses
   verbs:
   - get
   - list
@@ -85,6 +80,7 @@ rules:
   - dxpages/finalizers
   - dxscriptapplications/finalizers
   - dxthemes/finalizers
+  - dxxmlaccesses/finalizers
   verbs:
   - update
 - apiGroups:

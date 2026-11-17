@@ -5,6 +5,23 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## Unreleased (0.5.0) · XMLAccess requests
+
+- **New resource `DXXMLAccess`** (#15): runs XMLAccess requests of your own against the base portal or a virtual
+  portal (`/wps/config/<context>`). The requests come inline (`xml`) or as the `.xml` files of a source: a URL archive
+  (for example a Git folder through its archive URL, or an S3 presigned URL), an OCI image or ORAS artifact, or a
+  ConfigMap. Options:
+  - `files` sets the order and `variables` fills `${NAME}`;
+  - every file is checked before anything is sent; `dryRun` only checks and lists them;
+  - it stops at the first failure unless `continueOnError`;
+  - `output.configMap` keeps DX's answers (exports);
+  - `cleanup` sends a request when the resource is deleted.
+
+  It runs **once per change**, like a Job: no drift detection. Sample 11.
+- `DXXMLAccess` can be a `dependsOn` kind.
+- Docs: a [guide](docs/migration-guide.md) to migrating a portal and running XMLAccess, as YAML or from the HCL DX
+  plugin of Backstage (also in TechDocs).
+
 ## 0.4.0 · 2026-11-17 · WCM library imports
 
 - **New resource `DXWCMLibraryImport`** (#11): imports WCM libraries from a library export into DX Compose, without

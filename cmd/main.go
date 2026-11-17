@@ -234,6 +234,14 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "dxpage")
 		os.Exit(1)
 	}
+	if err := (&controller.DXXMLAccessReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Shared: shared,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "dxxmlaccess")
+		os.Exit(1)
+	}
 	if err := (&controller.DXThemeReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

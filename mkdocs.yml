@@ -18,12 +18,14 @@ exclude_docs: |
 nav:
   - Overview: index.md
   - How it works: how-it-works.md
+  - 'Guide: migrate a portal, XMLAccess': migration-guide.md
   - Restrictions and limitations: limitations.md
   - API reference: reference.md
   - How we work: workflow.md
   - Español:
       - Introducción: index.es.md
       - Cómo funciona: how-it-works.es.md
+      - 'Guía: migrar un portal, XMLAccess': migration-guide.es.md
       - Restricciones y limitaciones: limitations.es.md
       - Cómo trabajamos: workflow.es.md
 

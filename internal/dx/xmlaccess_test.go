@@ -1,6 +1,9 @@
 package dx
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -46,5 +49,27 @@ func TestParsePageExport(t *testing.T) {
 func TestRedact(t *testing.T) {
 	if got := redact("user wpsadmin pass s3cr3t", "s3cr3t"); strings.Contains(got, "s3cr3t") {
 		t.Error("the password must not appear in logs")
+	}
+}
+
+func TestXMLAccessAtVirtualPortal(t *testing.T) {
+	var paths []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		_, _ = w.Write([]byte(`<request><status element="all" result="ok"/></request>`))
+	}))
+	defer srv.Close()
+	c, err := NewClient(Config{BaseURL: srv.URL, Username: "u", Password: "p"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, vp := range []string{"", "europesip"} {
+		res, err := c.XMLAccessAt(context.Background(), vp, `<request type="export"/>`)
+		if ok, _ := XMLAccessOK(res); err != nil || !ok {
+			t.Fatalf("%q: %v %s", vp, err, res)
+		}
+	}
+	if strings.Join(paths, ",") != "/wps/config,/wps/config/europesip" {
+		t.Errorf("paths: %v", paths)
 	}
 }

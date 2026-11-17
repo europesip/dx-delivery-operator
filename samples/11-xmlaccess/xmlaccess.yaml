@@ -1,0 +1,38 @@
+# Sample 11 · DXXMLAccess: run XMLAccess requests against DX, once per change (like a Job).
+#
+# a) export-url-mappings: a read-only request (type="export") whose answer is kept in the ConfigMap
+#    url-mappings-export. Safe to apply anywhere: it changes nothing in DX.
+#      kubectl get dxxmlaccess export-url-mappings            # Phase Succeeded, Ready True
+#      kubectl get configmap url-mappings-export -o jsonpath='{.data.request\.xml}'
+# b) the same with the files of a folder of a Git repository (GitLab/GitHub archive URL + path), commented out.
+# Run again: change the spec, or the annotation dx.europesip.com/reconcile (for example to the date).
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXXMLAccess
+metadata:
+  name: export-url-mappings
+spec:
+  connectionRef: { name: dx }
+  # virtualPortal: { context: acme }     # send the request to /wps/config/acme instead of the base portal
+  xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <request xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="PortalConfig_8.5.0.xsd" type="export">
+      <portal action="locate">
+        <url-mapping-context action="export" objectid="*"/>
+      </portal>
+    </request>
+  output:
+    configMap: { name: url-mappings-export }
+# ---
+# apiVersion: dx.europesip.com/v1alpha1
+# kind: DXXMLAccess
+# metadata:
+#   name: portal-config
+# spec:
+#   connectionRef: { name: dx }
+#   source:
+#     url:
+#       url: https://gitlab.example.com/acme/portal/-/archive/main/portal-main.tar.gz   # a private project: use a CI artifact or Harbor instead
+#       path: portal-main/xmlaccess      # the folder with the .xml files, run in name order
+#   variables: { SITE_HOST: www.acme.example }   # ${SITE_HOST} in the XML
+#   continueOnError: false
+#   cleanup: { file: 99-cleanup.xml }    # run when this resource is deleted (optional)
