@@ -196,7 +196,10 @@ mappings, policies, credential vault slots, WSRP, tags, exports...). It works **
    per DX (shared lock with the other XMLAccess calls of the operator), with `timeout` (10m). The first failure stops
    the run unless `continueOnError`; later requests are `skipped`.
 4. **Result**: `status.results` (file, request type, `ok` / `error` / `skipped`, the first DX message) and, with
-   `output.configMap`, DX's answer to every request in a ConfigMap owned by the resource (cut to fit 1 MiB).
+   `output.configMap`, DX's answer to every request in a ConfigMap owned by the resource (cut to fit 1 MiB);
+   with `output.oci`, the answers and a `results.json` pushed to a registry (Harbor) as an OCI artifact, one file
+   per request (the way `oras push` does), with a new tag every run (`${DATE}`): versioned, no size limit, and
+   readable as the `source` of another resource, for example to apply an export in another environment.
 
 It runs **once per change**: the hash of the spec, the source revision (image digest, archive SHA256, ConfigMap) and the
 `dx.europesip.com/reconcile` annotation. The operator does not know what an arbitrary request created, so it does not

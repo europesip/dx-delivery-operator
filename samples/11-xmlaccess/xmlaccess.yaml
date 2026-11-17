@@ -22,6 +22,10 @@ spec:
     </request>
   output:
     configMap: { name: url-mappings-export }
+    # oci:                                   # also (or instead) push the answers to a registry, a new tag every run
+    #   repository: registry.example.com/dx-exports/url-mappings
+    #   tag: ${DATE}
+    #   pushSecrets: [{ name: registry-push }]
 # ---
 # apiVersion: dx.europesip.com/v1alpha1
 # kind: DXXMLAccess

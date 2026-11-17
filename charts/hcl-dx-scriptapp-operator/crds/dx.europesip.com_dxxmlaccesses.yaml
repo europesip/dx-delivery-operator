@@ -29,6 +29,10 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].reason
       name: Reason
       type: string
+    - jsonPath: .status.outputRef
+      name: Output
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -137,9 +141,9 @@ spec:
                 properties:
                   configMap:
                     description: |-
-                      ConfigMap that receives one key per request: <file name> (or "request.xml" for spec.xml) with DX's answer.
-                      The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB: bigger
-                      results are cut and the status says so.
+                      ConfigMap that receives one key per request: <file name> ("/" becomes "__"; "request.xml" for spec.xml) with
+                      DX's answer. The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB:
+                      bigger results are cut and the status says so.
                     properties:
                       name:
                         description: Name of the object.
@@ -148,9 +152,42 @@ spec:
                     required:
                     - name
                     type: object
-                required:
-                - configMap
+                  oci:
+                    description: |-
+                      OCI: push the answers to a registry (for example Harbor) as an OCI artifact, one file per request plus
+                      results.json, the way "oras push" does: versioned, with no size limit, readable with "oras pull" or as the
+                      source of another resource (for example a DXXMLAccess of another environment). Every run pushes a new tag.
+                    properties:
+                      pushSecrets:
+                        description: 'PushSecrets: Secrets of type kubernetes.io/dockerconfigjson
+                          with credentials that may push to the repository.'
+                        items:
+                          description: LocalObjectReference names an object in the
+                            same namespace.
+                          properties:
+                            name:
+                              description: Name of the object.
+                              minLength: 1
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      repository:
+                        description: Repository without tag, for example harbor.example.com/dx-exports/url-mappings.
+                        pattern: ^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9._/-]+$
+                        type: string
+                      tag:
+                        description: 'Tag of each run. ${DATE} is replaced by the
+                          time of the run (yyyymmdd-hhmmss, UTC). Default: ${DATE}.'
+                        type: string
+                    required:
+                    - repository
+                    type: object
                 type: object
+                x-kubernetes-validations:
+                - message: set configMap, oci or both
+                  rule: has(self.configMap) || has(self.oci)
               source:
                 description: |-
                   Source of the files with the requests: an OCI image or ORAS artifact (Harbor), an archive URL (for example
@@ -341,6 +378,14 @@ spec:
               observedGeneration:
                 format: int64
                 type: integer
+              outputDigest:
+                description: 'OutputDigest: repository@sha256:... of that artifact
+                  (immutable).'
+                type: string
+              outputRef:
+                description: 'OutputRef: the artifact pushed by the last run (repository:tag),
+                  with output.oci.'
+                type: string
               phase:
                 description: XMLAccessPhase is the step a run is in.
                 type: string

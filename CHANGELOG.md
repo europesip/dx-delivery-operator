@@ -14,7 +14,8 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
   - `files` sets the order and `variables` fills `${NAME}`;
   - every file is checked before anything is sent; `dryRun` only checks and lists them;
   - it stops at the first failure unless `continueOnError`;
-  - `output.configMap` keeps DX's answers (exports);
+  - `output.configMap` keeps DX's answers (exports), and `output.oci` pushes them to a registry (Harbor) as an OCI
+    artifact with a new tag every run (`status.outputRef`). The artifact can be the source of another resource;
   - `cleanup` sends a request when the resource is deleted.
 
   It runs **once per change**, like a Job: no drift detection. Sample 11.

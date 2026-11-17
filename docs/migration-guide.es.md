@@ -72,6 +72,26 @@ spec:
 kubectl get configmap url-mappings-export -o jsonpath='{.data.request\.xml}'
 ```
 
+**Guardar el export en Harbor y aplicarlo en otro entorno.** Un artefacto OCI es el formato estándar de los registros
+de contenedores: además de imágenes, puede guardar cualquier fichero, con versión (etiqueta), fecha y autor. Con
+`output.oci` las respuestas de DX se suben ahí:
+```yaml
+  output:
+    oci:
+      repository: harbor.example.com/dx-exports/url-mappings
+      tag: dev-${DATE}                         # por defecto ${DATE}: aaaammdd-hhmmss de la ejecución
+      pushSecrets: [{ name: harbor-push }]     # dockerconfigjson con permiso de subida
+```
+`status.outputRef` dice dónde ha ido (`oras pull <ref>` baja los ficheros). La respuesta de una petición `export` es a
+su vez una petición `update`, así que otro `DXXMLAccess`, en el entorno de destino, la aplica:
+```yaml
+spec:
+  connectionRef: { name: dx }                  # el DX del entorno de destino
+  source: { image: { ref: harbor.example.com/dx-exports/url-mappings:dev-20261117-214132, pullSecrets: [{ name: harbor-pull }] } }
+  files: [request.xml]                         # results.json es el resumen, no una petición
+  dryRun: true                                 # primero comprobar; después quitarlo
+```
+
 **Ejecutar los ficheros de una carpeta de un repositorio Git**, por orden de nombre (`01-…xml`, `02-…xml`), en un
 portal virtual:
 ```yaml
@@ -94,7 +114,7 @@ ORAS (`source.image`).
   mensaje de DX.
 - No detecta deriva y no deshace nada al borrarlo (salvo `cleanup`). Escribe peticiones idempotentes
   (`action="update"`).
-- Las respuestas de DX solo se guardan con `output.configMap` (como mucho 1 MiB).
+- Las respuestas de DX solo se guardan con `output.configMap` (como mucho 1 MiB) o `output.oci` (un registro, sin límite).
 
 ```bash
 kubectl get dxxml -n <ns>

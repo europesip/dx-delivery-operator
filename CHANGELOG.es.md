@@ -14,7 +14,9 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
   - `files` fija el orden y `variables` rellena `${NOMBRE}`;
   - se comprueban todos los ficheros antes de enviar nada; `dryRun` solo los comprueba y lista;
   - para en el primer fallo salvo `continueOnError`;
-  - `output.configMap` guarda las respuestas de DX (exports);
+  - `output.configMap` guarda las respuestas de DX (exports), y `output.oci` las sube a un registro (Harbor) como
+    artefacto OCI con una etiqueta nueva en cada ejecución (`status.outputRef`). El artefacto puede ser la fuente de
+    otro recurso;
   - `cleanup` envía una petición al borrar el recurso.
 
   Se ejecuta **una vez por cambio**, como un Job: no detecta deriva. Ejemplo 11.

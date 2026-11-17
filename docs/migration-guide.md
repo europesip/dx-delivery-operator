@@ -71,6 +71,26 @@ spec:
 kubectl get configmap url-mappings-export -o jsonpath='{.data.request\.xml}'
 ```
 
+**Keep the export in Harbor and apply it in another environment.** An OCI artifact is the standard format of
+container registries: besides images, it can hold any files, with a version (tag), date and author. With `output.oci`
+the answers of DX are pushed there:
+```yaml
+  output:
+    oci:
+      repository: harbor.example.com/dx-exports/url-mappings
+      tag: dev-${DATE}                         # default ${DATE}: yyyymmdd-hhmmss of the run
+      pushSecrets: [{ name: harbor-push }]     # dockerconfigjson that may push
+```
+`status.outputRef` says where it went (`oras pull <ref>` gets the files). The answer of an `export` request is itself
+an `update` request, so another `DXXMLAccess`, in the target environment, applies it:
+```yaml
+spec:
+  connectionRef: { name: dx }                  # the DX of the target environment
+  source: { image: { ref: harbor.example.com/dx-exports/url-mappings:dev-20261117-214132, pullSecrets: [{ name: harbor-pull }] } }
+  files: [request.xml]                         # results.json is the summary, not a request
+  dryRun: true                                 # check first; then remove it
+```
+
 **Run the files of a folder of a Git repository**, in name order (`01-…xml`, `02-…xml`), into a virtual portal:
 ```yaml
 spec:
@@ -90,7 +110,7 @@ For a private repository use a CI artifact URL, an S3 presigned URL or push the 
 - Every file is checked first: one broken file and **nothing** is sent. `dryRun: true` only checks and lists.
 - The first failed request stops the run (`continueOnError: true` to go on). `status.results` has the DX message.
 - No drift detection, nothing undone on delete (except `cleanup`). Write idempotent requests (`action="update"`).
-- The answers of DX are kept only with `output.configMap` (at most 1 MiB).
+- The answers of DX are kept only with `output.configMap` (at most 1 MiB) or `output.oci` (a registry, no limit).
 
 ```bash
 kubectl get dxxml -n <ns>

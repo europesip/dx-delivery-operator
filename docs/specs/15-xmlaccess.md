@@ -26,6 +26,9 @@ the base of exports, because the answers can be kept in a ConfigMap.
   `Succeeded` and the reason `Succeeded`.
 - **Output:** `output.configMap` holds one key per request with DX's answer. The ConfigMap is owned by the resource
   (controller reference), its keys come from the paths (`/` becomes `__`), and the whole is cut at 900 KiB.
+- **OCI output:** `output.oci` (repository, tag with `${DATE}`, push secrets) pushes the answers plus `results.json` as
+  an artifact with one layer per file, titled like ORAS does. `status.outputRef` and `outputDigest`; event `OutputPushed`.
+  A failed push makes the run Failed (`OutputFailed`), because the requests did run.
 - **One-shot:** the hash is made of the spec (without suspend, dependsOn and cleanup), the source revision and the
   reconcile annotation. With the same hash and a finished phase, nothing runs.
 - **Delete:** with `cleanup` the resource gets a finalizer, and the cleanup request (inline or a file of the source)
@@ -36,7 +39,7 @@ the base of exports, because the answers can be kept in a ConfigMap.
 See the issue (#15).
 
 ## Out of scope
-Native Git clone, pushing the output to Harbor, a dry run inside DX, secrets in variables.
+Native Git clone, a dry run inside DX, secrets in variables.
 
 ## Plan
 - Types: `api/v1alpha1/dxxmlaccess_types.go`.
@@ -55,4 +58,6 @@ Native Git clone, pushing the output to Harbor, a dry run inside DX, secrets in 
 - Two files, the first failing (EJPXA0240E): the run stops; the second is `skipped`.
 - Dry run: both files `checked`, DX not called.
 - Virtual portal `dxopwcm`: ok. Cleanup on delete: event `CleanedUp`.
+- OCI output: pushed to `harbor.k3s.europesip.com/dx-wcm/xmlaccess-test-url-mappings:dx-test-20261117-214132`, and
+  read back as the source of a dry-run DXXMLAccess (`request.xml`, type update).
 - An unrelated annotation does not run it again; `dx.europesip.com/reconcile` does.

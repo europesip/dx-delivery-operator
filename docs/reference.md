@@ -434,8 +434,13 @@ Short names: `dxxml`
 | `dryRun` | boolean |  | DryRun: only fetch the files, check that each one is an XMLAccess request and report them, without calling DX. |
 | `files` | []string |  | Files of the source to run, in this order. Empty: every *.xml file of the source, sorted by path. |
 | `output` | object |  | Output: keep DX's answer to every request in a ConfigMap (handy for export requests). |
-| `output.configMap` | object (required) |  | ConfigMap that receives one key per request: <file name> (or "request.xml" for spec.xml) with DX's answer. The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB: bigger results are cut and the status says so. |
+| `output.configMap` | object |  | ConfigMap that receives one key per request: <file name> ("/" becomes "__"; "request.xml" for spec.xml) with DX's answer. The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB: bigger results are cut and the status says so. |
 | `output.configMap.name` | string (required) |  | Name of the object. |
+| `output.oci` | object |  | OCI: push the answers to a registry (for example Harbor) as an OCI artifact, one file per request plus results.json, the way "oras push" does: versioned, with no size limit, readable with "oras pull" or as the source of another resource (for example a DXXMLAccess of another environment). Every run pushes a new tag. |
+| `output.oci.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with credentials that may push to the repository. |
+| `output.oci.pushSecrets[].name` | string (required) |  | Name of the object. |
+| `output.oci.repository` | string (required) |  | Repository without tag, for example harbor.example.com/dx-exports/url-mappings. |
+| `output.oci.tag` | string |  | Tag of each run. ${DATE} is replaced by the time of the run (yyyymmdd-hhmmss, UTC). Default: ${DATE}. |
 | `source` | object |  | Source of the files with the requests: an OCI image or ORAS artifact (Harbor), an archive URL (for example the archive of a folder of a Git repository: https://gitlab.example.com/g/p/-/archive/main/p-main.tar.gz with path p-main/xmlaccess, or an S3 presigned URL) or a ConfigMap. |
 | `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
 | `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
@@ -471,6 +476,8 @@ Short names: `dxxml`
 | `dryRun` | boolean |  | DryRun: true when the status describes a dry run. |
 | `message` | string |  | Message: last result in words. |
 | `observedGeneration` | integer |  |  |
+| `outputDigest` | string |  | OutputDigest: repository@sha256:... of that artifact (immutable). |
+| `outputRef` | string |  | OutputRef: the artifact pushed by the last run (repository:tag), with output.oci. |
 | `phase` | string |  | XMLAccessPhase is the step a run is in. |
 | `results` | []object |  | Results: one entry per request, in the order they ran. |
 | `results[].file` | string (required) |  | File of the source, or "request.xml" for spec.xml. |

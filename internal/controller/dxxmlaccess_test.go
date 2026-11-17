@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
 )
@@ -65,6 +66,16 @@ func TestXMLHash(t *testing.T) {
 	o.Annotations = map[string]string{dxv1.AnnotationReconcile: "now"}
 	if xmlHash(o, "") == h {
 		t.Error("the reconcile annotation must start a new run")
+	}
+}
+
+func TestOCITag(t *testing.T) {
+	at := time.Date(2026, 11, 17, 21, 5, 9, 0, time.UTC)
+	if got := ociTag("", at); got != "20261117-210509" {
+		t.Errorf("default: %s", got)
+	}
+	if got := ociTag("dx-test-${DATE}", at); got != "dx-test-20261117-210509" {
+		t.Errorf("template: %s", got)
 	}
 }
 

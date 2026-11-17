@@ -324,9 +324,17 @@ func (r *DXXMLAccessReconciler) run(ctx context.Context, o *dxv1.DXXMLAccess) (c
 		}
 		st.Results = append(st.Results, item)
 	}
-	if o.Spec.Output != nil {
-		if oerr := r.saveOutput(ctx, o, outputs); oerr != nil {
-			return finish(dxv1.XMLAccessFailed, false, reasonXMLOutputFailed, fmt.Sprintf("the requests ran (%d failed) but the output was not saved: %v", failed, oerr))
+	st.OutputRef, st.OutputDigest = "", ""
+	if out := o.Spec.Output; out != nil {
+		if out.ConfigMap != nil {
+			if oerr := r.saveOutput(ctx, o, outputs); oerr != nil {
+				return finish(dxv1.XMLAccessFailed, false, reasonXMLOutputFailed, fmt.Sprintf("the requests ran (%d failed) but the output was not saved: %v", failed, oerr))
+			}
+		}
+		if out.OCI != nil {
+			if oerr := r.pushOutput(ctx, o, conn.Client.Config().BaseURL, vp, outputs); oerr != nil {
+				return finish(dxv1.XMLAccessFailed, false, reasonXMLOutputFailed, fmt.Sprintf("the requests ran (%d failed) but the output was not pushed: %v", failed, oerr))
+			}
 		}
 	}
 	switch {
@@ -392,6 +400,41 @@ func (r *DXXMLAccessReconciler) saveOutput(ctx context.Context, o *dxv1.DXXMLAcc
 		return nil
 	})
 	return err
+}
+
+// ociTag is the tag of a run: output.oci.tag with ${DATE} replaced (default ${DATE}).
+func ociTag(tag string, t time.Time) string {
+	if tag == "" {
+		tag = "${DATE}"
+	}
+	return strings.ReplaceAll(tag, "${DATE}", t.UTC().Format("20060102-150405"))
+}
+
+// pushOutput pushes DX's answers and results.json to the registry as an OCI artifact (one file per request).
+func (r *DXXMLAccessReconciler) pushOutput(ctx context.Context, o *dxv1.DXXMLAccess, server, vp string, outputs map[string]string) error {
+	oci := o.Spec.Output.OCI
+	ref := oci.Repository + ":" + ociTag(oci.Tag, time.Now())
+	files := map[string][]byte{}
+	for k, v := range outputs {
+		files[k] = []byte(v)
+	}
+	summary, _ := json.MarshalIndent(map[string]any{
+		"resource": o.Namespace + "/" + o.Name, "server": server, "virtualPortal": vp, "results": o.Status.Results,
+		"sourceRevision": o.Status.SourceRevision, "time": time.Now().UTC().Format(time.RFC3339),
+	}, "", "  ")
+	files["results.json"] = summary
+	digest, err := r.Fetcher.Push(ctx, o.Namespace, ref, oci.PushSecrets, files, "application/xml", map[string]string{
+		"org.opencontainers.image.created": time.Now().UTC().Format(time.RFC3339),
+		"org.opencontainers.image.source":  server,
+		"dx.europesip.com/resource":        o.Namespace + "/" + o.Name,
+		"dx.europesip.com/virtual-portal":  vp,
+	})
+	if err != nil {
+		return err
+	}
+	o.Status.OutputRef, o.Status.OutputDigest = ref, digest
+	r.Recorder.Eventf(o, nil, corev1.EventTypeNormal, "OutputPushed", "XMLAccess", "answers pushed to %s (%s)", ref, digest)
+	return nil
 }
 
 // finalize runs the cleanup request (if any) and lets the resource go. It never blocks the deletion for long: a DX

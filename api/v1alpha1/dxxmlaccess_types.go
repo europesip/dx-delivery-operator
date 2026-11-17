@@ -29,12 +29,33 @@ type XMLAccessVirtualPortal struct {
 	Context string `json:"context"`
 }
 
-// XMLAccessOutput keeps the result XML of every request (for export requests).
+// XMLAccessOutput keeps DX's answer to every request (for export requests): in a ConfigMap, in a registry as an OCI
+// artifact, or both.
+// +kubebuilder:validation:XValidation:rule="has(self.configMap) || has(self.oci)",message="set configMap, oci or both"
 type XMLAccessOutput struct {
-	// ConfigMap that receives one key per request: <file name> (or "request.xml" for spec.xml) with DX's answer.
-	// The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB: bigger
-	// results are cut and the status says so.
-	ConfigMap LocalObjectReference `json:"configMap"`
+	// ConfigMap that receives one key per request: <file name> ("/" becomes "__"; "request.xml" for spec.xml) with
+	// DX's answer. The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB:
+	// bigger results are cut and the status says so.
+	// +optional
+	ConfigMap *LocalObjectReference `json:"configMap,omitempty"`
+	// OCI: push the answers to a registry (for example Harbor) as an OCI artifact, one file per request plus
+	// results.json, the way "oras push" does: versioned, with no size limit, readable with "oras pull" or as the
+	// source of another resource (for example a DXXMLAccess of another environment). Every run pushes a new tag.
+	// +optional
+	OCI *XMLAccessOCIOutput `json:"oci,omitempty"`
+}
+
+// XMLAccessOCIOutput is where the answers are pushed.
+type XMLAccessOCIOutput struct {
+	// Repository without tag, for example harbor.example.com/dx-exports/url-mappings.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9._/-]+$`
+	Repository string `json:"repository"`
+	// Tag of each run. ${DATE} is replaced by the time of the run (yyyymmdd-hhmmss, UTC). Default: ${DATE}.
+	// +optional
+	Tag string `json:"tag,omitempty"`
+	// PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with credentials that may push to the repository.
+	// +optional
+	PushSecrets []LocalObjectReference `json:"pushSecrets,omitempty"`
 }
 
 // XMLAccessCleanup is a request run when the resource is deleted.
@@ -130,6 +151,12 @@ type DXXMLAccessStatus struct {
 	StartTime *metav1.Time `json:"startTime,omitempty"`
 	// +optional
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+	// OutputRef: the artifact pushed by the last run (repository:tag), with output.oci.
+	// +optional
+	OutputRef string `json:"outputRef,omitempty"`
+	// OutputDigest: repository@sha256:... of that artifact (immutable).
+	// +optional
+	OutputDigest string `json:"outputDigest,omitempty"`
 	// Message: last result in words.
 	// +optional
 	Message string `json:"message,omitempty"`
@@ -146,6 +173,7 @@ type DXXMLAccessStatus struct {
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="Output",type=string,JSONPath=`.status.outputRef`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // DXXMLAccess runs XMLAccess requests against HCL DX (base or virtual portal), once per change of the spec or of
