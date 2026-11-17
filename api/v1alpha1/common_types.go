@@ -86,8 +86,8 @@ type Dependency struct {
 	// APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1.
 	// +optional
 	APIVersion string `json:"apiVersion,omitempty"`
-	// Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme or DXWCMLibraryImport.
-	// +kubebuilder:validation:Enum=Deployment;StatefulSet;Job;DXScriptApplication;DXPage;DXDamCollection;DXDatabase;DXTheme;DXWCMLibraryImport
+	// Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme, DXWCMLibraryImport or DXXMLAccess.
+	// +kubebuilder:validation:Enum=Deployment;StatefulSet;Job;DXScriptApplication;DXPage;DXDamCollection;DXDatabase;DXTheme;DXWCMLibraryImport;DXXMLAccess
 	Kind string `json:"kind"`
 	// Name of the object, in the same namespace.
 	Name string `json:"name"`

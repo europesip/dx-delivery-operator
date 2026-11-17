@@ -168,3 +168,28 @@ ofrece por HTTP:
 
 Es una operación **de una sola vez**: el estado guarda un hash del spec y solo se vuelve a importar si cambia el spec o
 la anotación `dx.europesip.com/reconcile`. Las importaciones a un DX nunca coinciden con sus llamadas XMLAccess.
+
+## Peticiones XMLAccess (DXXMLAccess, 0.5.0)
+
+`DXXMLAccess` ejecuta peticiones XMLAccess propias: la forma de hacer lo que aún no cubren los recursos con tipo
+(mapeos de URL, políticas, credential vault, WSRP, etiquetas, exports...). Funciona **como un Job**, no como `DXPage`:
+
+1. **Peticiones**: `spec.xml` (una, en línea) o los ficheros `.xml` de una fuente (archivo por URL, imagen OCI o
+   artefacto ORAS, ConfigMap), en el orden de `files` o por orden de ruta. `${NOMBRE}` se sustituye con `variables`.
+2. **Primero se comprueban**: cada fichero tiene que ser XML bien formado con `<request type="...">`. Si alguno no lo
+   es, **no se envía nada**. Con `dryRun: true` se para aquí y lista las peticiones.
+3. **Ejecución**: cada petición va a `/wps/config` (o a `/wps/config/<contexto>` con `virtualPortal`), de una en una por
+   DX (el mismo cerrojo que el resto de llamadas XMLAccess del operador), con `timeout` (10m). El primer fallo para la
+   ejecución salvo `continueOnError`; las siguientes quedan como `skipped`.
+4. **Resultado**: `status.results` (fichero, tipo de petición, `ok` / `error` / `skipped`, el primer mensaje de DX) y,
+   con `output.configMap`, la respuesta de DX a cada petición en un ConfigMap propiedad del recurso (recortada a 1 MiB);
+   con `output.oci`, las respuestas y un `results.json` se suben a un registro (Harbor) como artefacto OCI, un fichero
+   por petición (como hace `oras push`), con una etiqueta nueva en cada ejecución (`${DATE}`): con versión, sin límite
+   de tamaño y legible como `source` de otro recurso, por ejemplo para aplicar un export en otro entorno.
+
+Se ejecuta **una vez por cambio**: el hash del spec, la revisión de la fuente (digest de la imagen, SHA256 del archivo,
+ConfigMap) y la anotación `dx.europesip.com/reconcile`. El operador no sabe qué creó una petición cualquiera, así que no
+busca deriva. Borrar el recurso no cambia nada en DX, salvo que `cleanup` indique una petición (en línea o un fichero de
+la fuente) para ese momento; si falla, se reintenta 10 minutos, se avisa con un evento y el recurso se borra igualmente.
+Mejor peticiones idempotentes (`action="update"` / `"locate"`): volver a ejecutarlas no hace daño.
+

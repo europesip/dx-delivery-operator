@@ -5,6 +5,25 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.5.0 · 2026-11-17 · Peticiones XMLAccess
+
+- **Recurso nuevo `DXXMLAccess`** (#15): ejecuta peticiones XMLAccess propias contra el portal base o un portal virtual
+  (`/wps/config/<contexto>`). Las peticiones van en línea (`xml`) o son los ficheros `.xml` de una fuente: un archivo
+  por URL (por ejemplo una carpeta de Git por su URL de archivo, o una URL prefirmada de S3), una imagen OCI o un
+  artefacto ORAS, o un ConfigMap. Opciones:
+  - `files` fija el orden y `variables` rellena `${NOMBRE}`;
+  - se comprueban todos los ficheros antes de enviar nada; `dryRun` solo los comprueba y lista;
+  - para en el primer fallo salvo `continueOnError`;
+  - `output.configMap` guarda las respuestas de DX (exports), y `output.oci` las sube a un registro (Harbor) como
+    artefacto OCI con una etiqueta nueva en cada ejecución (`status.outputRef`). El artefacto puede ser la fuente de
+    otro recurso;
+  - `cleanup` envía una petición al borrar el recurso.
+
+  Se ejecuta **una vez por cambio**, como un Job: no detecta deriva. Ejemplo 11.
+- `DXXMLAccess` puede ser un `dependsOn`.
+- Documentación: una [guía](docs/migration-guide.es.md) para migrar un portal y ejecutar XMLAccess, como YAML o desde
+  el plugin HCL DX de Backstage (también en TechDocs).
+
 ## 0.4.0 · 2026-11-17 · Importación de bibliotecas WCM
 
 - **Recurso nuevo `DXWCMLibraryImport`** (#11): importa bibliotecas WCM de un export en DX Compose sin ConfigEngine

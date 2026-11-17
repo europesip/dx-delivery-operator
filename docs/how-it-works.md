@@ -182,3 +182,28 @@ offers over HTTP:
 
 The run is **one-shot**: the status keeps a hash of the spec, and the import runs again only when the spec or the
 `dx.europesip.com/reconcile` annotation changes. Imports to the same DX never overlap with its XMLAccess calls.
+
+## XMLAccess requests (DXXMLAccess, 0.5.0)
+
+`DXXMLAccess` runs XMLAccess requests of your own: the way to do anything the typed resources do not cover yet (URL
+mappings, policies, credential vault slots, WSRP, tags, exports...). It works **like a Job**, not like `DXPage`:
+
+1. **Requests**: `spec.xml` (one, inline) or the `.xml` files of a source (URL archive, OCI image or ORAS artifact,
+   ConfigMap), in the order of `files` or sorted by path. `${NAME}` is replaced with `variables`.
+2. **Check first**: every file must be well-formed XML with `<request type="...">`. If one is not, **nothing** is
+   sent. `dryRun: true` stops here and lists the requests.
+3. **Run**: each request is posted to `/wps/config` (or `/wps/config/<context>` with `virtualPortal`), one at a time
+   per DX (shared lock with the other XMLAccess calls of the operator), with `timeout` (10m). The first failure stops
+   the run unless `continueOnError`; later requests are `skipped`.
+4. **Result**: `status.results` (file, request type, `ok` / `error` / `skipped`, the first DX message) and, with
+   `output.configMap`, DX's answer to every request in a ConfigMap owned by the resource (cut to fit 1 MiB);
+   with `output.oci`, the answers and a `results.json` pushed to a registry (Harbor) as an OCI artifact, one file
+   per request (the way `oras push` does), with a new tag every run (`${DATE}`): versioned, no size limit, and
+   readable as the `source` of another resource, for example to apply an export in another environment.
+
+It runs **once per change**: the hash of the spec, the source revision (image digest, archive SHA256, ConfigMap) and the
+`dx.europesip.com/reconcile` annotation. The operator does not know what an arbitrary request created, so it does not
+look for drift. Deleting the resource changes nothing in DX, unless `cleanup` gives a request (inline or a file of the
+source) to run then; a failed cleanup is retried for 10 minutes and then reported as an event, and the resource goes.
+Prefer idempotent requests (`action="update"` / `"locate"`), so that running them again is harmless.
+

@@ -296,6 +296,15 @@ func (c *Client) doJSON(ctx context.Context, method, path string, in, out any) (
 var xmlAccessLocks sync.Map // base URL -> *sync.Mutex
 
 func (c *Client) XMLAccess(ctx context.Context, request string) (string, error) {
+	return c.XMLAccessAt(ctx, "", request)
+}
+
+// XMLAccessAt sends the request to a virtual portal (/wps/config/<context>); an empty context is the base portal.
+func (c *Client) XMLAccessAt(ctx context.Context, vpContext, request string) (string, error) {
+	path := "/wps/config"
+	if vpContext != "" {
+		path += "/" + url.PathEscape(vpContext)
+	}
 	mu, _ := xmlAccessLocks.LoadOrStore(c.cfg.BaseURL, &sync.Mutex{})
 	mu.(*sync.Mutex).Lock()
 	defer mu.(*sync.Mutex).Unlock()
@@ -308,7 +317,7 @@ func (c *Client) XMLAccess(ctx context.Context, request string) (string, error) 
 			case <-time.After(time.Duration(attempt) * 2 * time.Second):
 			}
 		}
-		out, empty, err := c.xmlAccessOnce(ctx, request)
+		out, empty, err := c.xmlAccessOnce(ctx, path, request)
 		if err == nil || !empty {
 			return out, err
 		}
@@ -317,8 +326,8 @@ func (c *Client) XMLAccess(ctx context.Context, request string) (string, error) 
 	return "", last
 }
 
-func (c *Client) xmlAccessOnce(ctx context.Context, request string) (string, bool, error) {
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+"/wps/config", strings.NewReader(request))
+func (c *Client) xmlAccessOnce(ctx context.Context, path, request string) (string, bool, error) {
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+path, strings.NewReader(request))
 	req.SetBasicAuth(c.cfg.Username, c.cfg.Password)
 	req.Header.Set("Content-Type", "text/xml; charset=UTF-8")
 	hc := *c.http

@@ -119,7 +119,8 @@ spec:
                       type: string
                     kind:
                       description: 'Kind: Deployment, StatefulSet, Job, DXScriptApplication,
-                        DXPage, DXDamCollection, DXDatabase, DXTheme or DXWCMLibraryImport.'
+                        DXPage, DXDamCollection, DXDatabase, DXTheme, DXWCMLibraryImport
+                        or DXXMLAccess.'
                       enum:
                       - Deployment
                       - StatefulSet
@@ -130,6 +131,7 @@ spec:
                       - DXDatabase
                       - DXTheme
                       - DXWCMLibraryImport
+                      - DXXMLAccess
                       type: string
                     name:
                       description: Name of the object, in the same namespace.
