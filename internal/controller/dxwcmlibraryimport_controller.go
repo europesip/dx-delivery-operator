@@ -426,9 +426,9 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			for _, t := range titles {
 				failed[t] = err.Error()
 			}
-			r.Recorder.Eventf(o, nil, corev1.EventTypeWarning, reasonImportFailed, "Import", "chunk %d/%d: %v", i+1, len(chunks), err)
+			r.Recorder.Eventf(o, nil, corev1.EventTypeWarning, reasonImportFailed, chunkAction(i), "chunk %d/%d: %v", i+1, len(chunks), err)
 		} else {
-			r.Recorder.Eventf(o, nil, corev1.EventTypeNormal, "ChunkImported", "Import", "chunk %d/%d imported: %s", i+1, len(chunks), strings.Join(titles, ", "))
+			r.Recorder.Eventf(o, nil, corev1.EventTypeNormal, "ChunkImported", chunkAction(i), "chunk %d/%d imported: %s", i+1, len(chunks), strings.Join(titles, ", "))
 		}
 	}
 
@@ -501,6 +501,10 @@ func singleArchive(dir string) (string, error) {
 	}
 	return found[0], nil
 }
+
+// chunkAction gives each chunk its own event action: Kubernetes merges events with the same object, reason and action
+// into one series (only the count changes), so "chunk 3 imported" would show as a repeat of "chunk 2 imported".
+func chunkAction(i int) string { return fmt.Sprintf("ImportChunk%d", i+1) }
 
 func failedSummary(f []dxv1.WCMLibraryResult) string {
 	var b []string
