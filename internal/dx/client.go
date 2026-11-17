@@ -124,6 +124,15 @@ func (c *Client) loginLocked(ctx context.Context, force bool) error {
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
 		return fmt.Errorf("DX rejected the credentials (HTTP %d)", resp.StatusCode)
+	case (resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadGateway || resp.StatusCode == http.StatusServiceUnavailable) &&
+		!c.cfg.NoFormLogin:
+		// A DX installed without the Ring API (only the Web Engine, for example a test DX on Derby without DAM):
+		// HAProxy answers 503 "No server is available" for /dx/api/core. The form login of the portal works there.
+		if err := c.formLogin(ctx); err != nil {
+			return fmt.Errorf("DX login: the REST login answered HTTP %d and the form login failed: %w", resp.StatusCode, err)
+		}
+		c.session = time.Now()
+		return nil
 	case resp.StatusCode >= 300:
 		return fmt.Errorf("DX login answered HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(msg)))
 	}

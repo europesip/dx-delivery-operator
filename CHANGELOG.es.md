@@ -5,12 +5,24 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## Sin publicar
+## 0.4.0 · 2026-11-17 · Importación de bibliotecas WCM
 
-- **TechDocs para Backstage** (#6): `mkdocs.yml` y una portada de la documentación (`docs/index.md`,
-  `docs/index.es.md`), así el portal interno del desarrollador de EUROPESIP muestra la documentación del operador. Los
-  enlaces de `docs/` a ficheros fuera de ella (y a `docs/specs/`) son enlaces absolutos a GitHub, también en
-  `hack/gen-reference.py`. No cambian el operador, los CRD ni el chart.
+- **Recurso nuevo `DXWCMLibraryImport`** (#11): importa bibliotecas WCM de un export en DX Compose sin ConfigEngine
+  (que DX Compose no tiene), en el portal base o en un portal virtual (`virtualPortal.create` lo crea). Selección de
+  bibliotecas (include, exclude, `excludeHCLDefaults`), `overwrite`, **Portal Site protegida** salvo
+  `portalSiteLibraryOverwrite: true`, `mode: Import|ImportCopy`, inventario con `dryRun`, roles `access` en las
+  bibliotecas importadas, lotes automáticos (`upload.maxChunkSize`, `upload.maxChunkFiles`), ejecución de una sola vez.
+  Ejemplo 10. Probado en DX Compose CF239 con un export CF230 de 48 bibliotecas, desde una URL y desde Harbor, y usado
+  en producción.
+- **Fuentes**: los archivos por URL se descargan a disco (hasta 8 GiB, también `.tar.bz2` y `.tar`); los **artefactos
+  ORAS** (`oras push <ref> fichero.tar.bz2`) se leen como ficheros; la importación WCM descomprime el archivo que traiga
+  la fuente.
+- **Login**: si DX no tiene la API REST (`/dx/api/core` responde 404/502/503, p. ej. un DX solo con el Web Engine), el
+  operador entra con el formulario.
+- **Chart**: `logFormat` (por defecto `json`) y `logEvents` (por defecto `false`: cada evento de Kubernetes también como
+  línea de log, para clústeres que no recojan eventos; desactivado para no guardar cada evento dos veces).
+  `DXWCMLibraryImport` puede usarse en `dependsOn`.
+- **TechDocs para Backstage** (#6): `mkdocs.yml` y portada de la documentación.
 
 ## 0.3.2 · 2026-11-12 · Cookie de sesión OIDC WAS_p...
 

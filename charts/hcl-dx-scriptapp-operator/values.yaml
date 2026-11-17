@@ -25,6 +25,13 @@ dx:
 replicas: 1                    # more than 1 only for high availability: leader election keeps one active
 leaderElection: true
 logLevel: info                 # info or debug
+# json: one JSON object per line, easy to query in Loki/Elastic. console: human-readable lines.
+logFormat: json
+# logEvents: also write every Kubernetes event of the operator (pushes, drift, restores, imports, failures) as a log line
+# (dxopEvent=true, reason, kind, resourceNamespace, resourceName). Default false: most log stacks already collect
+# Kubernetes events (e.g. Grafana Alloy loki.source.kubernetes_events), and both would store every event twice. Turn it
+# on only when the cluster does not ship Kubernetes events.
+logEvents: false
 
 resources:
   requests: { cpu: 50m, memory: 192Mi }

@@ -102,3 +102,18 @@
   operator falls back to the portal form login. The OIDC `authFilter` of DX must leave out `/wps/config` (XMLAccess,
   documented by HCL), `j_security_check` and requests with `Authorization: Basic` (DXClient).
 - API `v1alpha1`: fields may still change before `v1`.
+
+## WCM library imports
+
+- **Uploads**: dxFileTransfer accepts at most 500 MB per upload (the operator chunks by library; a single library over
+  500 MB compressed cannot be imported) and rejects file names with spaces. Such names cannot be renamed (DX finds the
+  values of an item by its name): the library is reported as not importable; rename the item in the source portal.
+- **20-minute requests**: the HAProxy of DX Compose cuts requests after 1200 s. Updating existing items is ~7 files/s
+  (new items ~60): keep `upload.maxChunkFiles` low enough.
+- **Access control**: imported libraries keep the ACLs of the source portal, whose users and groups usually do not
+  exist in the target: only administrators see them until roles are given (`access`).
+- **Versions**: the export must come from the same or an older DX (tested CF230 → CF239).
+- **Virtual portals** are addressed by URL context, not by host name; XMLAccess cannot delete them (DX answers ok and
+  does nothing), and the operator never deletes them nor libraries.
+- **Several Web Engine replicas** are not tested yet: the upload and the import may reach different pods.
+- **Trivy** in Harbor scans images, not ORAS file artifacts.

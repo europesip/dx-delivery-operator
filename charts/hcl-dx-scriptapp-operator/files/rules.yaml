@@ -52,6 +52,7 @@ rules:
   - dxpages/status
   - dxscriptapplications/status
   - dxthemes/status
+  - dxwcmlibraryimports/status
   verbs:
   - get
   - patch
@@ -64,6 +65,7 @@ rules:
   - dxpages
   - dxscriptapplications
   - dxthemes
+  - dxwcmlibraryimports
   verbs:
   - get
   - list

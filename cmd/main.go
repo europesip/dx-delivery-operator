@@ -193,11 +193,18 @@ func main() {
 	if workDir == "" {
 		workDir = filepath.Join(os.TempDir(), "dxop")
 	}
+	// Events are also written as log lines only when asked (LOG_EVENTS=true, chart value logEvents): clusters that ship
+	// Kubernetes events to their log stack would otherwise get every event twice.
+	var eventRecorder = mgr.GetEventRecorder("hcl-dx-scriptapp-operator")
+	if v := strings.ToLower(strings.TrimSpace(os.Getenv("LOG_EVENTS"))); v == "true" || v == "1" {
+		eventRecorder = controller.LoggingRecorder(eventRecorder, ctrl.Log.WithName("events"))
+		setupLog.Info("every Kubernetes event is also written as a log line (LOG_EVENTS=true)")
+	}
 	shared := &controller.Shared{
 		DXClient: dx.NewDXClientFromEnv(),
 		Fetcher:  &source.Fetcher{Client: mgr.GetClient(), CacheDir: filepath.Join(workDir, "cache")},
 		WorkDir:  workDir,
-		Recorder: mgr.GetEventRecorder("hcl-dx-scriptapp-operator"),
+		Recorder: eventRecorder,
 	}
 	if err := shared.DXClient.Available(); err != nil {
 		setupLog.Error(err, "DXClient cannot run: Script Applications will not be pushed until this is fixed")
@@ -241,6 +248,15 @@ func main() {
 		Shared: shared,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "dxdamcollection")
+		os.Exit(1)
+	}
+	if err := (&controller.DXWCMLibraryImportReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+		Scheme:    mgr.GetScheme(),
+		Shared:    shared,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "dxwcmlibraryimport")
 		os.Exit(1)
 	}
 	if err := (&controller.DXDatabaseReconciler{

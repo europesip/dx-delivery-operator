@@ -72,6 +72,7 @@ El operador convierte esos pasos en **recursos con un estado deseado y un status
 | **DXDamCollection** | Crea la colección y sube cada fichero de su origen; un fichero cambiado pasa a ser **una versión nueva del mismo asset** (misma URL); restaura los borrados; acceso público o de usuarios autenticados; limpieza opcional |
 | **DXTheme** | Un **tema**: sube al almacén WebDAV los ficheros de su origen (un tema propio completo, como el [tema de ejemplo de EUROPESIP](https://github.com/europesip/hcl-dx-theme-sample), o ficheros que se añaden a una copia de un tema del mismo DX), HTML opcional en el `<head>` de sus plantillas, y lo registra con XMLAccess. Las páginas lo usan con `spec.theme`; se restaura si se borra su registro o su carpeta en DX |
 | **DXDatabase** | Crea la base de datos de un backend y su propietario en un **PostgreSQL, Oracle o SQL Server** existente, y escribe un **Secret** para el backend (`uri`, `jdbcUrl`, usuario, contraseña...). La contraseña se genera una vez y se conserva |
+| **DXWCMLibraryImport** | **Importa bibliotecas WCM** de un export de bibliotecas (`ConfigEngine export-wcm-data` de un portal tradicional, o el módulo de datos de WCM de DX Compose: sin ConfigEngine) en el portal base o en un **portal virtual** (lo crea si se pide). Desde una URL o un registro (el fichero tal cual, subido con ORAS); selección por título, bibliotecas existentes y **Portal Site** protegidas salvo que se pida, **lotes** automáticos (límites de 500 MB y 20 minutos de DX), inventario con `dryRun`, roles en las bibliotecas importadas. **Una sola vez**: importa cuando cambia el recurso y nunca restaura ni borra contenido |
 
 Y en todos los recursos: **dependencias** (`dependsOn`: Deployments, StatefulSets, Jobs y los demás recursos; no
 se sube nada hasta que el backend está listo), **política de deriva** (`Restore`, por defecto, o `Report`),
@@ -169,6 +170,7 @@ Aplicaciones pequeñas, cada una para un caso. Se aplican en un namespace con lo
 | [07-verify](samples/07-verify/verify.yaml) | `mode: Verify`: solo comprueba que la aplicación está en DX (entornos con sindicación) |
 | [08-page](samples/08-page/page.yaml) | Una página con tres aplicaciones, una posición y una política de borrado |
 | [09-theme](samples/09-theme/theme.yaml) | Un tema propio (el [tema de ejemplo de EUROPESIP](https://github.com/europesip/hcl-dx-theme-sample), desde su release) y una página que lo usa |
+| [10-wcm-library-import](samples/10-wcm-library-import/wcm-library-import.yaml) | Importar en un portal virtual las bibliotecas WCM de un export de ConfigEngine, después de una simulación |
 
 ![Los ejemplos 03, 05 y 01 en la página del ejemplo 08](docs/images/showcase.png)
 
@@ -206,6 +208,10 @@ Las importantes (todas en [docs/limitations.es.md](docs/limitations.es.md)):
 - Los cambios hechos en DX a una aplicación gestionada o a los ajustes de una página **se sobrescriben**
   (`driftPolicy: Restore`); usa `Report` donde se edite en DX.
 - Una réplica activa (leader election); los push se serializan.
+- **Importación de bibliotecas WCM**: DX Compose admite subidas de como máximo 500 MB y nombres de fichero sin espacios
+  (una biblioteca con esos nombres se informa y no se sube); su HAProxy corta las peticiones a los 20 minutos (lotes de
+  como máximo 4.000 ficheros); las bibliotecas importadas conservan el control de acceso del portal de origen (usa
+  `access`); Portal Site nunca se importa salvo `portalSiteLibraryOverwrite: true`.
 
 ## Seguridad
 

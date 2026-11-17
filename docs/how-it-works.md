@@ -161,3 +161,24 @@ kubectl get events --field-selector involvedObject.name=time-off
 
 Events: `Pushed` (Created / Updated / Restored), `Drifted`, `PushFailed`, `Created`, `Rebuilt`, `Synced`,
 `Deleted`, `Undeployed`, `Dropped`, `Connected`, `LoginFailed`...
+
+## WCM library imports (DXWCMLibraryImport, 0.4.0)
+
+DX Compose has no ConfigEngine, and DXClient `wcm-library-import` relies on it. The operator uses what DX Compose
+offers over HTTP:
+
+1. **Virtual portal**: listed (and created if `create: true`) with XMLAccess and the `PortalVPHandler.xsd` schema. A
+   missing portal ends the run before anything is downloaded.
+2. **Export**: fetched like any source (URL streamed to disk, OCI image, or an ORAS file artifact); an archive inside
+   the source is unpacked. Libraries are the `<library>.node` files of the export, titled by `icm:title`.
+3. **Selection**: include, exclude, `excludeHCLDefaults`; libraries that already exist in the target (WCM REST
+   `query?type=Library`) are skipped unless `overwrite`; **Portal Site** (fixed ID `TWFuYWdlZCBQYWdlcyBSb290IExpYnJhcnk`)
+   only with `portalSiteLibraryOverwrite`. Libraries with file names dxFileTransfer rejects are reported, not uploaded.
+4. **Chunks** of at most `upload.maxChunkSize` (450Mi) and `upload.maxChunkFiles` (4000): each one is uploaded with
+   `dxFileTransfer` (`unzip=true`), imported with the WCM data module
+   (`/wps/wcm/myconnect[/<vp>]?MOD=data&taskType=import|import-copy&input.dir=...`) and its folder deleted. If a proxy
+   cuts the request (502/503/504), the folder is kept: DX goes on importing.
+5. **Check and roles**: the libraries are listed again; `access` roles are added (WCM access control REST).
+
+The run is **one-shot**: the status keeps a hash of the spec, and the import runs again only when the spec or the
+`dx.europesip.com/reconcile` annotation changes. Imports to the same DX never overlap with its XMLAccess calls.

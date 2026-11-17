@@ -149,3 +149,22 @@ func TestSessionCookieNames(t *testing.T) {
 		}
 	}
 }
+
+// DX without the Ring API (only the Web Engine): /dx/api/core answers 503 from HAProxy; the form login is used.
+func TestLoginWithoutRingAPI(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/dx/api/core/v1/auth/login":
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("<html><body><h1>503 Service Unavailable</h1>No server is available to handle this request.</body></html>"))
+		case "/wps/j_security_check":
+			http.SetCookie(w, &http.Cookie{Name: "LtpaToken2", Value: "t", Path: "/"})
+			http.Redirect(w, r, "/wps/", http.StatusFound)
+		}
+	}))
+	defer srv.Close()
+	c, _ := NewClient(Config{BaseURL: srv.URL, Username: "wpsadmin", Password: "secret"})
+	if err := c.Login(context.Background()); err != nil {
+		t.Fatalf("form login fallback: %v", err)
+	}
+}

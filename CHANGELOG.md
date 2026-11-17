@@ -5,12 +5,22 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
-## Unreleased
+## 0.4.0 · 2026-11-17 · WCM library imports
 
-- **TechDocs for Backstage** (#6): `mkdocs.yml` and a docs home page (`docs/index.md`, `docs/index.es.md`), so the
-  EUROPESIP Internal Developer Portal shows the operator documentation. Links from `docs/` to files outside it (and to
-  `docs/specs/`) are absolute GitHub links, also in `hack/gen-reference.py`. No change to the operator, the CRDs or
-  the chart.
+- **New resource `DXWCMLibraryImport`** (#11): imports WCM libraries from a library export into DX Compose, without
+  ConfigEngine (which DX Compose does not have) — the base portal or a virtual portal (`virtualPortal.create` creates
+  it). Library selection (include, exclude, `excludeHCLDefaults`), `overwrite`, **Portal Site protected** unless
+  `portalSiteLibraryOverwrite: true`, `mode: Import|ImportCopy`, `dryRun` inventory, `access` roles on the imported
+  libraries, automatic chunks (`upload.maxChunkSize`, `upload.maxChunkFiles`), one-shot runs. Sample 10.
+  Tested on DX Compose CF239 with a CF230 export of 48 libraries, from a URL and from Harbor, and used in production.
+- **Sources**: URL archives are streamed to disk (up to 8 GiB, also `.tar.bz2` and `.tar`); **ORAS file artifacts**
+  (`oras push <ref> file.tar.bz2`) are read as files; an archive inside a source is unpacked by the WCM import.
+- **Login**: when DX has no Ring API (`/dx/api/core` answers 404/502/503, e.g. a DX with only the Web Engine), the
+  operator signs in with the form login.
+- **Chart**: `logFormat` (default `json`) and `logEvents` (default `false`: every Kubernetes event also as a log line,
+  for clusters that do not ship events — off by default so events are not stored twice). `DXWCMLibraryImport` can be a
+  `dependsOn` kind.
+- **TechDocs for Backstage** (#6): `mkdocs.yml` and a docs home page.
 
 ## 0.3.2 · 2026-11-12 · OIDC session cookie WAS_p...
 

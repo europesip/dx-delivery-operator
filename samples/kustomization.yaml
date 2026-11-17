@@ -13,3 +13,4 @@ resources:
   - 07-verify/verify.yaml
   - 08-page/page.yaml
   - 09-theme/theme.yaml
+  # 10-wcm-library-import is not listed: it needs a WCM library export of your own (see its comments)
