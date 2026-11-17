@@ -5,7 +5,7 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## Sin publicar (0.5.0) · Peticiones XMLAccess
+## 0.5.0 · 2026-11-17 · Peticiones XMLAccess
 
 - **Recurso nuevo `DXXMLAccess`** (#15): ejecuta peticiones XMLAccess propias contra el portal base o un portal virtual
   (`/wps/config/<contexto>`). Las peticiones van en línea (`xml`) o son los ficheros `.xml` de una fuente: un archivo

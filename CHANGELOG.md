@@ -5,7 +5,7 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
-## Unreleased (0.5.0) · XMLAccess requests
+## 0.5.0 · 2026-11-17 · XMLAccess requests
 
 - **New resource `DXXMLAccess`** (#15): runs XMLAccess requests of your own against the base portal or a virtual
   portal (`/wps/config/<context>`). The requests come inline (`xml`) or as the `.xml` files of a source: a URL archive
