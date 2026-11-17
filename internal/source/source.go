@@ -6,7 +6,9 @@ package source
 import (
 	"archive/tar"
 	"archive/zip"
+	"bufio"
 	"bytes"
+	"compress/bzip2"
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
@@ -199,6 +201,19 @@ func (f *Fetcher) fromImage(ctx context.Context, namespace string, src *dxv1.Ima
 	if err != nil {
 		return nil, err
 	}
+	// An OCI artifact pushed with ORAS (oras push <ref> file...): its layers are the files themselves, named by the
+	// org.opencontainers.image.title annotation, not tar layers of a filesystem. They are written as they are (for
+	// example the .tar.bz2 of a WCM library export, unpacked later by whoever reads the tree).
+	if m, merr := img.Manifest(); merr == nil && isFileArtifact(m) {
+		n, err := writeArtifactFiles(img, m, dir)
+		if err != nil {
+			return nil, fmt.Errorf("artifact %s: %w", src.Ref, err)
+		}
+		if n == 0 {
+			return nil, fmt.Errorf("artifact %s has no files", src.Ref)
+		}
+		return finish(dir, rev)
+	}
 	rc := mutate.Extract(img) // flattened filesystem, whiteouts applied
 	defer rc.Close()          //nolint:errcheck
 	n, err := untar(rc, dir, sub)
@@ -209,6 +224,112 @@ func (f *Fetcher) fromImage(ctx context.Context, namespace string, src *dxv1.Ima
 		return nil, fmt.Errorf("image %s has no files under %s", src.Ref, "/"+sub)
 	}
 	return finish(dir, rev)
+}
+
+const titleAnnotation = "org.opencontainers.image.title"
+
+// isFileArtifact tells an ORAS file artifact (layers annotated with a file name) from a container image.
+func isFileArtifact(m *v1.Manifest) bool {
+	if len(m.Layers) == 0 {
+		return false
+	}
+	for _, l := range m.Layers {
+		if l.Annotations[titleAnnotation] == "" {
+			return false
+		}
+	}
+	return true
+}
+
+// writeArtifactFiles writes each layer of an ORAS artifact to dir/<title>. Folders pushed by ORAS (annotation
+// io.deis.oras.content.unpack=true, a tar+gzip of the folder) are unpacked into dir/<title>.
+func writeArtifactFiles(img v1.Image, m *v1.Manifest, dir string) (int, error) {
+	n := 0
+	for _, d := range m.Layers {
+		title := d.Annotations[titleAnnotation]
+		dst, err := safeJoin(dir, title)
+		if err != nil {
+			return n, fmt.Errorf("file name %q: %w", title, err)
+		}
+		layer, err := img.LayerByDigest(d.Digest)
+		if err != nil {
+			return n, err
+		}
+		rc, err := layer.Compressed() // the blob as stored: the file itself
+		if err != nil {
+			return n, err
+		}
+		if d.Annotations["io.deis.oras.content.unpack"] == "true" {
+			gz, gerr := gzip.NewReader(rc)
+			if gerr != nil {
+				_ = rc.Close()
+				return n, gerr
+			}
+			k, uerr := untar(gz, dst, "")
+			_ = rc.Close()
+			if uerr != nil {
+				return n, uerr
+			}
+			n += k
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(dst), 0o700); err != nil {
+			_ = rc.Close()
+			return n, err
+		}
+		out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+		if err != nil {
+			_ = rc.Close()
+			return n, err
+		}
+		_, err = io.Copy(out, io.LimitReader(rc, MaxDownloadBytes))
+		_ = out.Close()
+		_ = rc.Close()
+		if err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
+}
+
+// IsArchive tells whether a file name is an archive that ExtractArchive unpacks.
+func IsArchive(name string) bool {
+	l := strings.ToLower(name)
+	for _, ext := range []string{".zip", ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz"} {
+		if strings.HasSuffix(l, ext) {
+			return true
+		}
+	}
+	return false
+}
+
+// ExtractArchive unpacks a .zip, .tar, .tar.gz/.tgz or .tar.bz2 file into dir and returns the number of files.
+func ExtractArchive(file, dir string) (int, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close() //nolint:errcheck
+	l := strings.ToLower(file)
+	switch {
+	case strings.HasSuffix(l, ".zip"):
+		fi, err := f.Stat()
+		if err != nil {
+			return 0, err
+		}
+		return unzipFile(f, fi.Size(), dir, "")
+	case strings.HasSuffix(l, ".tar.bz2") || strings.HasSuffix(l, ".tbz2") || strings.HasSuffix(l, ".tbz"):
+		return untar(bzip2.NewReader(bufio.NewReaderSize(f, 1<<20)), dir, "")
+	case strings.HasSuffix(l, ".tar"):
+		return untar(bufio.NewReaderSize(f, 1<<20), dir, "")
+	default:
+		gz, err := gzip.NewReader(bufio.NewReaderSize(f, 1<<20))
+		if err != nil {
+			return 0, fmt.Errorf("%s is not a .tar.gz, .tar.bz2, .tar or .zip archive", filepath.Base(file))
+		}
+		return untar(gz, dir, "")
+	}
 }
 
 // untar extracts the regular files under prefix (a path without leading slash, "" for all) into dir.
@@ -305,6 +426,9 @@ func (f *Fetcher) fromConfigMap(ctx context.Context, namespace string, src *dxv1
 
 // ---------------------------------------------------------------------------------------------- URL
 
+// MaxDownloadBytes limits the archives downloaded from a URL (WCM library exports are often hundreds of MB).
+const MaxDownloadBytes = 8 << 30
+
 func (f *Fetcher) fromURL(ctx context.Context, src *dxv1.URLSource) (*Tree, error) {
 	sub := strings.Trim(path.Clean("/"+src.Path), "/")
 	if src.SHA256 != "" {
@@ -312,7 +436,7 @@ func (f *Fetcher) fromURL(ctx context.Context, src *dxv1.URLSource) (*Tree, erro
 			return t, nil
 		}
 	}
-	cctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	cctx, cancel := context.WithTimeout(ctx, 60*time.Minute)
 	defer cancel()
 	req, err := http.NewRequestWithContext(cctx, http.MethodGet, src.URL, nil)
 	if err != nil {
@@ -326,12 +450,22 @@ func (f *Fetcher) fromURL(ctx context.Context, src *dxv1.URLSource) (*Tree, erro
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("download %s: HTTP %d", src.URL, resp.StatusCode)
 	}
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 500<<20))
+	// The archive goes to a temporary file (streamed, hashed on the way), never into memory.
+	tmp, err := os.CreateTemp(f.CacheDir, "download-*")
 	if err != nil {
 		return nil, err
 	}
-	sum := sha256.Sum256(data)
-	got := hex.EncodeToString(sum[:])
+	defer os.Remove(tmp.Name()) //nolint:errcheck
+	defer tmp.Close()           //nolint:errcheck
+	h := sha256.New()
+	n, err := io.Copy(io.MultiWriter(tmp, h), io.LimitReader(resp.Body, MaxDownloadBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("download %s: %w", src.URL, err)
+	}
+	if n > MaxDownloadBytes {
+		return nil, fmt.Errorf("download %s: bigger than %d bytes", src.URL, int64(MaxDownloadBytes))
+	}
+	got := hex.EncodeToString(h.Sum(nil))
 	if src.SHA256 != "" && !strings.EqualFold(src.SHA256, got) {
 		return nil, fmt.Errorf("download %s: SHA256 is %s, expected %s", src.URL, got, src.SHA256)
 	}
@@ -343,25 +477,40 @@ func (f *Fetcher) fromURL(ctx context.Context, src *dxv1.URLSource) (*Tree, erro
 	if err != nil {
 		return nil, err
 	}
-	var n int
+	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
 	lower := strings.ToLower(strings.SplitN(src.URL, "?", 2)[0])
+	var files int
 	switch {
 	case strings.HasSuffix(lower, ".zip"):
-		n, err = unzip(data, dir, sub)
+		files, err = unzipFile(tmp, n, dir, sub)
+	case strings.HasSuffix(lower, ".tar.bz2") || strings.HasSuffix(lower, ".tbz2") || strings.HasSuffix(lower, ".tbz"):
+		files, err = untar(bzip2.NewReader(bufio.NewReaderSize(tmp, 1<<20)), dir, sub)
+	case strings.HasSuffix(lower, ".tar"):
+		files, err = untar(bufio.NewReaderSize(tmp, 1<<20), dir, sub)
 	default: // .tar.gz / .tgz
-		gz, gerr := gzip.NewReader(bytes.NewReader(data))
+		gz, gerr := gzip.NewReader(bufio.NewReaderSize(tmp, 1<<20))
 		if gerr != nil {
-			return nil, fmt.Errorf("%s is not a .tar.gz or .zip archive", src.URL)
+			return nil, fmt.Errorf("%s is not a .tar.gz, .tar.bz2, .tar or .zip archive", src.URL)
 		}
-		n, err = untar(gz, dir, sub)
+		files, err = untar(gz, dir, sub)
 	}
 	if err != nil {
 		return nil, err
 	}
-	if n == 0 {
+	if files == 0 {
 		return nil, fmt.Errorf("archive %s has no files under %q", src.URL, sub)
 	}
 	return finish(dir, rev)
+}
+
+func unzipFile(r io.ReaderAt, size int64, dir, prefix string) (int, error) {
+	zr, err := zip.NewReader(r, size)
+	if err != nil {
+		return 0, err
+	}
+	return unzipReader(zr, dir, prefix)
 }
 
 func unzip(data []byte, dir, prefix string) (int, error) {
@@ -369,6 +518,10 @@ func unzip(data []byte, dir, prefix string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	return unzipReader(zr, dir, prefix)
+}
+
+func unzipReader(zr *zip.Reader, dir, prefix string) (int, error) {
 	n := 0
 	for _, zf := range zr.File {
 		if zf.FileInfo().IsDir() {
