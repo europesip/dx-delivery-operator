@@ -78,6 +78,7 @@ The operator turns those steps into **resources with a desired state and a statu
 | **DXDamCollection** | Creates the collection and uploads every file of its source; a changed file becomes a **new version of the same asset** (same URL); restores deleted assets; public or authenticated access; optional prune |
 | **DXTheme** | A **theme**: uploads the files of its source (a complete theme of its own, such as the [EUROPESIP sample theme](https://github.com/europesip/hcl-dx-theme-sample), or files added to a copy of a theme of the same DX) to the WebDAV store, optional HTML in the `<head>` of its templates, and registers it with XMLAccess. Pages use it with `spec.theme`; restored if its registration or folder is deleted in DX |
 | **DXDatabase** | Creates the database of a backend and its owner in an existing **PostgreSQL, Oracle or SQL Server**, and writes a **Secret** for the backend (`uri`, `jdbcUrl`, user, password...). The password is generated once and kept |
+| **DXWCMLibraryImport** | **Imports WCM libraries** from a library export (`ConfigEngine export-wcm-data` of a traditional portal, or the WCM data module of DX Compose: no ConfigEngine needed) into the base portal or a **virtual portal** (created if asked). From a URL or a registry (the file as delivered, pushed with ORAS); selection by title, existing libraries and **Portal Site** protected unless asked, automatic **chunks** (500 MB / 20-minute limits of DX), `dryRun` inventory, roles on the imported libraries. **One-shot**: it imports when the resource changes and never restores or deletes content |
 
 And for every resource: **dependencies** (`dependsOn`: Deployments, StatefulSets, Jobs and the other resources,
 so nothing is pushed until the backend is up), **drift policy** (`Restore`, the default, or `Report`),
@@ -174,6 +175,7 @@ Small applications, each one showing one case. Apply them in a namespace with th
 | [07-verify](samples/07-verify/verify.yaml) | `mode: Verify`: only check that an application is in DX (syndicated environments) |
 | [08-page](samples/08-page/page.yaml) | One page with three applications, a position and a deletion policy |
 | [09-theme](samples/09-theme/theme.yaml) | A theme of its own (the [EUROPESIP sample theme](https://github.com/europesip/hcl-dx-theme-sample), from its release) and a page that uses it |
+| [10-wcm-library-import](samples/10-wcm-library-import/wcm-library-import.yaml) | Import the WCM libraries of a ConfigEngine export into a virtual portal, after a dry run |
 
 ![Samples 03, 05 and 01 on the page of sample 08](docs/images/showcase.png)
 
@@ -211,6 +213,10 @@ The important ones (all of them in [docs/limitations.md](docs/limitations.md)):
 - Edits made in DX to a managed application or to page settings are **overwritten** (`driftPolicy: Restore`);
   use `Report` where people edit in DX.
 - One active replica (leader election); pushes are serialised.
+- **WCM library imports**: DX Compose accepts uploads of at most 500 MB and file names without spaces (a library with
+  such names is reported, not uploaded); its HAProxy cuts requests after 20 minutes (chunks of at most 4,000 files);
+  imported libraries keep the access control of the source portal (use `access`); Portal Site is never imported unless
+  `portalSiteLibraryOverwrite: true`.
 
 ## Security
 

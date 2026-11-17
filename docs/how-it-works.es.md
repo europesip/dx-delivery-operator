@@ -147,3 +147,24 @@ kubectl get events --field-selector involvedObject.name=vacaciones
 
 Eventos: `Pushed` (Created / Updated / Restored), `Drifted`, `PushFailed`, `Created`, `Rebuilt`, `Synced`,
 `Deleted`, `Undeployed`, `Dropped`, `Connected`, `LoginFailed`...
+
+## Importación de bibliotecas WCM (DXWCMLibraryImport, 0.4.0)
+
+DX Compose no tiene ConfigEngine, y DXClient `wcm-library-import` depende de él. El operador usa lo que DX Compose
+ofrece por HTTP:
+
+1. **Portal virtual**: se lista (y se crea con `create: true`) por XMLAccess con el esquema `PortalVPHandler.xsd`. Si
+   no existe, la ejecución termina antes de descargar nada.
+2. **Export**: se obtiene como cualquier fuente (URL a disco, imagen OCI o artefacto ORAS con el fichero); si la fuente
+   trae un fichero comprimido, se descomprime. Las bibliotecas son los `<biblioteca>.node` del export, con su `icm:title`.
+3. **Selección**: include, exclude, `excludeHCLDefaults`; las que ya existen en el destino (WCM REST
+   `query?type=Library`) se saltan salvo `overwrite`; **Portal Site** (ID fijo `TWFuYWdlZCBQYWdlcyBSb290IExpYnJhcnk`)
+   solo con `portalSiteLibraryOverwrite`. Las bibliotecas con nombres que dxFileTransfer rechaza se informan y no se suben.
+4. **Lotes** de como máximo `upload.maxChunkSize` (450Mi) y `upload.maxChunkFiles` (4000): cada uno se sube con
+   `dxFileTransfer` (`unzip=true`), se importa con el módulo de datos de WCM
+   (`/wps/wcm/myconnect[/<vp>]?MOD=data&taskType=import|import-copy&input.dir=...`) y se borra su carpeta. Si un proxy
+   corta la petición (502/503/504), la carpeta se conserva: DX sigue importando.
+5. **Comprobación y roles**: se vuelven a listar las bibliotecas y se añaden los roles de `access`.
+
+Es una operación **de una sola vez**: el estado guarda un hash del spec y solo se vuelve a importar si cambia el spec o
+la anotación `dx.europesip.com/reconcile`. Las importaciones a un DX nunca coinciden con sus llamadas XMLAccess.

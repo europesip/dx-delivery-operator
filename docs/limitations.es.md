@@ -105,3 +105,19 @@
   que el operador usa el login de formulario del portal. El `authFilter` OIDC de DX debe dejar fuera `/wps/config`
   (XMLAccess, lo documenta HCL), `j_security_check` y las peticiones con `Authorization: Basic` (DXClient).
 - API `v1alpha1`: los campos pueden cambiar antes de `v1`.
+
+## Importación de bibliotecas WCM
+
+- **Subidas**: dxFileTransfer acepta como máximo 500 MB por subida (el operador hace lotes por biblioteca; una sola
+  biblioteca de más de 500 MB comprimida no se puede importar) y rechaza nombres de fichero con espacios. No se pueden
+  renombrar (DX busca los valores de un elemento por su nombre): la biblioteca se informa como no importable; hay que
+  renombrar el elemento en el portal de origen.
+- **Peticiones de 20 minutos**: el HAProxy de DX Compose corta a los 1200 s. Actualizar elementos existentes va a ~7
+  ficheros/s (nuevos ~60): ajusta `upload.maxChunkFiles`.
+- **Control de acceso**: las bibliotecas importadas conservan los permisos del portal de origen, cuyos usuarios y
+  grupos no suelen existir en el destino: solo los administradores las ven hasta dar roles (`access`).
+- **Versiones**: el export debe venir del mismo DX o de uno anterior (probado CF230 → CF239).
+- **Portales virtuales**: por contexto URL, no por nombre de host; XMLAccess no los borra (DX responde ok y no hace
+  nada), y el operador nunca los borra, ni tampoco bibliotecas.
+- **Varias réplicas del Web Engine**: aún sin probar; la subida y la importación pueden llegar a pods distintos.
+- **Trivy** en Harbor escanea imágenes, no artefactos ORAS.

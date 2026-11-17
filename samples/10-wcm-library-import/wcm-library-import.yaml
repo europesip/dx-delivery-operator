@@ -1,0 +1,29 @@
+# Sample 10 · DXWCMLibraryImport: import the WCM libraries of a library export (ConfigEngine export-wcm-data of a
+# traditional portal, or the WCM data module of DX Compose) into a virtual portal, starting with a dry run.
+#
+# Put the export where the operator can read it:
+#   - the file as delivered, in a registry:  oras push registry.example.com/dx-wcm/acme:2026-11-17 export.tar.bz2
+#   - or a URL (.tar.bz2, .tar.gz, .tar, .zip) with its sha256
+# 1) Apply with dryRun: true and read the inventory: kubectl get dxwcmlibraryimport acme-libraries -o yaml
+# 2) Set dryRun: false (or delete the line) to import. Deleting the resource never deletes libraries from DX.
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXWCMLibraryImport
+metadata:
+  name: acme-libraries
+spec:
+  connectionRef: { name: dx }
+  source:
+    image:
+      ref: registry.example.com/dx-wcm/acme:2026-11-17      # an ORAS artifact with the .tar.bz2, or an image
+      pullSecrets: [{ name: registry-credentials }]
+    # url: { url: https://files.example.com/exportLibraries.tar.bz2, sha256: "<sha256 of the file>" }
+  virtualPortal:
+    context: acme              # empty = the base portal
+    create: false              # true = create the virtual portal if it does not exist
+  libraries:
+    excludeHCLDefaults: true   # only the libraries of your own; include/exclude take titles
+  overwrite: false             # libraries that already exist are skipped
+  portalSiteLibraryOverwrite: false   # Portal Site is never imported unless this is true
+  access:                      # the source ACLs refer to users and groups of the source portal
+    - { dn: "cn=dxadmins,ou=groups,dc=example,dc=com", type: group, role: Administrator }
+  dryRun: true

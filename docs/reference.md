@@ -51,7 +51,7 @@ Short names: `dxapp`, `dxsa`
 | `deletionPolicy` | Retain \| Delete | `Retain` | DeletionPolicy: Retain (default) leaves the application in DX when the resource is deleted; Delete removes it (pages that use it then show an error). |
 | `dependsOn` | []object |  | DependsOn: objects that must be ready first (for example the Deployment of the backend). |
 | `dependsOn[].apiVersion` | string |  | APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1. |
-| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase or DXTheme. |
+| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme or DXWCMLibraryImport. |
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `driftPolicy` | Restore \| Report | `Restore` | DriftPolicy: Restore (default) pushes again if the application was deleted or edited in DX; Report only reports it. |
 | `mode` | Push \| Verify | `Push` | Mode: Push (default) or Verify. |
@@ -133,7 +133,7 @@ Short names: `dxp`
 | `deletionPolicy` | Retain \| Delete | `Retain` | DeletionPolicy: Retain (default) leaves the page in DX when the resource is deleted; Delete removes it. |
 | `dependsOn` | []object |  | DependsOn: other objects that must be ready first. |
 | `dependsOn[].apiVersion` | string |  | APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1. |
-| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase or DXTheme. |
+| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme or DXWCMLibraryImport. |
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `driftPolicy` | Restore \| Report | `Restore` | DriftPolicy: Restore (default) recreates the page if it was deleted in DX; Report only reports it. |
 | `friendlyName` | string |  | FriendlyName of the page in its URL (default: the name of the resource). |
@@ -184,7 +184,7 @@ Short names: `dxtheme`
 | `deletionPolicy` | Retain \| Delete | `Retain` | DeletionPolicy: Retain (default) leaves the theme in DX when the resource is deleted; Delete removes its registration and its folder (pages that use it fall back to the default theme). |
 | `dependsOn` | []object |  | DependsOn: other objects that must be ready first. |
 | `dependsOn[].apiVersion` | string |  | APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1. |
-| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase or DXTheme. |
+| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme or DXWCMLibraryImport. |
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `description` | string |  | Description of the theme. |
 | `driftPolicy` | Restore \| Report | `Restore` | DriftPolicy: Restore (default) uploads and registers it again if the theme or its folder was deleted in DX; Report only reports it. |
@@ -245,7 +245,7 @@ Short names: `dxdam`
 | `deletionPolicy` | Retain \| Delete | `Retain` | DeletionPolicy: Retain (default) leaves the collection in the DAM when the resource is deleted; Delete removes it with its assets. |
 | `dependsOn` | []object |  | DependsOn: other objects that must be ready first. |
 | `dependsOn[].apiVersion` | string |  | APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1. |
-| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase or DXTheme. |
+| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme or DXWCMLibraryImport. |
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `description` | string |  | Description of the collection. |
 | `driftPolicy` | Restore \| Report | `Restore` | DriftPolicy: Restore (default) uploads again what was deleted or replaced in DX; Report only reports it. |
@@ -328,4 +328,86 @@ Short names: `dxdb`
 | `lastCheckTime` | string |  |  |
 | `observedGeneration` | integer |  |  |
 | `secretName` | string |  | SecretName written for the backend. |
+
+## DXWCMLibraryImport
+
+DXWCMLibraryImport imports Web Content Manager libraries into HCL DX Compose (base or virtual portal) from a JCR export, once per source revision.
+
+Short names: `dxwcmimport`
+
+### spec
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `access` | []object |  | Access: roles granted on every imported library after the import. The access control of the source refers to users and groups that may not exist in the target. |
+| `access[].dn` | string (required) |  | DN of the user or group, for example cn=dxadmins,ou=groups,dc=example,dc=com |
+| `access[].role` | User \| Contributor \| Editor \| Manager \| Administrator (required) |  | Role in the library. |
+| `access[].type` | group \| user | `group` | Type of the principal. |
+| `connectionRef` | object (required) |  | ConnectionRef: the DXConnection of the DX that receives the libraries. |
+| `connectionRef.name` | string (required) |  | Name of the object. |
+| `dependsOn` | []object |  | DependsOn: resources that must be Ready first. |
+| `dependsOn[].apiVersion` | string |  | APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1. |
+| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme or DXWCMLibraryImport. |
+| `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
+| `dryRun` | boolean |  | DryRun: only read the export and the target and report what would be imported or skipped (status), without uploading or importing anything. |
+| `libraries` | object |  | Libraries to import. Empty: every library of the export. |
+| `libraries.exclude` | []string |  | Exclude: titles of the libraries to leave out (applied after include). |
+| `libraries.excludeHCLDefaults` | boolean |  | ExcludeHCLDefaults leaves out the libraries that HCL DX ships (Web Content, Portal Site, Script Portlet Library, Web Content Templates 3.0, ...), so that only the own libraries of the export are imported. |
+| `libraries.include` | []string |  | Include: titles of the libraries to import. When set, only these (each one must be in the export). |
+| `mode` | Import \| ImportCopy | `Import` | Mode: Import keeps the IDs of the export (importing again updates the same items); ImportCopy gives new IDs. |
+| `overwrite` | boolean |  | Overwrite: import also the libraries that already exist in the target (compared by title). Default false: they are skipped and listed in status.skippedLibraries. |
+| `portalSiteLibraryOverwrite` | boolean |  | PortalSiteLibraryOverwrite: the Portal Site library (the managed pages of the portal, fixed ID TWFuYWdlZCBQYWdlcyBSb290IExpYnJhcnk) is never imported, even when it is in the export or in libraries.include and even with overwrite: true, unless this is true. Default false. |
+| `source` | object (required) |  | Source of the export: a .tar.bz2, .tar.gz/.tgz or .zip archive (URL), an OCI image or a ConfigMap. It holds a WCM library export in JCR format (folder with <library>.node files), as written by ConfigEngine export-wcm-data (traditional DX) or by the WCM data module of DX Compose (taskType=export). |
+| `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
+| `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
+| `source.image` | object |  | Image: an OCI image (a "bundle image") that carries the files. The operator reads its layers directly from the registry: nothing runs in the cluster. Use a digest (repo@sha256:...) for immutable deployments. |
+| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). |
+| `source.image.pullSecrets` | []object |  | PullSecrets: Secrets of type kubernetes.io/dockerconfigjson for a private registry. |
+| `source.image.pullSecrets[].name` | string (required) |  | Name of the object. |
+| `source.image.ref` | string (required) |  | Reference of the image, for example ghcr.io/acme/my-app:1.2.0 or ghcr.io/acme/my-app@sha256:... |
+| `source.url` | object |  | URL: a .tar.gz, .tgz or .zip archive downloaded over HTTP(S), for example a CI artifact or a GitHub release asset. |
+| `source.url.path` | string |  | Path inside the archive where the files are (default: the root). |
+| `source.url.sha256` | string |  | SHA256 of the archive (hex). Recommended: the download is rejected if it does not match, and the operator only downloads it again when this value changes. |
+| `source.url.url` | string (required) |  | URL of a .tar.gz, .tgz or .zip archive. |
+| `suspend` | boolean |  | Suspend stops the reconciliation. |
+| `timeout` | string |  | Timeout of each import request (one per chunk). Default 2h. |
+| `upload` | object |  | Upload settings. |
+| `upload.maxChunkFiles` | integer |  | MaxChunkFiles: at most this many files per chunk (default 4000), so that each import request ends well before the proxies in front of DX cut it (the HAProxy of DX Compose: 20 minutes). DX imports ~60 files/s for new items and ~7 files/s when it updates existing ones (overwrite). 0 = no limit. |
+| `upload.maxChunkSize` | int or string |  | MaxChunkSize: the libraries are packed into zips no bigger than this, uploaded and imported one after the other (DX dxFileTransfer accepts at most 500 MB per upload). Default 450Mi. |
+| `virtualPortal` | object |  | VirtualPortal that receives the libraries. Empty: the base portal. |
+| `virtualPortal.context` | string (required) |  | Context: URL context of the virtual portal (the part after /wps/portal/), for example "europesip". |
+| `virtualPortal.create` | boolean |  | Create the virtual portal when it does not exist (XMLAccess, PortalVPHandler). Default false: a missing virtual portal makes the import fail before anything is downloaded or uploaded. |
+| `virtualPortal.description` | string |  | Description of the virtual portal when the operator creates it. |
+| `virtualPortal.realm` | string |  | Realm of the virtual portal when the operator creates it (default: the realm of the first virtual portal that already exists, or defaultWIMFileBasedRealm). |
+| `virtualPortal.title` | string |  | Title of the virtual portal when the operator creates it (default: the context). |
+
+### status
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `appliedHash` | string |  | AppliedHash of the spec and the source revision of the last finished run: the import runs again only when it changes. |
+| `chunks` | integer |  | Chunks: number of zips the libraries were packed into. |
+| `completionTime` | string |  |  |
+| `conditions` | []object |  |  |
+| `conditions[].lastTransitionTime` | string (required) |  | lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable. |
+| `conditions[].message` | string (required) |  | message is a human readable message indicating details about the transition. This may be an empty string. |
+| `conditions[].observedGeneration` | integer |  | observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance. |
+| `conditions[].reason` | string (required) |  | reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty. |
+| `conditions[].status` | True \| False \| Unknown (required) |  | status of the condition, one of True, False, Unknown. |
+| `conditions[].type` | string (required) |  | type of condition in CamelCase or in foo.example.com/CamelCase. |
+| `currentChunk` | integer |  | CurrentChunk being uploaded or imported (1-based). |
+| `dryRun` | boolean |  | DryRun: true when the status describes a dry run. |
+| `failedLibraries` | []object |  |  |
+| `failedLibraries[].reason` | string |  | Reason when it was skipped or failed. |
+| `failedLibraries[].title` | string (required) |  |  |
+| `importedLibraries` | []string |  |  |
+| `librariesInExport` | integer |  | LibrariesInExport: number of libraries found in the export. |
+| `message` | string |  | Message: last result in words. |
+| `observedGeneration` | integer |  |  |
+| `phase` | string |  | WCMImportPhase is the step an import is in. |
+| `skippedLibraries` | []object |  |  |
+| `skippedLibraries[].reason` | string |  | Reason when it was skipped or failed. |
+| `skippedLibraries[].title` | string (required) |  |  |
+| `sourceRevision` | string |  | SourceRevision of the export. |
+| `startTime` | string |  |  |
 
