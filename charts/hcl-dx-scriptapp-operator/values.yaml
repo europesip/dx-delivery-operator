@@ -34,18 +34,32 @@ logFormat: json
 logEvents: false
 
 resources:
-  requests: { cpu: 50m, memory: 192Mi }
-  limits: { memory: 1Gi }      # DXClient (Node.js) runs inside the pod during pushes
+  # 0.6.1: unpacking a WCM export (a .tar.bz2 of hundreds of MB) is CPU work; with 50m on a busy node the health
+  # probes timed out and the pod restarted in a loop
+  requests: { cpu: 500m, memory: 512Mi }
+  limits: { memory: 2Gi }      # DXClient (Node.js) runs inside the pod during pushes
 
 # Working folder: cache of the sources (by revision) and working copies of the applications
 workDir:
-  sizeLimit: 2Gi
+  sizeLimit: 8Gi   # 0.6.1: a WCM export archive, its unpacked tree and one chunk zip at a time (was 2Gi)
 
 podAnnotations: {}
 podLabels: {}
 nodeSelector: {}
 tolerations: []
-affinity: {}
+# 0.6.1: prefer worker nodes (the control plane has little CPU); preferred, so a one-node cluster keeps working
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - { key: node-role.kubernetes.io/control-plane, operator: DoesNotExist }
+
+# Health probes of the manager (0.6.1: configurable; a long unpack must not look like a hung process)
+probes:
+  timeoutSeconds: 5
+  failureThreshold: 6
 priorityClassName: ""
 
 serviceAccount:

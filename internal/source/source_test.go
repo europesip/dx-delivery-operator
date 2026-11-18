@@ -1,7 +1,11 @@
 package source
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,5 +78,30 @@ func TestSafeJoin(t *testing.T) {
 	p, err := safeJoin(d, "../../etc/passwd")
 	if err != nil || !strings.HasPrefix(p, d) {
 		t.Errorf("paths must stay inside the folder: %s %v", p, err)
+	}
+}
+
+func TestExtractArchiveProgressReports(t *testing.T) {
+	dir := t.TempDir()
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gz)
+	for _, n := range []string{"a/one.node", "a/two.node"} {
+		_ = tw.WriteHeader(&tar.Header{Name: n, Typeflag: tar.TypeReg, Mode: 0o644, Size: 3})
+		_, _ = tw.Write([]byte("abc"))
+	}
+	_ = tw.Close()
+	_ = gz.Close()
+	file := filepath.Join(dir, "export.tar.gz")
+	if err := os.WriteFile(file, buf.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cr := &countingReader{r: bytes.NewReader(buf.Bytes()), tot: int64(buf.Len()), report: func(Progress) {}}
+	if _, err := io.ReadAll(cr); err != nil || cr.n != int64(buf.Len()) {
+		t.Fatalf("counted %d of %d (%v)", cr.n, buf.Len(), err)
+	}
+	n, err := ExtractArchiveProgress(file, filepath.Join(dir, "out"), func(Progress) {})
+	if err != nil || n != 2 {
+		t.Fatalf("files %d, err %v", n, err)
 	}
 }

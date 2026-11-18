@@ -393,26 +393,52 @@ func IsArchive(name string) bool {
 }
 
 // ExtractArchive unpacks a .zip, .tar, .tar.gz/.tgz or .tar.bz2 file into dir and returns the number of files.
-func ExtractArchive(file, dir string) (int, error) {
-	f, err := os.Open(file)
+func ExtractArchive(file, dir string) (int, error) { return ExtractArchiveProgress(file, dir, nil) }
+
+// Progress of an unpack: how much of the archive has been read (of Total bytes) and the files written so far.
+type Progress struct{ Read, Total int64 }
+
+// countingReader counts the bytes read from the archive and calls report at most every 15 seconds.
+type countingReader struct {
+	r      io.Reader
+	n, tot int64
+	last   time.Time
+	report func(Progress)
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.n += int64(n)
+	if c.report != nil && time.Since(c.last) >= 15*time.Second {
+		c.last = time.Now()
+		c.report(Progress{Read: c.n, Total: c.tot})
+	}
+	return n, err
+}
+
+// ExtractArchiveProgress is ExtractArchive with a report of the progress (nil: none), so a long unpack shows that it
+// moves on.
+func ExtractArchiveProgress(file, dir string, report func(Progress)) (int, error) {
+	f0, err := os.Open(file)
 	if err != nil {
 		return 0, err
 	}
-	defer f.Close() //nolint:errcheck
+	defer f0.Close() //nolint:errcheck
+	fi0, err := f0.Stat()
+	if err != nil {
+		return 0, err
+	}
+	cr := &countingReader{r: f0, tot: fi0.Size(), last: time.Now(), report: report}
 	l := strings.ToLower(file)
 	switch {
 	case strings.HasSuffix(l, ".zip"):
-		fi, err := f.Stat()
-		if err != nil {
-			return 0, err
-		}
-		return unzipFile(f, fi.Size(), dir, "")
+		return unzipFile(f0, fi0.Size(), dir, "")
 	case strings.HasSuffix(l, ".tar.bz2") || strings.HasSuffix(l, ".tbz2") || strings.HasSuffix(l, ".tbz"):
-		return untar(bzip2.NewReader(bufio.NewReaderSize(f, 1<<20)), dir, "")
+		return untar(bzip2.NewReader(bufio.NewReaderSize(cr, 1<<20)), dir, "")
 	case strings.HasSuffix(l, ".tar"):
-		return untar(bufio.NewReaderSize(f, 1<<20), dir, "")
+		return untar(bufio.NewReaderSize(cr, 1<<20), dir, "")
 	default:
-		gz, err := gzip.NewReader(bufio.NewReaderSize(f, 1<<20))
+		gz, err := gzip.NewReader(bufio.NewReaderSize(cr, 1<<20))
 		if err != nil {
 			return 0, fmt.Errorf("%s is not a .tar.gz, .tar.bz2, .tar or .zip archive", filepath.Base(file))
 		}

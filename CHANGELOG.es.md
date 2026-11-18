@@ -5,6 +5,16 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.6.1 · 2026-11-18 · Las exportaciones grandes ya no reinician el operador
+
+- **Una exportación WCM de cientos de MB ya no reinicia el operador en bucle** (#23). Visto con un `.tar.bz2` de
+  760 MB: las sondas de salud vencían (1 s) mientras descomprimía en un nodo de control plane ocupado con 50m de CPU,
+  el pod se reinició 7 veces y cada reinicio volvía a empezar la importación. Chart: requests `500m` / `512Mi`, límite
+  `2Gi`; prefiere nodos que no sean control plane (preferente: un clúster de un nodo sigue funcionando); volumen de
+  trabajo `8Gi` (antes `2Gi`: no cabían el archivo y su árbol descomprimido); sondas con `timeoutSeconds: 5` y
+  `failureThreshold: 6`, configurables (`probes`).
+- **La descompresión muestra su avance** en `status.message` cada 15 s: `unpacking <fichero>: 45% (340 of 760 MB read)`.
+
 ## 0.6.0 · 2026-11-18 · Las bibliotecas de una exportación WCM, para elegir
 
 - `DXWCMLibraryImport` (#21): nuevo **`status.exportLibraries`**, cada biblioteca de la exportación con su `title`,
