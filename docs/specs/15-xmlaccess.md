@@ -25,7 +25,10 @@ the base of exports, because the answers can be kept in a ConfigMap.
   `Failed` and the reason `RequestFailed`, or `SucceededWithErrors` when it went on. Otherwise the phase is
   `Succeeded` and the reason `Succeeded`.
 - **Output:** `output.configMap` holds one key per request with DX's answer. The ConfigMap is owned by the resource
-  (controller reference), its keys come from the paths (`/` becomes `__`), and the whole is cut at 900 KiB.
+  (controller reference) and its keys come from the paths (`/` becomes `__`). Answers over 900 KiB in all are **never
+  cut** (0.5.1): the ConfigMap then holds only `README` (where they are, or why they were not kept). Without
+  `output.oci` the run is Failed with the reason `OutputTooLarge`; with it, the registry is written first and has
+  them all, so the run keeps its result.
 - **OCI output:** `output.oci` (repository, tag with `${DATE}`, push secrets) pushes the answers plus `results.json` as
   an artifact with one layer per file, titled like ORAS does. `status.outputRef` and `outputDigest`; event `OutputPushed`.
   A failed push makes the run Failed (`OutputFailed`), because the requests did run.

@@ -182,7 +182,7 @@ la anotación `dx.europesip.com/reconcile`. Las importaciones a un DX nunca coin
    DX (el mismo cerrojo que el resto de llamadas XMLAccess del operador), con `timeout` (10m). El primer fallo para la
    ejecución salvo `continueOnError`; las siguientes quedan como `skipped`.
 4. **Resultado**: `status.results` (fichero, tipo de petición, `ok` / `error` / `skipped`, el primer mensaje de DX) y,
-   con `output.configMap`, la respuesta de DX a cada petición en un ConfigMap propiedad del recurso (recortada a 1 MiB);
+   con `output.configMap`, la respuesta de DX a cada petición en un ConfigMap propiedad del recurso (como mucho 900 KiB en total: las respuestas mayores nunca se recortan, la ejecución falla con `OutputTooLarge` salvo que también esté `output.oci`);
    con `output.oci`, las respuestas y un `results.json` se suben a un registro (Harbor) como artefacto OCI, un fichero
    por petición (como hace `oras push`), con una etiqueta nueva en cada ejecución (`${DATE}`): con versión, sin límite
    de tamaño y legible como `source` de otro recurso, por ejemplo para aplicar un export en otro entorno.

@@ -5,6 +5,14 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.5.1 · 2026-11-18 · Las respuestas de XMLAccess nunca se recortan
+
+- `DXXMLAccess` `output.configMap` (#17): las respuestas que pasan de 900 KiB en total (un ConfigMap admite como mucho 1 MiB)
+  **ya no se recortan**. El ConfigMap solo guarda entonces `README`, que dice dónde están. Sin `output.oci` la
+  ejecución queda en Failed con el motivo nuevo **`OutputTooLarge`**, que indica usar `output.oci`. Con `output.oci`
+  el registro se escribe primero y las guarda todas, así que la ejecución conserva su resultado. Usa `output.oci`
+  para las exportaciones.
+
 ## 0.5.0 · 2026-11-17 · Peticiones XMLAccess
 
 - **Recurso nuevo `DXXMLAccess`** (#15): ejecuta peticiones XMLAccess propias contra el portal base o un portal virtual

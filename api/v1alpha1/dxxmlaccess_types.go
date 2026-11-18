@@ -34,8 +34,9 @@ type XMLAccessVirtualPortal struct {
 // +kubebuilder:validation:XValidation:rule="has(self.configMap) || has(self.oci)",message="set configMap, oci or both"
 type XMLAccessOutput struct {
 	// ConfigMap that receives one key per request: <file name> ("/" becomes "__"; "request.xml" for spec.xml) with
-	// DX's answer. The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB:
-	// bigger results are cut and the status says so.
+	// DX's answer. The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB,
+	// so answers bigger than 900 KiB are never cut: the ConfigMap only gets a README key, and without oci the run
+	// fails with OutputTooLarge. Use oci for exports.
 	// +optional
 	ConfigMap *LocalObjectReference `json:"configMap,omitempty"`
 	// OCI: push the answers to a registry (for example Harbor) as an OCI artifact, one file per request plus
