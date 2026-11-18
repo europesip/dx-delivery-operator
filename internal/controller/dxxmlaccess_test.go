@@ -1,11 +1,19 @@
 package controller
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
 )
@@ -82,5 +90,41 @@ func TestOCITag(t *testing.T) {
 func TestOutputKey(t *testing.T) {
 	if k := outputKey("dir/sub file.xml"); k != "dir__sub_file.xml" {
 		t.Errorf("got %s", k)
+	}
+}
+
+func TestSaveOutputNeverCuts(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = dxv1.AddToScheme(scheme)
+	o := &dxv1.DXXMLAccess{ObjectMeta: metav1.ObjectMeta{Name: "x", Namespace: "ns", UID: "u1"}}
+	o.Spec.Output = &dxv1.XMLAccessOutput{ConfigMap: &dxv1.LocalObjectReference{Name: "out"}}
+	c := fake.NewClientBuilder().WithScheme(scheme).Build()
+	r := &DXXMLAccessReconciler{Client: c, Scheme: scheme}
+	ctx := context.Background()
+	read := func() map[string]string {
+		cm := &corev1.ConfigMap{}
+		if err := c.Get(ctx, client.ObjectKey{Namespace: "ns", Name: "out"}, cm); err != nil {
+			t.Fatal(err)
+		}
+		return cm.Data
+	}
+
+	// small answers: one key per request
+	size, err := r.saveOutput(ctx, o, map[string]string{"a/b.xml": "<ok/>"})
+	if err != nil || size != 5 || read()["a__b.xml"] != "<ok/>" {
+		t.Fatalf("small: size %d err %v data %v", size, err, read())
+	}
+	// too big without OCI: only README, never a cut copy
+	big := strings.Repeat("x", maxOutputBytes+1)
+	size, err = r.saveOutput(ctx, o, map[string]string{"big.xml": big})
+	d := read()
+	if err != nil || size <= maxOutputBytes || len(d) != 1 || !strings.Contains(d["README"], "set output.oci") {
+		t.Fatalf("big: size %d err %v keys %d readme %q", size, err, len(d), d["README"])
+	}
+	// too big with the answers already in the registry: README points to them
+	o.Status.OutputRef, o.Status.OutputDigest = "harbor.example.com/dx-exports/x:1", "sha256:abc"
+	if _, err = r.saveOutput(ctx, o, map[string]string{"big.xml": big}); err != nil || !strings.Contains(read()["README"], "oras pull harbor.example.com/dx-exports/x:1") {
+		t.Fatalf("big+oci: %v %q", err, read()["README"])
 	}
 }

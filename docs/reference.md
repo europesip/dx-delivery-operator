@@ -434,7 +434,7 @@ Short names: `dxxml`
 | `dryRun` | boolean |  | DryRun: only fetch the files, check that each one is an XMLAccess request and report them, without calling DX. |
 | `files` | []string |  | Files of the source to run, in this order. Empty: every *.xml file of the source, sorted by path. |
 | `output` | object |  | Output: keep DX's answer to every request in a ConfigMap (handy for export requests). |
-| `output.configMap` | object |  | ConfigMap that receives one key per request: <file name> ("/" becomes "__"; "request.xml" for spec.xml) with DX's answer. The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB: bigger results are cut and the status says so. |
+| `output.configMap` | object |  | ConfigMap that receives one key per request: <file name> ("/" becomes "__"; "request.xml" for spec.xml) with DX's answer. The operator creates it and owns it (deleted with the resource). A ConfigMap holds at most 1 MiB, so answers bigger than 900 KiB are never cut: the ConfigMap only gets a README key, and without oci the run fails with OutputTooLarge. Use oci for exports. |
 | `output.configMap.name` | string (required) |  | Name of the object. |
 | `output.oci` | object |  | OCI: push the answers to a registry (for example Harbor) as an OCI artifact, one file per request plus results.json, the way "oras push" does: versioned, with no size limit, readable with "oras pull" or as the source of another resource (for example a DXXMLAccess of another environment). Every run pushes a new tag. |
 | `output.oci.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with credentials that may push to the repository. |

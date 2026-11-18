@@ -52,6 +52,7 @@ const (
 	reasonXMLPartial      = "SucceededWithErrors"
 	reasonXMLInvalid      = "InvalidRequest"
 	reasonXMLOutputFailed = "OutputFailed"
+	reasonXMLOutputLarge  = "OutputTooLarge"
 )
 
 var (
@@ -326,14 +327,20 @@ func (r *DXXMLAccessReconciler) run(ctx context.Context, o *dxv1.DXXMLAccess) (c
 	}
 	st.OutputRef, st.OutputDigest = "", ""
 	if out := o.Spec.Output; out != nil {
-		if out.ConfigMap != nil {
-			if oerr := r.saveOutput(ctx, o, outputs); oerr != nil {
-				return finish(dxv1.XMLAccessFailed, false, reasonXMLOutputFailed, fmt.Sprintf("the requests ran (%d failed) but the output was not saved: %v", failed, oerr))
-			}
-		}
+		// The registry first: it has no size limit, so the ConfigMap can point to it when the answers do not fit
 		if out.OCI != nil {
 			if oerr := r.pushOutput(ctx, o, conn.Client.Config().BaseURL, vp, outputs); oerr != nil {
 				return finish(dxv1.XMLAccessFailed, false, reasonXMLOutputFailed, fmt.Sprintf("the requests ran (%d failed) but the output was not pushed: %v", failed, oerr))
+			}
+		}
+		if out.ConfigMap != nil {
+			size, oerr := r.saveOutput(ctx, o, outputs)
+			if oerr != nil {
+				return finish(dxv1.XMLAccessFailed, false, reasonXMLOutputFailed, fmt.Sprintf("the requests ran (%d failed) but the output was not saved: %v", failed, oerr))
+			}
+			if size > maxOutputBytes && out.OCI == nil {
+				return finish(dxv1.XMLAccessFailed, false, reasonXMLOutputLarge, fmt.Sprintf(
+					"the requests ran (%d failed) but DX's answers are %d KiB and a ConfigMap holds at most 1 MiB: nothing was kept; set output.oci (a registry, no size limit)", failed, size>>10))
 			}
 		}
 	}
@@ -368,15 +375,15 @@ func outputKey(file string) string {
 	return unsafeKey.ReplaceAllString(strings.ReplaceAll(file, "/", "__"), "_")
 }
 
-// saveOutput writes DX's answers to the output ConfigMap (owned by the resource), cut to fit in a ConfigMap.
-func (r *DXXMLAccessReconciler) saveOutput(ctx context.Context, o *dxv1.DXXMLAccess, outputs map[string]string) error {
+// saveOutput writes DX's answers to the output ConfigMap (owned by the resource) and returns their size. Answers that
+// do not fit in a ConfigMap are never cut: the ConfigMap then only holds README, which says where they are (the
+// registry of output.oci) or why they were not kept.
+func (r *DXXMLAccessReconciler) saveOutput(ctx context.Context, o *dxv1.DXXMLAccess, outputs map[string]string) (int, error) {
 	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: o.Spec.Output.ConfigMap.Name, Namespace: o.Namespace}}
-	budget := maxOutputBytes
-	keys := make([]string, 0, len(outputs))
-	for k := range outputs {
-		keys = append(keys, k)
+	size := 0
+	for _, v := range outputs {
+		size += len(v)
 	}
-	sort.Strings(keys)
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, func() error {
 		if owner := metav1.GetControllerOf(cm); owner != nil && owner.UID != o.UID {
 			return fmt.Errorf("the ConfigMap %s belongs to another resource", cm.Name)
@@ -389,17 +396,20 @@ func (r *DXXMLAccessReconciler) saveOutput(ctx context.Context, o *dxv1.DXXMLAcc
 		}
 		cm.Labels["dx.europesip.com/xmlaccess"] = o.Name
 		cm.Data = map[string]string{}
-		for _, k := range keys {
-			v := outputs[k]
-			if len(v) > budget {
-				v = v[:max(budget, 0)] + "\n<!-- cut by the operator: a ConfigMap holds at most 1 MiB -->"
+		if size > maxOutputBytes {
+			where := "they were not kept: set output.oci (a registry, no size limit)"
+			if o.Status.OutputRef != "" {
+				where = fmt.Sprintf("they are in %s (%s): oras pull %s", o.Status.OutputRef, o.Status.OutputDigest, o.Status.OutputRef)
 			}
-			budget -= len(v)
+			cm.Data["README"] = fmt.Sprintf("DX's answers are %d KiB and a ConfigMap holds at most 1 MiB, so %s\n", size>>10, where)
+			return nil
+		}
+		for k, v := range outputs {
 			cm.Data[outputKey(k)] = v
 		}
 		return nil
 	})
-	return err
+	return size, err
 }
 
 // ociTag is the tag of a run: output.oci.tag with ${DATE} replaced (default ${DATE}).

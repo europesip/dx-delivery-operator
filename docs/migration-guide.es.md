@@ -114,7 +114,7 @@ ORAS (`source.image`).
   mensaje de DX.
 - No detecta deriva y no deshace nada al borrarlo (salvo `cleanup`). Escribe peticiones idempotentes
   (`action="update"`).
-- Las respuestas de DX solo se guardan con `output.configMap` (como mucho 1 MiB) o `output.oci` (un registro, sin límite).
+- Las respuestas de DX solo se guardan con `output.configMap` (como mucho 900 KiB: si son mayores, la ejecución falla con `OutputTooLarge` y nunca se recortan) o `output.oci` (un registro, sin límite).
 
 ```bash
 kubectl get dxxml -n <ns>

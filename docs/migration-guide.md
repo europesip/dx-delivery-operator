@@ -110,7 +110,7 @@ For a private repository use a CI artifact URL, an S3 presigned URL or push the 
 - Every file is checked first: one broken file and **nothing** is sent. `dryRun: true` only checks and lists.
 - The first failed request stops the run (`continueOnError: true` to go on). `status.results` has the DX message.
 - No drift detection, nothing undone on delete (except `cleanup`). Write idempotent requests (`action="update"`).
-- The answers of DX are kept only with `output.configMap` (at most 1 MiB) or `output.oci` (a registry, no limit).
+- The answers of DX are kept only with `output.configMap` (at most 900 KiB: bigger answers fail the run with `OutputTooLarge`, never cut) or `output.oci` (a registry, no limit).
 
 ```bash
 kubectl get dxxml -n <ns>
