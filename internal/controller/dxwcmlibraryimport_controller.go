@@ -270,7 +270,15 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 		unpacked := filepath.Join(r.WorkDir, "wcm-import", o.Namespace+"-"+o.Name+"-export")
 		_ = os.RemoveAll(unpacked)
 		defer os.RemoveAll(unpacked) //nolint:errcheck
-		if _, xerr := source.ExtractArchive(archive, unpacked); xerr != nil {
+		name := filepath.Base(archive)
+		report := func(p source.Progress) { // a long unpack (hundreds of MB of .tar.bz2) shows that it moves on
+			pct := 0
+			if p.Total > 0 {
+				pct = int(100 * p.Read / p.Total)
+			}
+			r.progress(ctx, o, dxv1.WCMImportFetching, fmt.Sprintf("unpacking %s: %d%% (%d of %d MB read)", name, pct, p.Read>>20, p.Total>>20))
+		}
+		if _, xerr := source.ExtractArchiveProgress(archive, unpacked, report); xerr != nil {
 			return fatal(reasonExportInvalid, "unpacking %s: %v", filepath.Base(archive), xerr)
 		}
 		if exp, err = wcmexport.Open(unpacked); err != nil {
