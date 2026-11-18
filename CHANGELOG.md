@@ -5,6 +5,12 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.6.2 · 2026-11-18 · Deleting a running import stops it
+
+- `DXWCMLibraryImport` (#25): while a run goes on, the operator checks every 10 s whether its resource was deleted;
+  if so it stops at once: the unpack of the export, the download of an image and the chunks still to upload. Before,
+  it went on (CPU, disk) until the step ended.
+
 ## 0.6.1 · 2026-11-18 · Big exports do not restart the operator
 
 - **A WCM export of hundreds of MB no longer restarts the operator in a loop** (#23). Seen with a 760 MB `.tar.bz2`:

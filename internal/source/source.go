@@ -400,6 +400,7 @@ type Progress struct{ Read, Total int64 }
 
 // countingReader counts the bytes read from the archive and calls report at most every 15 seconds.
 type countingReader struct {
+	ctx    context.Context
 	r      io.Reader
 	n, tot int64
 	last   time.Time
@@ -407,6 +408,9 @@ type countingReader struct {
 }
 
 func (c *countingReader) Read(p []byte) (int, error) {
+	if c.ctx != nil && c.ctx.Err() != nil { // the run was cancelled (its resource deleted): stop unpacking
+		return 0, c.ctx.Err()
+	}
 	n, err := c.r.Read(p)
 	c.n += int64(n)
 	if c.report != nil && time.Since(c.last) >= 15*time.Second {
@@ -419,6 +423,11 @@ func (c *countingReader) Read(p []byte) (int, error) {
 // ExtractArchiveProgress is ExtractArchive with a report of the progress (nil: none), so a long unpack shows that it
 // moves on.
 func ExtractArchiveProgress(file, dir string, report func(Progress)) (int, error) {
+	return ExtractArchiveProgressContext(context.Background(), file, dir, report)
+}
+
+// ExtractArchiveProgressContext is ExtractArchiveProgress that stops when ctx is cancelled.
+func ExtractArchiveProgressContext(ctx context.Context, file, dir string, report func(Progress)) (int, error) {
 	f0, err := os.Open(file)
 	if err != nil {
 		return 0, err
@@ -428,7 +437,7 @@ func ExtractArchiveProgress(file, dir string, report func(Progress)) (int, error
 	if err != nil {
 		return 0, err
 	}
-	cr := &countingReader{r: f0, tot: fi0.Size(), last: time.Now(), report: report}
+	cr := &countingReader{ctx: ctx, r: f0, tot: fi0.Size(), last: time.Now(), report: report}
 	l := strings.ToLower(file)
 	switch {
 	case strings.HasSuffix(l, ".zip"):
