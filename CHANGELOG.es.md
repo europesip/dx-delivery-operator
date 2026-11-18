@@ -5,6 +5,12 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.6.2 · 2026-11-18 · Borrar una importación en marcha la detiene
+
+- `DXWCMLibraryImport` (#25): mientras dura una ejecución, el operador comprueba cada 10 s si su recurso se ha borrado;
+  si es así se detiene en el acto: la descompresión de la exportación, la descarga de una imagen y los lotes que
+  faltan por subir. Antes seguía (CPU, disco) hasta terminar el paso.
+
 ## 0.6.1 · 2026-11-18 · Las exportaciones grandes ya no reinician el operador
 
 - **Una exportación WCM de cientos de MB ya no reinicia el operador en bucle** (#23). Visto con un `.tar.bz2` de

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -40,6 +41,9 @@ type DXWCMLibraryImportReconciler struct {
 
 // +kubebuilder:rbac:groups=dx.europesip.com,resources=dxwcmlibraryimports,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=dx.europesip.com,resources=dxwcmlibraryimports/status,verbs=get;update;patch
+
+// cancelCheckEvery: how often a running import checks whether it was deleted (a variable for the tests).
+var cancelCheckEvery = 10 * time.Second
 
 const (
 	defaultMaxChunk     = int64(450 << 20)
@@ -108,7 +112,15 @@ func (r *DXWCMLibraryImportReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if o.Status.AppliedHash == hash && (o.Status.Phase == dxv1.WCMImportSucceeded || o.Status.Phase == dxv1.WCMImportFailed) {
 		return ctrl.Result{}, nil // done for this spec: one-shot
 	}
-	res, err := r.run(ctx, &o, hash)
+	// A run can take long (download, unpack, chunks): if the resource is deleted meanwhile, stop it at once (#25)
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go r.cancelWhenDeleted(runCtx, cancel, req.NamespacedName, rd)
+	res, err := r.run(runCtx, &o, hash)
+	if ctx.Err() == nil && runCtx.Err() != nil {
+		logf.FromContext(ctx).Info("the import was deleted while it ran: stopped", "name", req.NamespacedName.String())
+		return ctrl.Result{}, nil
+	}
 	o.Status.ObservedGeneration = o.Generation
 	if uerr := r.saveStatus(ctx, &o); uerr != nil {
 		return ctrl.Result{}, uerr
@@ -133,6 +145,25 @@ func (r *DXWCMLibraryImportReconciler) saveStatus(ctx context.Context, o *dxv1.D
 }
 
 // progress saves the status during a long run, so that kubectl and Argo CD show the step.
+// cancelWhenDeleted cancels a run when its resource is deleted (or marked for deletion), checking every 10 seconds.
+func (r *DXWCMLibraryImportReconciler) cancelWhenDeleted(ctx context.Context, cancel context.CancelFunc, key client.ObjectKey, rd client.Reader) {
+	t := time.NewTicker(cancelCheckEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			var o dxv1.DXWCMLibraryImport
+			err := rd.Get(ctx, key, &o)
+			if apierrors.IsNotFound(err) || (err == nil && !o.DeletionTimestamp.IsZero()) {
+				cancel()
+				return
+			}
+		}
+	}
+}
+
 func (r *DXWCMLibraryImportReconciler) progress(ctx context.Context, o *dxv1.DXWCMLibraryImport, phase dxv1.WCMImportPhase, msg string) {
 	o.Status.Phase, o.Status.Message = phase, msg
 	o.Status.ObservedGeneration = o.Generation
@@ -278,7 +309,7 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			}
 			r.progress(ctx, o, dxv1.WCMImportFetching, fmt.Sprintf("unpacking %s: %d%% (%d of %d MB read)", name, pct, p.Read>>20, p.Total>>20))
 		}
-		if _, xerr := source.ExtractArchiveProgress(archive, unpacked, report); xerr != nil {
+		if _, xerr := source.ExtractArchiveProgressContext(ctx, archive, unpacked, report); xerr != nil {
 			return fatal(reasonExportInvalid, "unpacking %s: %v", filepath.Base(archive), xerr)
 		}
 		if exp, err = wcmexport.Open(unpacked); err != nil {
@@ -398,6 +429,9 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 	}
 	failed := map[string]string{}
 	for i, chunk := range chunks {
+		if ctx.Err() != nil { // deleted while it ran: no more chunks
+			return ctx.Err()
+		}
 		st.CurrentChunk = i + 1
 		titles := wcmexport.Titles(chunk)
 		zipPath := filepath.Join(work, fmt.Sprintf("chunk-%02d.zip", i+1))

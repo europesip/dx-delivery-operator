@@ -105,3 +105,15 @@ func TestExtractArchiveProgressReports(t *testing.T) {
 		t.Fatalf("files %d, err %v", n, err)
 	}
 }
+
+func TestCountingReaderStopsWhenCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cr := &countingReader{ctx: ctx, r: bytes.NewReader(make([]byte, 100))}
+	if _, err := cr.Read(make([]byte, 10)); err != nil {
+		t.Fatal(err)
+	}
+	cancel()
+	if _, err := cr.Read(make([]byte, 10)); err != context.Canceled {
+		t.Fatalf("after cancel: %v", err)
+	}
+}
