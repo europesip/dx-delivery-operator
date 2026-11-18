@@ -249,6 +249,10 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 	r.progress(ctx, o, dxv1.WCMImportFetching, "getting the export")
 	tree, err := r.Fetcher.Fetch(ctx, o.Namespace, o.Spec.Source)
 	if err != nil {
+		var nf *source.NoFilesError
+		if errors.As(err, &nf) { // a wrong folder: retrying cannot fix it, the spec must change
+			return fatal(reasonSourceError, "source: %v; nothing was imported", err)
+		}
 		return fmt.Errorf("source: %w", err)
 	}
 	st.SourceRevision = tree.Revision

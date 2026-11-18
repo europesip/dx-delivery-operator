@@ -29,6 +29,7 @@ import (
 
 	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
 	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
+	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
 )
 
 // DXXMLAccessReconciler runs XMLAccess requests against DX, once per change of the spec or of its source (like a Job).
@@ -157,6 +158,10 @@ func (r *DXXMLAccessReconciler) requests(ctx context.Context, o *dxv1.DXXMLAcces
 	}
 	tree, err := r.Fetcher.Fetch(ctx, o.Namespace, *o.Spec.Source)
 	if err != nil {
+		var nf *source.NoFilesError
+		if errors.As(err, &nf) { // a wrong folder: retrying cannot fix it, the spec must change
+			return nil, "", permanent{reason: reasonSourceError, err: fmt.Errorf("source: %w; nothing was sent to DX", err)}
+		}
 		return nil, "", fmt.Errorf("source: %w", err)
 	}
 	files := o.Spec.Files

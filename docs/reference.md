@@ -59,7 +59,7 @@ Short names: `dxapp`, `dxsa`
 | `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
 | `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
 | `source.image` | object |  | Image: an OCI image (a "bundle image") that carries the files. The operator reads its layers directly from the registry: nothing runs in the cluster. Use a digest (repo@sha256:...) for immutable deployments. |
-| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). |
+| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). With the default and nothing under /app, the only top-level folder with files that is not part of an operating system is used (for example /export). |
 | `source.image.pullSecrets` | []object |  | PullSecrets: Secrets of type kubernetes.io/dockerconfigjson for a private registry. |
 | `source.image.pullSecrets[].name` | string (required) |  | Name of the object. |
 | `source.image.ref` | string (required) |  | Reference of the image, for example ghcr.io/acme/my-app:1.2.0 or ghcr.io/acme/my-app@sha256:... |
@@ -196,7 +196,7 @@ Short names: `dxtheme`
 | `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
 | `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
 | `source.image` | object |  | Image: an OCI image (a "bundle image") that carries the files. The operator reads its layers directly from the registry: nothing runs in the cluster. Use a digest (repo@sha256:...) for immutable deployments. |
-| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). |
+| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). With the default and nothing under /app, the only top-level folder with files that is not part of an operating system is used (for example /export). |
 | `source.image.pullSecrets` | []object |  | PullSecrets: Secrets of type kubernetes.io/dockerconfigjson for a private registry. |
 | `source.image.pullSecrets[].name` | string (required) |  | Name of the object. |
 | `source.image.ref` | string (required) |  | Reference of the image, for example ghcr.io/acme/my-app:1.2.0 or ghcr.io/acme/my-app@sha256:... |
@@ -254,7 +254,7 @@ Short names: `dxdam`
 | `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
 | `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
 | `source.image` | object |  | Image: an OCI image (a "bundle image") that carries the files. The operator reads its layers directly from the registry: nothing runs in the cluster. Use a digest (repo@sha256:...) for immutable deployments. |
-| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). |
+| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). With the default and nothing under /app, the only top-level folder with files that is not part of an operating system is used (for example /export). |
 | `source.image.pullSecrets` | []object |  | PullSecrets: Secrets of type kubernetes.io/dockerconfigjson for a private registry. |
 | `source.image.pullSecrets[].name` | string (required) |  | Name of the object. |
 | `source.image.ref` | string (required) |  | Reference of the image, for example ghcr.io/acme/my-app:1.2.0 or ghcr.io/acme/my-app@sha256:... |
@@ -361,7 +361,7 @@ Short names: `dxwcmimport`
 | `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
 | `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
 | `source.image` | object |  | Image: an OCI image (a "bundle image") that carries the files. The operator reads its layers directly from the registry: nothing runs in the cluster. Use a digest (repo@sha256:...) for immutable deployments. |
-| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). |
+| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). With the default and nothing under /app, the only top-level folder with files that is not part of an operating system is used (for example /export). |
 | `source.image.pullSecrets` | []object |  | PullSecrets: Secrets of type kubernetes.io/dockerconfigjson for a private registry. |
 | `source.image.pullSecrets[].name` | string (required) |  | Name of the object. |
 | `source.image.ref` | string (required) |  | Reference of the image, for example ghcr.io/acme/my-app:1.2.0 or ghcr.io/acme/my-app@sha256:... |
@@ -445,7 +445,7 @@ Short names: `dxxml`
 | `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
 | `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
 | `source.image` | object |  | Image: an OCI image (a "bundle image") that carries the files. The operator reads its layers directly from the registry: nothing runs in the cluster. Use a digest (repo@sha256:...) for immutable deployments. |
-| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). |
+| `source.image.path` | string | `/app` | Path inside the image where the files are (default /app). With the default and nothing under /app, the only top-level folder with files that is not part of an operating system is used (for example /export). |
 | `source.image.pullSecrets` | []object |  | PullSecrets: Secrets of type kubernetes.io/dockerconfigjson for a private registry. |
 | `source.image.pullSecrets[].name` | string (required) |  | Name of the object. |
 | `source.image.ref` | string (required) |  | Reference of the image, for example ghcr.io/acme/my-app:1.2.0 or ghcr.io/acme/my-app@sha256:... |

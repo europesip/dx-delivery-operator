@@ -51,7 +51,8 @@ type ImageSource struct {
 	// Reference of the image, for example ghcr.io/acme/my-app:1.2.0 or ghcr.io/acme/my-app@sha256:...
 	// +kubebuilder:validation:MinLength=1
 	Ref string `json:"ref"`
-	// Path inside the image where the files are (default /app).
+	// Path inside the image where the files are (default /app). With the default and nothing under /app, the only
+	// top-level folder with files that is not part of an operating system is used (for example /export).
 	// +kubebuilder:default="/app"
 	// +optional
 	Path string `json:"path,omitempty"`

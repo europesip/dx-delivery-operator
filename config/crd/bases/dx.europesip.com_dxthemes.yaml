@@ -189,8 +189,9 @@ spec:
                     properties:
                       path:
                         default: /app
-                        description: Path inside the image where the files are (default
-                          /app).
+                        description: |-
+                          Path inside the image where the files are (default /app). With the default and nothing under /app, the only
+                          top-level folder with files that is not part of an operating system is used (for example /export).
                         type: string
                       pullSecrets:
                         description: 'PullSecrets: Secrets of type kubernetes.io/dockerconfigjson
