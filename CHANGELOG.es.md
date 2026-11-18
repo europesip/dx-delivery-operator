@@ -5,6 +5,15 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.5.2 · 2026-11-18 · La carpeta de una imagen se encuentra sola
+
+- **Imágenes sin ficheros en `/app`** (la carpeta por defecto): si la imagen solo tiene una carpeta de primer nivel con
+  ficheros que no sea del sistema operativo (por ejemplo `/export` de una imagen de exportación WCM), se usa esa. Si
+  no, el error dice qué carpetas tienen ficheros.
+- **Una carpeta equivocada ya no se reintenta siempre**: `DXWCMLibraryImport` y `DXXMLAccess` terminan en **Failed**
+  con el motivo `SourceError` («… has no files under /x; folders with files: /export»), sin importar ni enviar nada.
+  Antes se quedaban en Pending reintentando cada pocos minutos.
+
 ## 0.5.1 · 2026-11-18 · Las respuestas de XMLAccess nunca se recortan
 
 - `DXXMLAccess` `output.configMap` (#17): las respuestas que pasan de 900 KiB en total (un ConfigMap admite como mucho 1 MiB)

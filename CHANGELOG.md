@@ -5,6 +5,15 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.5.2 · 2026-11-18 · The folder of an image source is found
+
+- **Image sources without files under `/app`** (the default folder): if the image has only one top-level folder with
+  files that is not part of an operating system (for example `/export` of a WCM export image), it is used. Otherwise
+  the error names the folders that have files.
+- **A wrong folder is no longer retried forever**: `DXWCMLibraryImport` and `DXXMLAccess` end as **Failed** with
+  reason `SourceError` ("… has no files under /x; folders with files: /export"), nothing imported or sent. Before,
+  they stayed Pending and retried every few minutes.
+
 ## 0.5.1 · 2026-11-18 · XMLAccess answers are never cut
 
 - `DXXMLAccess` `output.configMap` (#17): answers over 900 KiB in all (a ConfigMap holds at most 1 MiB) are **no longer

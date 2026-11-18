@@ -215,15 +215,103 @@ func (f *Fetcher) fromImage(ctx context.Context, namespace string, src *dxv1.Ima
 		return finish(dir, rev)
 	}
 	rc := mutate.Extract(img) // flattened filesystem, whiteouts applied
-	defer rc.Close()          //nolint:errcheck
 	n, err := untar(rc, dir, sub)
+	_ = rc.Close()
 	if err != nil {
 		return nil, fmt.Errorf("image %s: %w", src.Ref, err)
 	}
-	if n == 0 {
-		return nil, fmt.Errorf("image %s has no files under %s", src.Ref, "/"+sub)
+	if n > 0 {
+		return finish(dir, rev)
 	}
-	return finish(dir, rev)
+	// Nothing under the folder asked for: look at which top-level folders of the image have files. With the default
+	// folder (/app) and only one folder that is not part of an operating system (for example /export of a WCM export
+	// image), that one is used; otherwise the error names the folders, and it is not retried (NoFilesError).
+	cands, err := topLevelFolders(img)
+	if err != nil {
+		return nil, fmt.Errorf("image %s: %w", src.Ref, err)
+	}
+	if sub == DefaultImageFolder && len(cands) == 1 {
+		alt := cands[0]
+		rc2 := mutate.Extract(img)
+		n2, err := untar(rc2, dir, alt)
+		_ = rc2.Close()
+		if err != nil {
+			return nil, fmt.Errorf("image %s: %w", src.Ref, err)
+		}
+		if n2 > 0 {
+			return finish(dir, rev)
+		}
+	}
+	return nil, &NoFilesError{Source: "image " + src.Ref, Folder: "/" + sub, Candidates: cands}
+}
+
+// DefaultImageFolder is the folder of an image source when the spec gives none (the CRD default /app, without slash).
+const DefaultImageFolder = "app"
+
+// NoFilesError: the source was read, but the folder asked for has no files. Retrying cannot fix it (the spec must
+// change), so controllers end the run as failed. Candidates are the top-level folders that do have files.
+type NoFilesError struct {
+	Source     string
+	Folder     string
+	Candidates []string
+}
+
+func (e *NoFilesError) Error() string {
+	msg := fmt.Sprintf("%s has no files under %s", e.Source, e.Folder)
+	if len(e.Candidates) > 0 {
+		c := make([]string, len(e.Candidates))
+		for i, x := range e.Candidates {
+			c[i] = "/" + x
+		}
+		msg += "; folders with files: " + strings.Join(c, ", ") + " (set the folder of the source to one of them)"
+	}
+	return msg
+}
+
+// osFolders are the top-level folders of a base image (operating system), never the files of a source.
+var osFolders = map[string]bool{
+	"bin": true, "boot": true, "dev": true, "etc": true, "home": true, "lib": true, "lib32": true, "lib64": true,
+	"libx32": true, "media": true, "mnt": true, "opt": true, "proc": true, "root": true, "run": true, "sbin": true,
+	"srv": true, "sys": true, "tmp": true, "usr": true, "var": true, "nix": true,
+}
+
+// topLevelFolders lists, sorted, the top-level folders of the image that have regular files, without the folders of
+// an operating system.
+func topLevelFolders(img v1.Image) ([]string, error) {
+	rc := mutate.Extract(img)
+	defer rc.Close() //nolint:errcheck
+	return foldersWithFiles(rc)
+}
+
+func foldersWithFiles(r io.Reader) ([]string, error) {
+	tr := tar.NewReader(r)
+	seen := map[string]bool{}
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if h.Typeflag != tar.TypeReg {
+			continue
+		}
+		p := strings.TrimPrefix(path.Clean("/"+h.Name), "/")
+		i := strings.Index(p, "/")
+		if i <= 0 {
+			continue // a file at the root
+		}
+		if top := p[:i]; !osFolders[top] {
+			seen[top] = true
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for k := range seen {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out, nil
 }
 
 const titleAnnotation = "org.opencontainers.image.title"
@@ -500,7 +588,7 @@ func (f *Fetcher) fromURL(ctx context.Context, src *dxv1.URLSource) (*Tree, erro
 		return nil, err
 	}
 	if files == 0 {
-		return nil, fmt.Errorf("archive %s has no files under %q", src.URL, sub)
+		return nil, &NoFilesError{Source: "archive " + src.URL, Folder: "/" + sub}
 	}
 	return finish(dir, rev)
 }
