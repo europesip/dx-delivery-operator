@@ -405,6 +405,49 @@ spec:
               dryRun:
                 description: 'DryRun: true when the status describes a dry run.'
                 type: boolean
+              exportLibraries:
+                description: |-
+                  ExportLibraries: every library of the export, with its description, size and what this run does with it
+                  (written by every run, dry run included).
+                items:
+                  description: WCMExportLibrary is a library found in the export,
+                    so a UI can offer them to choose from.
+                  properties:
+                    bytes:
+                      description: 'Bytes and Files: its size in the export, before
+                        compression.'
+                      format: int64
+                      type: integer
+                    description:
+                      description: Description of the library in the source portal
+                        (icm:description, at most 300 characters).
+                      type: string
+                    existsInTarget:
+                      description: 'ExistsInTarget: a library with this title is already
+                        in the target portal.'
+                      type: boolean
+                    files:
+                      type: integer
+                    plan:
+                      description: |-
+                        Plan: Import, Skip (Portal Site, or it exists and overwrite is false), CannotUpload (names DX rejects) or
+                        NotSelected (left out by include, exclude or excludeHCLDefaults).
+                      enum:
+                      - Import
+                      - Skip
+                      - CannotUpload
+                      - NotSelected
+                      type: string
+                    reason:
+                      description: Reason of a plan other than Import.
+                      type: string
+                    title:
+                      type: string
+                  required:
+                  - plan
+                  - title
+                  type: object
+                type: array
               failedLibraries:
                 items:
                   description: WCMLibraryResult is a library of the export and what

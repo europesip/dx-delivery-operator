@@ -195,3 +195,23 @@ func TestChunkByFiles(t *testing.T) {
 		t.Fatalf("chunks %v", chunks)
 	}
 }
+
+func TestOpenReadsDescription(t *testing.T) {
+	root := t.TempDir()
+	ws := filepath.Join(root, "554ee7f5", "423dc4e4")
+	node := strings.Replace(libNode(1, "EuropeSip_DS"), `</sv:node></icm:node>`,
+		`<sv:property sv:name="icm:description" sv:type="String"><sv:value>Biblioteca dise&#241;o &amp; m&#225;s</sv:value></sv:property></sv:node></icm:node>`, 1)
+	write(t, filepath.Join(ws, "dddd4444.node"), node)
+	write(t, filepath.Join(ws, "eeee5555.node"), libNode(2, "Sin descripcion"))
+	exp, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, l := range exp.Libraries {
+		got[l.Title] = l.Description
+	}
+	if got["EuropeSip_DS"] != "Biblioteca diseño & más" || got["Sin descripcion"] != "" {
+		t.Fatalf("descriptions: %#v", got)
+	}
+}

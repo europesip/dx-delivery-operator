@@ -174,6 +174,9 @@ offers over HTTP:
 3. **Selection**: include, exclude, `excludeHCLDefaults`; libraries that already exist in the target (WCM REST
    `query?type=Library`) are skipped unless `overwrite`; **Portal Site** (fixed ID `TWFuYWdlZCBQYWdlcyBSb290IExpYnJhcnk`)
    only with `portalSiteLibraryOverwrite`. Libraries with file names dxFileTransfer rejects are reported, not uploaded.
+   Since 0.6.0 `status.exportLibraries` lists every library of the export with its description (`icm:description`),
+   size, whether it exists in the target and its plan (`Import`, `Skip`, `CannotUpload`, `NotSelected`): a dry run is
+   the catalogue a UI offers to choose from, and the real run imports the chosen titles (`libraries.include`).
 4. **Chunks** of at most `upload.maxChunkSize` (450Mi) and `upload.maxChunkFiles` (4000): each one is uploaded with
    `dxFileTransfer` (`unzip=true`), imported with the WCM data module
    (`/wps/wcm/myconnect[/<vp>]?MOD=data&taskType=import|import-copy&input.dir=...`) and its folder deleted. If a proxy
