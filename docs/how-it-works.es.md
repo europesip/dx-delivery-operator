@@ -160,6 +160,10 @@ ofrece por HTTP:
 3. **Selección**: include, exclude, `excludeHCLDefaults`; las que ya existen en el destino (WCM REST
    `query?type=Library`) se saltan salvo `overwrite`; **Portal Site** (ID fijo `TWFuYWdlZCBQYWdlcyBSb290IExpYnJhcnk`)
    solo con `portalSiteLibraryOverwrite`. Las bibliotecas con nombres que dxFileTransfer rechaza se informan y no se suben.
+   Desde 0.6.0 `status.exportLibraries` lista cada biblioteca de la exportación con su descripción
+   (`icm:description`), tamaño, si ya existe en el destino y su plan (`Import`, `Skip`, `CannotUpload`,
+   `NotSelected`): una simulación es el catálogo que una interfaz ofrece para elegir, y la ejecución real importa los
+   títulos elegidos (`libraries.include`).
 4. **Lotes** de como máximo `upload.maxChunkSize` (450Mi) y `upload.maxChunkFiles` (4000): cada uno se sube con
    `dxFileTransfer` (`unzip=true`), se importa con el módulo de datos de WCM
    (`/wps/wcm/myconnect[/<vp>]?MOD=data&taskType=import|import-copy&input.dir=...`) y se borra su carpeta. Si un proxy

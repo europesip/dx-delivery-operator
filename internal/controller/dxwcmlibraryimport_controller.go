@@ -187,6 +187,7 @@ func (r *DXWCMLibraryImportReconciler) run(ctx context.Context, o *dxv1.DXWCMLib
 	st.StartTime, st.CompletionTime = now(), nil
 	st.ImportedLibraries, st.SkippedLibraries, st.FailedLibraries = nil, nil, nil
 	st.Chunks, st.CurrentChunk, st.LibrariesInExport, st.DryRun = 0, 0, 0, o.Spec.DryRun
+	st.ExportLibraries = nil
 
 	err = r.importAll(ctx, o, conn)
 	var p permanent
@@ -298,9 +299,15 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 	}
 	var todo []wcmexport.Library
 	var unsafe []dxv1.WCMLibraryResult
+	plans := map[string]dxv1.WCMExportLibrary{} // by title: what this run does with each library of the export
+	for t, why := range left {
+		plans[t] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanNotSelected, Reason: why}
+	}
 	for _, l := range sel {
 		if l.IsPortalSite() && !o.Spec.PortalSiteLibraryOverwrite {
-			st.SkippedLibraries = append(st.SkippedLibraries, dxv1.WCMLibraryResult{Title: l.Title, Reason: "Portal Site is never imported unless portalSiteLibraryOverwrite: true"})
+			why := "Portal Site is never imported unless portalSiteLibraryOverwrite: true"
+			st.SkippedLibraries = append(st.SkippedLibraries, dxv1.WCMLibraryResult{Title: l.Title, Reason: why})
+			plans[l.Title] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanSkip, Reason: why}
 			continue
 		}
 		if len(l.UnsafePaths) > 0 {
@@ -311,16 +318,21 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			unsafe = append(unsafe, dxv1.WCMLibraryResult{Title: l.Title, Reason: "not uploaded: DX dxFileTransfer rejects file or folder names with spaces or " +
 				"special characters, and they cannot be renamed (DX finds the values of an item by its name): " + strings.Join(ex, ", ") +
 				". Rename those items in the source portal and export again"})
+			plans[l.Title] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanCannotUpload, Reason: unsafe[len(unsafe)-1].Reason}
 			continue
 		}
 		if existing[strings.ToLower(l.Title)] && !o.Spec.Overwrite {
-			st.SkippedLibraries = append(st.SkippedLibraries, dxv1.WCMLibraryResult{Title: l.Title, Reason: "already exists in " + where + " (overwrite: false)"})
+			why := "already exists in " + where + " (overwrite: false)"
+			st.SkippedLibraries = append(st.SkippedLibraries, dxv1.WCMLibraryResult{Title: l.Title, Reason: why})
+			plans[l.Title] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanSkip, Reason: why}
 			continue
 		}
+		plans[l.Title] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanImport}
 		todo = append(todo, l)
 	}
 	sort.Slice(st.SkippedLibraries, func(i, j int) bool { return st.SkippedLibraries[i].Title < st.SkippedLibraries[j].Title })
 	st.FailedLibraries = append(st.FailedLibraries, unsafe...)
+	st.ExportLibraries = exportLibraries(exp.Libraries, plans, existing)
 	maxChunk := defaultMaxChunk
 	if q := o.Spec.Upload.MaxChunkSize; q != nil && q.Value() > 0 {
 		maxChunk = q.Value()
@@ -589,4 +601,22 @@ func (r *DXWCMLibraryImportReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(&dxv1.DXConnection{}, handler.EnqueueRequestsFromMapFunc(mapReferrers(r.Client, newList, wcmImportRefs, "DXConnection"))).
 		Named("dxwcmlibraryimport").
 		Complete(r)
+}
+
+// exportLibraries lists every library of the export with its description, size and plan (Import when it has none).
+func exportLibraries(libs []wcmexport.Library, plans map[string]dxv1.WCMExportLibrary, existing map[string]bool) []dxv1.WCMExportLibrary {
+	out := make([]dxv1.WCMExportLibrary, 0, len(libs))
+	for _, l := range libs {
+		e, ok := plans[l.Title]
+		if !ok {
+			e.Plan = dxv1.WCMPlanImport
+		}
+		e.Title, e.Bytes, e.Files, e.ExistsInTarget = l.Title, l.Bytes, l.Files, existing[strings.ToLower(l.Title)]
+		e.Description = l.Description
+		if r := []rune(e.Description); len(r) > 300 {
+			e.Description = string(r[:299]) + "…"
+		}
+		out = append(out, e)
+	}
+	return out
 }

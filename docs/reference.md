@@ -397,6 +397,14 @@ Short names: `dxwcmimport`
 | `conditions[].type` | string (required) |  | type of condition in CamelCase or in foo.example.com/CamelCase. |
 | `currentChunk` | integer |  | CurrentChunk being uploaded or imported (1-based). |
 | `dryRun` | boolean |  | DryRun: true when the status describes a dry run. |
+| `exportLibraries` | []object |  | ExportLibraries: every library of the export, with its description, size and what this run does with it (written by every run, dry run included). |
+| `exportLibraries[].bytes` | integer |  | Bytes and Files: its size in the export, before compression. |
+| `exportLibraries[].description` | string |  | Description of the library in the source portal (icm:description, at most 300 characters). |
+| `exportLibraries[].existsInTarget` | boolean |  | ExistsInTarget: a library with this title is already in the target portal. |
+| `exportLibraries[].files` | integer |  |  |
+| `exportLibraries[].plan` | Import \| Skip \| CannotUpload \| NotSelected (required) |  | Plan: Import, Skip (Portal Site, or it exists and overwrite is false), CannotUpload (names DX rejects) or NotSelected (left out by include, exclude or excludeHCLDefaults). |
+| `exportLibraries[].reason` | string |  | Reason of a plan other than Import. |
+| `exportLibraries[].title` | string (required) |  |  |
 | `failedLibraries` | []object |  |  |
 | `failedLibraries[].reason` | string |  | Reason when it was skipped or failed. |
 | `failedLibraries[].title` | string (required) |  |  |

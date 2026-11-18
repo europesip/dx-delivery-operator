@@ -24,6 +24,8 @@ type Library struct {
 	// Key is the name of its .node file without the extension (a hash written by the exporter, e.g. 9d0b88ba).
 	Key   string
 	Title string
+	// Description of the library (icm:description), when it has one.
+	Description string
 	// UUID of the library node (icm:uuid of the .node file).
 	UUID string
 	// Bytes and Files: size of the library on disk (its .node file and its folder), before compression.
@@ -45,6 +47,7 @@ type Export struct {
 var (
 	libraryMarker = []byte(`sv:name="icm:libraries[`)
 	titleRe       = regexp.MustCompile(`<sv:property sv:name="icm:title"[^>]*>\s*<sv:value>([^<]*)</sv:value>`)
+	descRe        = regexp.MustCompile(`<sv:property sv:name="icm:description"[^>]*>\s*<sv:value>([^<]*)</sv:value>`)
 	uuidRe        = regexp.MustCompile(`icm:uuid="([^"]+)"`)
 )
 
@@ -129,6 +132,9 @@ func Open(root string) (*Export, error) {
 			return nil, fmt.Errorf("library %s has no icm:title", e.Name())
 		}
 		lib := Library{Key: strings.TrimSuffix(e.Name(), ".node"), Title: html.UnescapeString(strings.TrimSpace(m[1]))}
+		if d := descRe.FindStringSubmatch(head); d != nil {
+			lib.Description = html.UnescapeString(strings.TrimSpace(d[1]))
+		}
 		if u := uuidRe.FindStringSubmatch(head); u != nil {
 			lib.UUID = u[1]
 		}

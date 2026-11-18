@@ -159,6 +159,39 @@ type WCMLibraryResult struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+// WCMExportLibraryPlan is what a run does with a library of the export.
+// +kubebuilder:validation:Enum=Import;Skip;CannotUpload;NotSelected
+type WCMExportLibraryPlan string
+
+const (
+	WCMPlanImport       WCMExportLibraryPlan = "Import"
+	WCMPlanSkip         WCMExportLibraryPlan = "Skip"
+	WCMPlanCannotUpload WCMExportLibraryPlan = "CannotUpload"
+	WCMPlanNotSelected  WCMExportLibraryPlan = "NotSelected"
+)
+
+// WCMExportLibrary is a library found in the export, so a UI can offer them to choose from.
+type WCMExportLibrary struct {
+	Title string `json:"title"`
+	// Description of the library in the source portal (icm:description, at most 300 characters).
+	// +optional
+	Description string `json:"description,omitempty"`
+	// Bytes and Files: its size in the export, before compression.
+	// +optional
+	Bytes int64 `json:"bytes,omitempty"`
+	// +optional
+	Files int `json:"files,omitempty"`
+	// ExistsInTarget: a library with this title is already in the target portal.
+	// +optional
+	ExistsInTarget bool `json:"existsInTarget,omitempty"`
+	// Plan: Import, Skip (Portal Site, or it exists and overwrite is false), CannotUpload (names DX rejects) or
+	// NotSelected (left out by include, exclude or excludeHCLDefaults).
+	Plan WCMExportLibraryPlan `json:"plan"`
+	// Reason of a plan other than Import.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+}
+
 // DXWCMLibraryImportStatus is the result of the import.
 type DXWCMLibraryImportStatus struct {
 	// +optional
@@ -175,6 +208,10 @@ type DXWCMLibraryImportStatus struct {
 	// LibrariesInExport: number of libraries found in the export.
 	// +optional
 	LibrariesInExport int `json:"librariesInExport,omitempty"`
+	// ExportLibraries: every library of the export, with its description, size and what this run does with it
+	// (written by every run, dry run included).
+	// +optional
+	ExportLibraries []WCMExportLibrary `json:"exportLibraries,omitempty"`
 	// +optional
 	ImportedLibraries []string `json:"importedLibraries,omitempty"`
 	// +optional

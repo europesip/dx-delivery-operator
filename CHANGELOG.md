@@ -5,6 +5,15 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.6.0 · 2026-11-18 · The libraries of a WCM export, to choose from
+
+- `DXWCMLibraryImport` (#21): new **`status.exportLibraries`**, every library of the export with its `title`,
+  **`description`** (`icm:description` of the source portal, up to 300 characters), `bytes`, `files`,
+  `existsInTarget` and **`plan`**: `Import`, `Skip` (Portal Site, or it exists and `overwrite` is false),
+  `CannotUpload` (names DX rejects) or `NotSelected` (left out by `include`, `exclude` or `excludeHCLDefaults`), with
+  its `reason`. Every run writes it, dry run included, so a UI can list the libraries and import only the chosen ones
+  (`libraries.include`).
+
 ## 0.5.2 · 2026-11-18 · The folder of an image source is found
 
 - **Image sources without files under `/app`** (the default folder): if the image has only one top-level folder with
