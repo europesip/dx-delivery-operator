@@ -5,7 +5,7 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## 0.7.0 · sin publicar · Exportar bibliotecas WCM
+## 0.7.0 · 2026-11-19 · Exportar bibliotecas WCM
 
 - **Recurso nuevo `DXWCMLibraryExport`** (#27): exporta las bibliotecas WCM que elijas de un portal DX Compose
   (base o virtual) con el módulo de datos de WCM y las sube a un registro como artefacto de ficheros ORAS (sin
