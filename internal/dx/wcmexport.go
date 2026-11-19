@@ -23,7 +23,12 @@ import (
 // in the DX container, under FileTransferRoot) with the WCM data module. It returns the log of the module as text. Like
 // the import, it holds the XMLAccess lock of this DX while it runs.
 func (c *Client) DataModuleExport(ctx context.Context, vp, library, dir string, timeout time.Duration) (string, error) {
-	mu, _ := xmlAccessLocks.LoadOrStore(c.cfg.BaseURL, &sync.Mutex{})
+	if c.long != nil {
+		if v, err := c.long.DataModuleExport(ctx, vp, library, dir, timeout); !unreachable(err) { // in-cluster URL: no proxy timeout
+			return v, err
+		}
+	}
+	mu, _ := xmlAccessLocks.LoadOrStore(c.lockID(), &sync.Mutex{})
 	mu.(*sync.Mutex).Lock()
 	defer mu.(*sync.Mutex).Unlock()
 	p := c.wpsRoot() + "/wcm/myconnect"
@@ -89,6 +94,11 @@ func exportOutcome(status int, text string) error {
 // FileTransferDownload downloads the whole folder sub of the dxFileTransfer root as one zip into the file dest
 // (streamed). It returns the bytes written.
 func (c *Client) FileTransferDownload(ctx context.Context, sub, dest string) (int64, error) {
+	if c.long != nil {
+		if v, err := c.long.FileTransferDownload(ctx, sub, dest); !unreachable(err) { // in-cluster URL: no proxy timeout
+			return v, err
+		}
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.BaseURL+dftPath(c, url.Values{"action": {"download"}, "subDirectory": {sub}, "file": {""}}), nil)
 	if err != nil {
 		return 0, err

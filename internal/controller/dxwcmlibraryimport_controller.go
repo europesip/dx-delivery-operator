@@ -461,6 +461,12 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 		timeout = o.Spec.Timeout.Duration
 	}
 	failed := map[string]string{}
+	// cut: libraries of chunks whose request a proxy cut (DX went on importing them), with the start of their chunk:
+	// they are checked in DX at the end instead of being reported as failed
+	cut := map[string]time.Time{}
+	// rate: files per second DX imported in the uncut chunks of this run (0: none yet), to estimate how long a cut
+	// chunk still needs inside DX
+	var rateFiles, rateSecs float64
 	startAt, interrupted := 0, false
 	if resuming {
 		res.Attempt++
@@ -505,6 +511,7 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 		if err != nil {
 			return err
 		}
+		chunkFiles := zr.Files
 		if zr.Bytes > dx.MaxUploadBytes {
 			for _, t := range titles {
 				failed[t] = fmt.Sprintf("its zip is %d MB: DX accepts at most 500 MB per upload", zr.Bytes>>20)
@@ -546,11 +553,27 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 		}
 		if errors.Is(err, dx.ErrCutByProxy) {
 			// Do not delete the files: DX goes on importing them (deleting them made the import fail on CF239).
-			// A later run (another attempt, another folder) removes it when it ends.
-			err = fmt.Errorf("%v: the files stay in %s/%s until a later run ends; check the DX log, and use smaller chunks "+
-				"(upload.maxChunkFiles) if it happens again", err, dx.FileTransferRoot, subOf(i))
-		} else {
-			cleanup(i)
+			// A later run (another attempt, another folder) removes it when it ends. Never start the next chunk while
+			// DX may still be importing this one: two imports at once deadlock (Derby, 19-nov).
+			w := cutWait(chunkFiles, rateFiles, rateSecs, time.Since(started.Time))
+			r.progress(ctx, o, dxv1.WCMImportImporting, fmt.Sprintf("chunk %d/%d: the request was cut by a proxy and DX goes on importing it (%d files): "+
+				"waiting %s (until %s UTC) before the next chunk; set internalURL in the DXConnection to avoid the cut",
+				i+1, len(chunks), chunkFiles, w.Round(time.Second), time.Now().Add(w).UTC().Format("15:04")))
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(w):
+			}
+			for _, t := range titles {
+				cut[t] = started.Time
+			}
+			r.Recorder.Eventf(o, nil, corev1.EventTypeWarning, "ChunkCut", chunkAction(i), "chunk %d/%d: the request was cut by a proxy; waited %s for DX, checked at the end", i+1, len(chunks), w.Round(time.Second))
+			return nil
+		}
+		cleanup(i)
+		if err == nil && chunkFiles > 0 {
+			rateFiles += float64(chunkFiles)
+			rateSecs += time.Since(started.Time).Seconds()
 		}
 		if err != nil {
 			for _, t := range titles {
@@ -598,7 +621,37 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 		byTitle[strings.ToLower(l.Title)] = l
 	}
 	var warnings []string
+	grantAccess := func(lib dx.WCMLibrary, title string) {
+		for _, a := range o.Spec.Access {
+			href, aerr := lib.AccessControl, error(nil)
+			if href == "" {
+				href, aerr = c.LibraryAccessControl(ctx, vp, lib.ID)
+			}
+			if aerr == nil {
+				aerr = c.GrantLibraryRole(ctx, vp, href, a.DN, a.Type, a.Role)
+			}
+			if aerr != nil {
+				warnings = append(warnings, fmt.Sprintf("%s: role %s for %s: %v", title, a.Role, a.DN, aerr))
+			}
+		}
+	}
 	for _, l := range todo {
+		if since, wasCut := cut[l.Title]; wasCut {
+			lib, there := byTitle[strings.ToLower(l.Title)]
+			switch {
+			case there && (!existing[strings.ToLower(l.Title)] || (!lib.Updated.IsZero() && !lib.Updated.Before(since))):
+				// new in DX, or modified after its chunk started: DX finished the import the proxy cut
+				st.ImportedLibraries = append(st.ImportedLibraries, l.Title)
+				warnings = append(warnings, l.Title+": its request was cut by a proxy, DX imported it")
+				grantAccess(lib, l.Title)
+			case there:
+				st.FailedLibraries = append(st.FailedLibraries, dxv1.WCMLibraryResult{Title: l.Title, Reason: "its request was cut by a proxy and it already existed: " +
+					"DX does not say whether it finished overwriting it; check it in DX (internalURL avoids the cut)"})
+			default:
+				st.FailedLibraries = append(st.FailedLibraries, dxv1.WCMLibraryResult{Title: l.Title, Reason: "its request was cut by a proxy and DX did not import it (not listed after waiting)"})
+			}
+			continue
+		}
 		if why, bad := failed[l.Title]; bad {
 			// a chunk can fail on one item and still import the rest of its libraries (seen on CF239)
 			if _, there := byTitle[strings.ToLower(l.Title)]; there && !existing[strings.ToLower(l.Title)] {
@@ -613,18 +666,7 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			continue
 		}
 		st.ImportedLibraries = append(st.ImportedLibraries, l.Title)
-		for _, a := range o.Spec.Access {
-			href, aerr := lib.AccessControl, error(nil)
-			if href == "" {
-				href, aerr = c.LibraryAccessControl(ctx, vp, lib.ID)
-			}
-			if aerr == nil {
-				aerr = c.GrantLibraryRole(ctx, vp, href, a.DN, a.Type, a.Role)
-			}
-			if aerr != nil {
-				warnings = append(warnings, fmt.Sprintf("%s: role %s for %s: %v", l.Title, a.Role, a.DN, aerr))
-			}
-		}
+		grantAccess(lib, l.Title)
 	}
 	sort.Strings(st.ImportedLibraries)
 	st.CurrentChunk = 0
@@ -821,4 +863,30 @@ func resumeWait(res *dxv1.WCMImportResume, t time.Time) time.Duration {
 		return w
 	}
 	return 0
+}
+
+// Defaults of cutWait: DX imported about 6 files per second into a busy Derby on CF239 (19-nov); 4 is on the safe side.
+const (
+	cutWaitDefaultRate = 4.0
+	cutWaitMin         = 3 * time.Minute
+	cutWaitMax         = 90 * time.Minute
+)
+
+// cutWait: how long to wait, after a proxy cut the import request of a chunk of `files` files `elapsed` after it
+// started, before the next chunk, so DX has finished it. DX gives no "done" signal over HTTP, so it is estimated from
+// the speed of the uncut chunks of this run (files and seconds), or 4 files per second without one, with a margin of
+// 50%, between 3 and 90 minutes.
+func cutWait(files int, rateFiles, rateSecs float64, elapsed time.Duration) time.Duration {
+	rate := cutWaitDefaultRate
+	if rateFiles > 0 && rateSecs > 0 {
+		rate = rateFiles / rateSecs
+	}
+	need := time.Duration(1.5*float64(files)/rate*float64(time.Second)) - elapsed
+	if need < cutWaitMin {
+		return cutWaitMin
+	}
+	if need > cutWaitMax {
+		return cutWaitMax
+	}
+	return need
 }

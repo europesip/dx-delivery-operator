@@ -112,8 +112,13 @@
   biblioteca de más de 500 MB comprimida no se puede importar) y rechaza nombres de fichero con espacios. No se pueden
   renombrar (DX busca los valores de un elemento por su nombre): la biblioteca se informa como no importable; hay que
   renombrar el elemento en el portal de origen.
-- **Peticiones de 20 minutos**: el HAProxy de DX Compose corta a los 1200 s. Actualizar elementos existentes va a ~7
-  ficheros/s (nuevos ~60): ajusta `upload.maxChunkFiles`.
+- **Peticiones de 20 minutos**: el HAProxy de DX Compose corta a los 1200 s (Traefik u otro proxy delante puede cortar
+  antes). Actualizar elementos existentes va a ~7 ficheros/s (nuevos ~60): ajusta `upload.maxChunkFiles`, o pon
+  `internalURL` en la DXConnection (0.9.2) para que las peticiones largas lleguen al Web Engine sin proxies.
+- **Un lote cortado** (0.9.2): DX no da una señal de «terminado» por HTTP, así que tras un corte el operador espera una
+  estimación antes del siguiente lote; si DX va más lento (un Derby muy cargado) aún podrían solaparse dos
+  importaciones. Una biblioteca que ya existía en el destino y cuyo `updated` no cambió se da por fallida: compruébala
+  en DX.
 - **Reanudar tras un reinicio** (0.9.1): DX no dice si sigue importando un lote cuya petición se cortó, así que el
   operador espera una estimación (1,5 veces el lote más largo, de 3 a 30 minutos) antes de volver a importarlo. Un lote
   que DX tarde más en importar podría solaparse con el nuevo intento; mira el log de DX si el lote reanudado falla.

@@ -18,6 +18,7 @@ Short names: `dxconn`
 | `credentialsSecret` | object (required) |  | CredentialsSecret: Secret with the keys "username" and "password" of a DX user. Script Applications need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator. |
 | `credentialsSecret.name` | string (required) |  | Name of the object. |
 | `insecureSkipTLSVerify` | boolean |  | InsecureSkipTLSVerify: do not verify the certificate at all (labs only). |
+| `internalURL` | string |  | InternalURL: in-cluster URL of the Web Engine, without Traefik or HAProxy in between, for example http://dx-deployment-web-engine.<namespace>.svc:9080 when the operator runs in the same cluster. The long requests (WCM data module import and export, dxFileTransfer uploads and downloads) go there, so no proxy timeout cuts them (a cut import goes on inside DX and the next one would run at the same time); everything else uses url. |
 | `resyncInterval` | string | `10m` | ResyncInterval: how often every resource that uses this connection is checked against DX, to detect and correct drift (default 10m, minimum 1m). |
 | `url` | string (required) |  | URL of DX as the operator reaches it, for example https://dx.example.com (normally the public host). |
 | `virtualPortalContext` | string |  | VirtualPortalContext: push Script Applications into this virtual portal. |

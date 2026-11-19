@@ -101,6 +101,11 @@ func dftPath(c *Client, q url.Values) string {
 
 // FileTransferCreateDir creates a sub folder of the dxFileTransfer root (no error if it exists).
 func (c *Client) FileTransferCreateDir(ctx context.Context, sub string) error {
+	if c.long != nil {
+		if err := c.long.FileTransferCreateDir(ctx, sub); !unreachable(err) { // in-cluster URL: no proxy timeout
+			return err
+		}
+	}
 	st, data, err := c.basicDo(ctx, http.MethodPost, dftPath(c, url.Values{"action": {"createDir"}, "subDirectory": {sub}}), nil, "", 2*time.Minute)
 	if err != nil {
 		return err
@@ -115,6 +120,11 @@ func (c *Client) FileTransferCreateDir(ctx context.Context, sub string) error {
 // FileTransferUpload uploads a zip into sub and extracts it there; it returns the absolute folder in the DX container
 // where the files are (<root>/<sub>/<zip name without .zip>). The file is streamed, not read into memory.
 func (c *Client) FileTransferUpload(ctx context.Context, sub, zipPath string) (string, error) {
+	if c.long != nil {
+		if v, err := c.long.FileTransferUpload(ctx, sub, zipPath); !unreachable(err) { // in-cluster URL: no proxy timeout
+			return v, err
+		}
+	}
 	fi, err := os.Stat(zipPath)
 	if err != nil {
 		return "", err
@@ -151,6 +161,11 @@ func (c *Client) FileTransferUpload(ctx context.Context, sub, zipPath string) (s
 
 // FileTransferDeleteDir deletes a sub folder of the dxFileTransfer root and everything in it.
 func (c *Client) FileTransferDeleteDir(ctx context.Context, sub string) error {
+	if c.long != nil {
+		if err := c.long.FileTransferDeleteDir(ctx, sub); !unreachable(err) { // in-cluster URL: no proxy timeout
+			return err
+		}
+	}
 	st, data, err := c.basicDo(ctx, http.MethodDelete, dftPath(c, url.Values{"action": {"deleteSubDir"}, "subDirectory": {sub}}), nil, "", 5*time.Minute)
 	if err != nil {
 		return err
@@ -169,6 +184,8 @@ type WCMLibrary struct {
 	ID            string
 	Title         string
 	AccessControl string // path of its access-control entry (ac/access:oid:...)
+	// Updated: last modification of the library as WCM REST reports it (zero when it does not).
+	Updated time.Time
 }
 
 type atomLink struct {
@@ -179,9 +196,10 @@ type atomLink struct {
 type libFeed struct {
 	Total   int `xml:"total"`
 	Entries []struct {
-		ID    string     `xml:"id"`
-		Title string     `xml:"title"`
-		Links []atomLink `xml:"link"`
+		ID      string     `xml:"id"`
+		Title   string     `xml:"title"`
+		Updated string     `xml:"updated"`
+		Links   []atomLink `xml:"link"`
 	} `xml:"entry"`
 }
 
@@ -222,6 +240,9 @@ func (c *Client) ListLibraries(ctx context.Context, vp string) ([]WCMLibrary, er
 		}
 		for _, e := range f.Entries {
 			l := WCMLibrary{ID: strings.TrimPrefix(e.ID, "wcmrest:"), Title: strings.TrimSpace(e.Title)}
+			if t, perr := time.Parse(time.RFC3339, strings.TrimSpace(e.Updated)); perr == nil {
+				l.Updated = t
+			}
 			for _, k := range e.Links {
 				if k.Rel == "access-control" {
 					l.AccessControl = k.Href
@@ -357,7 +378,12 @@ var ErrCutByProxy = errors.New("the import request was cut before DX answered; D
 // module as text. It holds the XMLAccess lock of this DX while it runs: concurrent XMLAccess calls made the import fail
 // on Derby (transaction timeout).
 func (c *Client) DataModuleImport(ctx context.Context, vp, dir string, copyIDs bool, timeout time.Duration) (string, error) {
-	mu, _ := xmlAccessLocks.LoadOrStore(c.cfg.BaseURL, &sync.Mutex{})
+	if c.long != nil {
+		if v, err := c.long.DataModuleImport(ctx, vp, dir, copyIDs, timeout); !unreachable(err) { // in-cluster URL: no proxy timeout
+			return v, err
+		}
+	}
+	mu, _ := xmlAccessLocks.LoadOrStore(c.lockID(), &sync.Mutex{})
 	mu.(*sync.Mutex).Lock()
 	defer mu.(*sync.Mutex).Unlock()
 	task := "import"

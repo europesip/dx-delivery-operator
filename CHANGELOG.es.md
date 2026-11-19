@@ -5,6 +5,18 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.9.2 · sin publicar · Las importaciones WCM no se solapan tras un corte del proxy; internalURL
+
+- **Sin lotes solapados** (#37): cuando un proxy corta la petición del módulo de datos de un lote (HTTP 502/503/504), DX
+  sigue importándolo; ahora el operador espera, antes del siguiente lote, el tiempo que DX necesita (1,5 × sus ficheros a
+  la velocidad de los lotes no cortados de la ejecución, o 4 ficheros/s; de 3 a 90 minutos; evento `ChunkCut`). Dos
+  importaciones a la vez bloqueaban Derby.
+- **Las bibliotecas de un lote cortado se comprueban en DX** al final en vez de darse por fallidas: importadas si DX las
+  lista y son nuevas o se actualizaron (`updated` de WCM REST) después de empezar su lote, con un aviso.
+- **`DXConnection.spec.internalURL`**: URL interna del Web Engine en el clúster (`http://dx-deployment-web-engine.<ns>.svc:9080`)
+  para las peticiones largas (importación y exportación del módulo de datos, dxFileTransfer): ningún timeout de Traefik
+  ni HAProxy las corta. Inicia sesión con el formulario (LtpaToken2 sin dominio); la comprobación de la conexión la prueba
+  y, si no responde, se usa `url`.
 ## 0.9.1 · 2026-11-19 · Las importaciones se retoman tras un reinicio; los IDs se eligen al importar
 
 - **`DXWCMLibraryImport` sigue en el lote donde iba** tras un reinicio del operador (#33): el plan de lotes y el avance se
