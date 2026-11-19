@@ -83,3 +83,20 @@ func TestResumeWait(t *testing.T) {
 		}
 	}
 }
+
+func TestCutWait(t *testing.T) {
+	// no measured speed: 4 files/s with 50% margin: 7328 files → 45.8 min, minus 5 min already spent
+	if got := cutWait(7328, 0, 0, 5*time.Minute); got < 40*time.Minute || got > 41*time.Minute {
+		t.Errorf("default rate: %s", got)
+	}
+	// measured 6 files/s: 3000 files → 12.5 min - 2 min
+	if got := cutWait(3000, 600, 100, 2*time.Minute); got < 10*time.Minute || got > 11*time.Minute {
+		t.Errorf("measured rate: %s", got)
+	}
+	if got := cutWait(10, 0, 0, 0); got != cutWaitMin {
+		t.Errorf("small chunk: %s, want the minimum", got)
+	}
+	if got := cutWait(1_000_000, 0, 0, 0); got != cutWaitMax {
+		t.Errorf("huge chunk: %s, want the maximum", got)
+	}
+}

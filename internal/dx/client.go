@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -38,6 +39,10 @@ type Config struct {
 	ContentHandlerPath string
 	// VirtualPortalContext for pushes into a virtual portal.
 	VirtualPortalContext string
+	// InternalURL: in-cluster URL of the Web Engine (http://<release>-web-engine.<ns>.svc:9080), without Traefik or
+	// HAProxy in between. When set, the long requests (WCM data module import and export, dxFileTransfer) go there, so no
+	// proxy timeout cuts them; everything else keeps BaseURL. Empty: BaseURL for everything.
+	InternalURL string
 	// NoFormLogin turns off the fallback to the portal form login (DX with OpenID Connect, since 0.1.2): with it, only
 	// the REST login is used, as up to 0.1.1. Set from the environment variable DX_FORM_LOGIN=false (chart value
 	// dx.oidcCompatibility=false).
@@ -64,6 +69,47 @@ type Client struct {
 	http    *http.Client
 	mu      sync.Mutex
 	session time.Time
+	// long: the client of InternalURL for the long requests (nil: this client does them).
+	long *Client
+	// lockKey: the key of the XMLAccess lock of this DX (the base URL of the public client, also for its long client).
+	lockKey string
+}
+
+// lockID is the key of the lock that serialises XMLAccess and the WCM data module on one DX.
+func (c *Client) lockID() string {
+	if c.lockKey != "" {
+		return c.lockKey
+	}
+	return c.cfg.BaseURL
+}
+
+// unreachable: the in-cluster URL could not be reached at all (no such host, connection refused): the request is sent
+// again through BaseURL. Any other answer (also a failed import) is the answer.
+func unreachable(err error) bool {
+	if err == nil {
+		return false
+	}
+	var dnsErr *net.DNSError
+	var opErr *net.OpError
+	return errors.As(err, &dnsErr) || (errors.As(err, &opErr) && opErr.Op == "dial")
+}
+
+// Internal tells whether the long requests go to an in-cluster URL (InternalURL).
+func (c *Client) Internal() bool { return c.long != nil }
+
+// LoginInternal signs in through InternalURL. When it fails, the long requests use BaseURL from then on (a wrong or
+// unreachable internalURL must not stop imports that worked before).
+func (c *Client) LoginInternal(ctx context.Context) error {
+	if c.long == nil {
+		return nil
+	}
+	if err := c.long.Login(ctx); err != nil {
+		c.mu.Lock()
+		c.long = nil
+		c.mu.Unlock()
+		return err
+	}
+	return nil
 }
 
 // NewClient prepares a client; it signs in on the first call.
@@ -86,11 +132,20 @@ func NewClient(cfg Config) (*Client, error) {
 		}
 		tlsCfg.RootCAs = pool
 	}
-	return &Client{cfg: cfg, http: &http.Client{
-		Jar:       newResetJar(),
-		Timeout:   90 * time.Second,
-		Transport: &http.Transport{TLSClientConfig: tlsCfg, Proxy: http.ProxyFromEnvironment, MaxIdleConnsPerHost: 4},
-	}}, nil
+	newHTTP := func() *http.Client {
+		return &http.Client{
+			Jar:       newResetJar(),
+			Timeout:   90 * time.Second,
+			Transport: &http.Transport{TLSClientConfig: tlsCfg, Proxy: http.ProxyFromEnvironment, MaxIdleConnsPerHost: 4},
+		}
+	}
+	c := &Client{cfg: cfg, http: newHTTP()}
+	if in := strings.TrimRight(cfg.InternalURL, "/"); in != "" && in != cfg.BaseURL {
+		lc := cfg
+		lc.BaseURL, lc.InternalURL = in, ""
+		c.long = &Client{cfg: lc, http: newHTTP(), lockKey: cfg.BaseURL}
+	}
+	return c, nil
 }
 
 // Config returns the configuration of the client.
@@ -305,7 +360,7 @@ func (c *Client) XMLAccessAt(ctx context.Context, vpContext, request string) (st
 	if vpContext != "" {
 		path += "/" + url.PathEscape(vpContext)
 	}
-	mu, _ := xmlAccessLocks.LoadOrStore(c.cfg.BaseURL, &sync.Mutex{})
+	mu, _ := xmlAccessLocks.LoadOrStore(c.lockID(), &sync.Mutex{})
 	mu.(*sync.Mutex).Lock()
 	defer mu.(*sync.Mutex).Unlock()
 	var last error

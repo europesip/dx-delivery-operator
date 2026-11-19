@@ -79,7 +79,15 @@ func (r *DXConnectionReconciler) check(ctx context.Context, conn *dxv1.DXConnect
 	if err := cl.Login(ctx); err != nil {
 		return false, "LoginFailed", err.Error()
 	}
-	return true, "Connected", "signed in to " + cfg.BaseURL + " as " + cfg.Username
+	msg := "signed in to " + cfg.BaseURL + " as " + cfg.Username
+	if cl.Internal() {
+		// the long requests go to internalURL: check it too, but a failure only warns (they fall back to url)
+		if err := cl.LoginInternal(ctx); err != nil {
+			return true, "InternalURLFailed", msg + "; internalURL " + cfg.InternalURL + " does not work, the long requests use url: " + err.Error()
+		}
+		msg += "; long requests (WCM data module, dxFileTransfer) through " + cfg.InternalURL
+	}
+	return true, "Connected", msg
 }
 
 // SetupWithManager sets up the controller. Changes in the Secrets it uses trigger a new check.

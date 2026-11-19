@@ -8,6 +8,9 @@ metadata:
   name: dx
 spec:
   url: https://dx-demo.apps.promox.europesip-lab.com     # your DX host
+  # Optional (0.9.2): the Web Engine inside the cluster, for the long requests (WCM data module, dxFileTransfer):
+  # no Traefik/HAProxy timeout cuts them. Only when the operator runs in the same cluster as DX.
+  # internalURL: http://dx-deployment-web-engine.<namespace>.svc:9080
   credentialsSecret: { name: dx-admin }
   caSecret: { name: dx-ca }
   resyncInterval: 2m       # how often everything is checked against DX (default 10m)

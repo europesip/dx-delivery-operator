@@ -52,7 +52,7 @@ func fakeDX(t *testing.T, importAnswer string) (*httptest.Server, *[]string) {
 		case r.URL.Path == "/wps/mycontenthandler/europesip/!ut/p/wcmrest/query":
 			_, _ = w.Write([]byte(`<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><id>wcmrest:query?page=1&pagesize=200&type=Library</id><total>2</total>
 <entry><id>wcmrest:aaa</id><title>Portal Site</title><link rel="access-control" href="/wps/mycontenthandler/europesip/!ut/p/digest!x/ac/access:oid:Z6QAAA"/></entry>
-<entry><id>wcmrest:bbb</id><title>EuropeSip_ES</title></entry></feed>`))
+<entry><id>wcmrest:bbb</id><title>EuropeSip_ES</title><updated>2026-11-19T10:12:13.000Z</updated></entry></feed>`))
 		case r.URL.Path == "/wps/mycontenthandler/nope/!ut/p/wcmrest/query":
 			w.WriteHeader(http.StatusNotFound)
 		case r.URL.Path == "/wps/mycontenthandler/europesip/!ut/p/ac/member:Editor@oid:Z6QAAA":
@@ -137,6 +137,9 @@ func TestLibrariesAccessAndVirtualPortals(t *testing.T) {
 	libs, err := c.ListLibraries(ctx, "europesip")
 	if err != nil || len(libs) != 2 || libs[0].Title != "Portal Site" || libs[0].ID != "aaa" {
 		t.Fatalf("libraries: %+v %v", libs, err)
+	}
+	if want := time.Date(2026, 11, 19, 10, 12, 13, 0, time.UTC); !libs[1].Updated.Equal(want) || !libs[0].Updated.IsZero() {
+		t.Errorf("updated: %v / %v", libs[0].Updated, libs[1].Updated)
 	}
 	if err := c.GrantLibraryRole(ctx, "europesip", libs[0].AccessControl, "cn=dxadmins,ou=groups,dc=example,dc=com", "", "Editor"); err != nil {
 		t.Fatal(err)

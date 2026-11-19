@@ -167,7 +167,12 @@ ofrece por HTTP:
 4. **Lotes** de como máximo `upload.maxChunkSize` (450Mi) y `upload.maxChunkFiles` (4000): cada uno se sube con
    `dxFileTransfer` (`unzip=true`), se importa con el módulo de datos de WCM
    (`/wps/wcm/myconnect[/<vp>]?MOD=data&taskType=import|import-copy&input.dir=...`) y se borra su carpeta. Si un proxy
-   corta la petición (502/503/504), la carpeta se conserva: DX sigue importando.
+   corta la petición (502/503/504), la carpeta se conserva: DX sigue importando, así que el operador espera antes del
+   siguiente lote (0.9.2: 1,5 × los ficheros del lote a la velocidad de los lotes no cortados, o 4 ficheros/s, de 3 a
+   90 minutos) y, al final, comprueba esas bibliotecas en DX (nuevas, o con `updated` posterior al inicio del lote) en
+   vez de darlas por fallidas. Con `DXConnection.spec.internalURL` (el Web Engine dentro del clúster, p. ej.
+   `http://dx-deployment-web-engine.<ns>.svc:9080`) las peticiones del módulo de datos y de dxFileTransfer no pasan por
+   Traefik ni HAProxy, y nada las corta.
    **Reanudar tras un reinicio (0.9.1)**: el plan de lotes (los títulos de cada lote) y el avance se guardan en
    `status.resume` mientras dura la ejecución. Si el operador se reinicia (una actualización, un nodo), la siguiente
    ejecución con el mismo spec y la misma exportación sigue en el lote donde iba: los lotes terminados no se vuelven a

@@ -5,6 +5,17 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.9.2 · unreleased · WCM imports never overlap after a proxy cut; internalURL
+
+- **No overlapping chunks** (#37): when a proxy cuts the data-module request of a chunk (HTTP 502/503/504) DX goes on
+  importing it; the operator now waits, before the next chunk, the time DX needs for it (1.5 × its files at the speed of
+  the uncut chunks of the run, or 4 files/s; 3 to 90 minutes; event `ChunkCut`). Two imports at once deadlocked Derby.
+- **The libraries of a cut chunk are checked in DX** at the end instead of being reported failed: imported when DX lists
+  them and they are new or updated (WCM REST `updated`) after their chunk started, with a warning.
+- **`DXConnection.spec.internalURL`**: in-cluster URL of the Web Engine (`http://dx-deployment-web-engine.<ns>.svc:9080`)
+  for the long requests (WCM data module import and export, dxFileTransfer): no Traefik or HAProxy timeout cuts them.
+  Signed in with the form login (LtpaToken2 has no domain); the connection check tries it and an unreachable one falls
+  back to `url`.
 ## 0.9.1 · 2026-11-19 · Imports resume after a restart; object IDs chosen when importing
 
 - **`DXWCMLibraryImport` resumes at the chunk it was on** after a restart of the operator (#33): the chunk plan and the

@@ -180,7 +180,12 @@ offers over HTTP:
 4. **Chunks** of at most `upload.maxChunkSize` (450Mi) and `upload.maxChunkFiles` (4000): each one is uploaded with
    `dxFileTransfer` (`unzip=true`), imported with the WCM data module
    (`/wps/wcm/myconnect[/<vp>]?MOD=data&taskType=import|import-copy&input.dir=...`) and its folder deleted. If a proxy
-   cuts the request (502/503/504), the folder is kept: DX goes on importing.
+   cuts the request (502/503/504), the folder is kept: DX goes on importing, so the operator waits before the next
+   chunk (0.9.2: 1.5 × the files of the chunk at the speed of the uncut chunks, or 4 files/s, 3 to 90 minutes) and,
+   at the end, checks those libraries in DX (new, or `updated` after the chunk started) instead of reporting them
+   failed. With `DXConnection.spec.internalURL` (the in-cluster Web Engine, e.g.
+   `http://dx-deployment-web-engine.<ns>.svc:9080`) the data module and dxFileTransfer requests bypass Traefik and
+   HAProxy, so nothing cuts them.
    **Resume after a restart (0.9.1)**: the chunk plan (titles of each chunk) and the progress are kept in
    `status.resume` while the run goes on. If the operator restarts (an upgrade, a node), the next run with the same
    spec and export goes on at the chunk it was on: finished chunks are not imported again, and their libraries count

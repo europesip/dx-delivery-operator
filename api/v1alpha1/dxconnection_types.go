@@ -16,6 +16,13 @@ type DXConnectionSpec struct {
 	// URL of DX as the operator reaches it, for example https://dx.example.com (normally the public host).
 	// +kubebuilder:validation:Pattern=`^https?://[^/]+/?$`
 	URL string `json:"url"`
+	// InternalURL: in-cluster URL of the Web Engine, without Traefik or HAProxy in between, for example
+	// http://dx-deployment-web-engine.<namespace>.svc:9080 when the operator runs in the same cluster. The long requests
+	// (WCM data module import and export, dxFileTransfer uploads and downloads) go there, so no proxy timeout cuts them
+	// (a cut import goes on inside DX and the next one would run at the same time); everything else uses url.
+	// +kubebuilder:validation:Pattern=`^https?://[^/]+/?$`
+	// +optional
+	InternalURL string `json:"internalURL,omitempty"`
 	// CredentialsSecret: Secret with the keys "username" and "password" of a DX user. Script Applications
 	// need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator.
 	CredentialsSecret LocalObjectReference `json:"credentialsSecret"`
