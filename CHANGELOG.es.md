@@ -5,7 +5,7 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## 0.9.1 · sin publicar · Las importaciones se reanudan tras un reinicio
+## 0.9.1 · 2026-11-19 · Las importaciones se retoman tras un reinicio; los IDs se eligen al importar
 
 - **`DXWCMLibraryImport` sigue en el lote donde iba** tras un reinicio del operador (#33): el plan de lotes y el avance se
   guardan en `status.resume`; los lotes terminados no se vuelven a importar. El lote interrumpido, que DX puede seguir
@@ -13,6 +13,16 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
   de dxFileTransfer (los nombres llevan el intento; las carpetas antiguas se borran al terminar: borrar la carpeta que
   DX estaba leyendo hacía fallar su importación). Las importaciones como copia marcan el lote interrumpido como fallido
   en vez de duplicarlo. Si cambia el spec o la exportación, empieza de cero.
+- **Los IDs de objeto se eligen al importar** (como WCM import / import-copy), también para XML exportado con
+  `xmlaccess.sh` de un DX tradicional: **`DXXMLAccess.spec.objectIDs`**: `Keep` (por defecto, como antes: las
+  peticiones se envían tal cual y se conservan los IDs del XML) o `New` (`create-oids="true"` en cada `<request>`, una
+  vez: DX da IDs nuevos). La petición de `cleanup` se envía tal como está escrita.
+- **DXExport conserva los IDs de objeto** de las páginas en `xmlaccess/01-pages.xml` (la 0.9.0 ponía
+  `create-oids="true"`): se elige al importar. Los owners del control de acceso se siguen quitando (un owner
+  desconocido hace fallar la importación). `EXPORT-INFO.txt` y `bundle.json` (`objectIds`, y `composeNewIds` /
+  `traditionalNewIds` en cada paso) dan las dos formas: mantener (recomendada) o IDs nuevos, con los comandos del
+  tradicional (un `sed` para `create-oids`, el módulo de datos `taskType=import-copy` para WCM). La misma opción para
+  páginas y Portal Site (Keep ↔ `mode: Import`, New ↔ `mode: ImportCopy`); documentación *Paquetes portables*.
 
 ## 0.9.0 · 2026-11-19 · Paquetes portables (DXExport)
 

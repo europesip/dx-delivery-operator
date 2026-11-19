@@ -3,7 +3,8 @@
 # WebSphere. Every file is in the native format of DX:
 #   EXPORT-INFO.txt            what it holds and HOW TO IMPORT it (DX Compose and xmlaccess.sh / ConfigEngine)
 #   bundle.json                the same for tools (dx-bundle/v1): parts, import steps, files with sha256
-#   xmlaccess/01-pages.xml     the pages as an XMLAccess update request (create-oids="true")
+#   xmlaccess/01-pages.xml     the pages as an XMLAccess update request with the object IDs of the source
+#                              (import with DXXMLAccess objectIDs: Keep, or New for new IDs)
 #   wcm/wcm-export-<name>.zip  the WCM data module export (the JCR format of ConfigEngine export-wcm-data)
 # Read it with
 #   oras pull registry.example.com/dx-artifacts/sites/acme-20261119:1

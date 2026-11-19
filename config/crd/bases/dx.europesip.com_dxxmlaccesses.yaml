@@ -135,6 +135,18 @@ spec:
                 items:
                   type: string
                 type: array
+              objectIDs:
+                default: Keep
+                description: |-
+                  ObjectIDs: what DX does with the object IDs (objectid) of the resources the requests create, chosen when importing
+                  (as DXWCMLibraryImport mode Import / ImportCopy). Keep (default): the requests are sent as they are, so the IDs of
+                  the XML are kept (staging → production, portals that are syndicated later; pair it with mode Import for Portal
+                  Site). New: create-oids="true" is set on every <request>, so DX gives new IDs (a copy into a portal where they
+                  would collide; pair it with mode ImportCopy). Also for XML exported with xmlaccess.sh of a traditional DX.
+                enum:
+                - Keep
+                - New
+                type: string
               output:
                 description: 'Output: keep DX''s answer to every request in a ConfigMap
                   (handy for export requests).'

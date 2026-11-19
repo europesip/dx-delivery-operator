@@ -77,10 +77,17 @@ func TestImportStepsAndInfo(t *testing.T) {
 		"<wp_profile>/PortalServer/bin/xmlaccess.sh -in xmlaccess/01-pages.xml -user <admin> -password <pwd> -url https://<host>:<port>/wps/config/europesip -out result.xml",
 		"ConfigEngine.sh import-wcm-data -Dimport.directory=<folder> -DVirtualPortalContext=europesip",
 		"portalSiteLibraryOverwrite: true", "ref: harbor.example.com/dx-artifacts/sites/orbita:1", "oras pull harbor.example.com/dx-artifacts/sites/orbita:1",
+		// 0.9.1: object IDs chosen when importing
+		"KEEP (recommended)", "objectIDs: Keep", "New IDs: the same with objectIDs: New", "mode: Import", "New IDs: the same with mode: ImportCopy",
+		`sed -i '0,/<request /s//<request create-oids="true" /' xmlaccess/01-pages.xml && <wp_profile>/PortalServer/bin/xmlaccess.sh`,
+		"/wps/wcm/myconnect/europesip?MOD=data&processLibraries=false&taskType=import-copy&input.dir=<folder>",
 	} {
 		if !strings.Contains(text, want) {
 			t.Errorf("EXPORT-INFO.txt lacks %q:\n%s", want, text)
 		}
+	}
+	if b.ObjectIDs.Recommended != "keep" || b.Import[0].TraditionalNewIDs == "" || b.Import[1].ComposeNewIDs == "" {
+		t.Errorf("objectIds %+v / steps %+v", b.ObjectIDs, b.Import)
 	}
 	ann := bundleMeta(o, b, time.Date(2026, 11, 19, 9, 0, 0, 0, time.UTC)).Annotations()
 	for k, v := range map[string]string{source.AnnKind: "dx-bundle", source.AnnBundleSchema: BundleSchema, source.AnnBundleParts: "pages,portal-site", source.AnnPages: "orbita-site", source.AnnSourcePortal: "europesip", source.AnnAttrPrefix + "customer": "europesip"} {

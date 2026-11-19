@@ -223,8 +223,8 @@ tradicional sobre WebSphere (ver [Paquetes portables](portable-bundles.es.md)):
 
 1. **Comprobación**: las partes (al menos una) y que existan las bibliotecas (Portal Site si `parts.portalSite`).
 2. **Páginas**: una exportación XMLAccess de todas (`export-descendants` por página) contra `/wps/config[/<vp>]`,
-   convertida en una petición update con `create-oids="true"`, sin status, build, comentarios ni owners:
-   `xmlaccess/01-pages.xml`. Una página que no existe hace fallar la ejecución (`PageNotFound`); temas, skins y portlets
+   convertida en una petición update que conserva los IDs de objeto del origen (0.9.1), sin status, build, comentarios
+   ni owners: `xmlaccess/01-pages.xml`. Mantener o generar IDs se elige al importar (`objectIDs` de `DXXMLAccess`). Una página que no existe hace fallar la ejecución (`PageNotFound`); temas, skins y portlets
    que necesitan, padres sin nombre único y páginas gestionadas sin Portal Site van a `status.warnings`.
 3. **WCM**: bibliotecas y Portal Site con el módulo de datos en un zip: `wcm/wcm-export-<nombre>.zip`.
 4. **Subida**: `EXPORT-INFO.txt` (con los comandos de importación para DX Compose y para `xmlaccess.sh` /
@@ -238,6 +238,9 @@ tradicional sobre WebSphere (ver [Paquetes portables](portable-bundles.es.md)):
 
 1. **Peticiones**: `spec.xml` (una, en línea) o los ficheros `.xml` de una fuente (archivo por URL, imagen OCI o
    artefacto ORAS, ConfigMap), en el orden de `files` o por orden de ruta. `${NOMBRE}` se sustituye con `variables`.
+   `objectIDs` (0.9.1): `Keep` (por defecto) las envía tal cual, así que se conservan los IDs de objeto del XML; `New`
+   pone `create-oids="true"` en cada `<request>` (una vez), así que DX da IDs nuevos a lo que crea, como una
+   importación WCM con `mode: ImportCopy`. La petición de `cleanup` se envía tal como está escrita.
 2. **Primero se comprueban**: cada fichero tiene que ser XML bien formado con `<request type="...">`. Si alguno no lo
    es, **no se envía nada**. Con `dryRun: true` se para aquí y lista las peticiones.
 3. **Ejecución**: cada petición va a `/wps/config` (o a `/wps/config/<contexto>` con `virtualPortal`), de una en una por

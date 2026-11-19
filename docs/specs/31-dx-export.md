@@ -16,7 +16,8 @@ with its own tools. Themes (F2), a site export and one-step bundle import (F3) c
 - Libraries (and Portal Site) must exist first (`LibraryNotFound`, nothing exported). Pages: one XMLAccess export
   request with one `content-node action="export"` per page; a page missing (EJPXA0240E, or not in the answer) fails
   with `PageNotFound`.
-- The answer is turned into a request for another portal: `type="update" create-oids="true"`; `<status>`, `build`,
+- The answer is turned into an importable request: `type="update"`, keeping the object IDs (0.9.1, #35;
+  0.9.0 set `create-oids="true"`; the choice moved to the import: DXXMLAccess `objectIDs`); `<status>`, `build`,
   `version`, XML comments and `owner` of access-control removed; all else kept. Inventory: content nodes per page,
   themes/skins/portlets located, parents without unique name, managed pages (content-mapping-info).
 - WCM: shared with DXWCMLibraryExport (internal/controller/wcmexport_shared.go): one dxFileTransfer folder

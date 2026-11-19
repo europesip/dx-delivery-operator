@@ -40,3 +40,21 @@ spec:
 #   variables: { SITE_HOST: www.acme.example }   # ${SITE_HOST} in the XML
 #   continueOnError: false
 #   cleanup: { file: 99-cleanup.xml }    # run when this resource is deleted (optional)
+---
+# The pages of a DX bundle (DXExport) or an XML exported with xmlaccess.sh of a traditional DX, into this portal.
+# objectIDs (0.9.1) is chosen here, when importing: Keep (default) keeps the object IDs of the XML (staging ->
+# production, portals syndicated later); New sets create-oids="true" so DX gives new ones (a copy where they would
+# collide). Use the matching mode for Portal Site: Keep <-> DXWCMLibraryImport mode Import, New <-> mode ImportCopy.
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXXMLAccess
+metadata:
+  name: import-pages-orbita-site
+spec:
+  connectionRef: { name: dx }
+  source:
+    image:
+      ref: harbor.example.com/dx-artifacts/sites/orbita-site:20261119-0900
+      pullSecrets: [{ name: harbor-dx }]
+  files: [xmlaccess/01-pages.xml]
+  objectIDs: Keep
+  dryRun: true          # check first, then remove it to import
