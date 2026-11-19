@@ -5,7 +5,7 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## 0.9.0 · sin publicar · Paquetes portables (DXExport)
+## 0.9.0 · 2026-11-19 · Paquetes portables (DXExport)
 
 - **Recurso nuevo `DXExport`** (#31): páginas (XMLAccess), la biblioteca Portal Site y bibliotecas WCM de un portal
   DX Compose (base o virtual) en un artefacto OCI, un **DX bundle** (`dx-bundle/v1`): `EXPORT-INFO.txt` (origen,
