@@ -80,7 +80,7 @@ func TestORASFolderArtifact(t *testing.T) {
 	defer srv.Close()
 	archive := tgz(t, map[string]string{"554ee7f5/423dc4e4/aaaa.node": "<x/>", "554ee7f5/423dc4e4/aaaa/b.node": "<y/>"})
 	img, err := mutate.Append(empty.Image, mutate.Addendum{
-		Layer: static.NewLayer(archive, types.MediaType("application/vnd.oci.image.layer.v1.tar+gzip")),
+		Layer:       static.NewLayer(archive, types.MediaType("application/vnd.oci.image.layer.v1.tar+gzip")),
 		Annotations: map[string]string{"org.opencontainers.image.title": "554ee7f5", "io.deis.oras.content.unpack": "true"},
 	}, mutate.Addendum{
 		Layer:       static.NewLayer([]byte("leeme"), types.MediaType("application/vnd.oci.image.layer.v1.tar")),

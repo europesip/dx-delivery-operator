@@ -46,8 +46,8 @@ type DXWCMLibraryImportReconciler struct {
 var cancelCheckEvery = 10 * time.Second
 
 const (
-	defaultMaxChunk     = int64(450 << 20)
-	defaultImportWait   = 2 * time.Hour
+	defaultMaxChunk   = int64(450 << 20)
+	defaultImportWait = 2 * time.Hour
 	// realms tried, in order, to create a virtual portal when neither the spec nor an existing virtual portal gives one
 	federatedRealm      = "FederatedRealm"
 	defaultRealm        = "defaultWIMFileBasedRealm"
