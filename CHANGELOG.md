@@ -5,6 +5,17 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.10.0 · 2026-11-19 · WCM maintenance modules
+
+- **New resource `DXWCMAdminTask`** (#39): the member fixer and the workflow checker of WCM on DX Compose over HTTP
+  (`/wps/wcm/myconnect?MOD=MemberFixer|WorkflowControlChecker`), the `ConfigEngine run-wcm-admin-task-*` of traditional
+  DX: libraries or all libraries, one request each, **report mode unless `fix: true`**, only the documented options
+  (`memberFixer`: altDn, invalidDn, mismatchedId, realm, noRealmDn; `workflowChecker`: updateDocSecurity,
+  rescheduleActions, repairInvalidWorkflow; restrictOn, preserveDates). Summary per library in `status.libraries`, DX's
+  answer in the ConfigMap `<name>-report`, optionally an OCI artifact. Holds the lock of the DX (never with an import).
+  Docs *WCM maintenance modules*, sample 14.
+  With `DXConnection.spec.internalURL` (0.9.2) the requests go to the in-cluster URL.
+
 ## 0.9.2 · 2026-11-19 · WCM imports never overlap after a proxy cut; internalURL
 
 - **No overlapping chunks** (#37): when a proxy cuts the data-module request of a chunk (HTTP 502/503/504) DX goes on

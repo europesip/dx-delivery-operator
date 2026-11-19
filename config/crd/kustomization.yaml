@@ -10,6 +10,7 @@ resources:
 - bases/dx.europesip.com_dxthemes.yaml
 - bases/dx.europesip.com_dxexports.yaml
 - bases/dx.europesip.com_dxwcmlibraryexports.yaml
+- bases/dx.europesip.com_dxwcmadmintasks.yaml
 - bases/dx.europesip.com_dxwcmlibraryimports.yaml
 - bases/dx.europesip.com_dxxmlaccesses.yaml
 # +kubebuilder:scaffold:crdkustomizeresource

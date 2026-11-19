@@ -1,0 +1,28 @@
+# DXWCMAdminTask (#39): the member fixer of WCM in report mode (fix: false, the default) on one library. DX changes
+# nothing; the summary goes to status.libraries and DX's answer to the ConfigMap member-fixer-orbita-report. Read the
+# report, then set fix: true (and the options you need) to apply the fixes: HCL warns they are not easy to undo.
+# Traditional DX: ConfigEngine.sh run-wcm-admin-task-member-fixer -Dlibrary="orbita" [-Dfix=true]
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXWCMAdminTask
+metadata:
+  name: member-fixer-orbita
+spec:
+  connectionRef: { name: dx }
+  task: MemberFixer
+  libraries: [orbita]
+  memberFixer:
+    altDn: update        # nonexistent users/groups → the alternate DNs of MemberFixerModule.properties
+    mismatchedId: update # users whose unique ID changed in the user repository
+---
+# The workflow checker re-applies the security of the workflow stages (report only). DX does nothing without one of
+# updateDocSecurity, rescheduleActions or repairInvalidWorkflow.
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXWCMAdminTask
+metadata:
+  name: workflow-checker-orbita
+spec:
+  connectionRef: { name: dx }
+  task: WorkflowControlChecker
+  libraries: [orbita]
+  workflowChecker:
+    updateDocSecurity: true

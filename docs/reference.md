@@ -627,3 +627,77 @@ Short names: `dxxml`
 | `sourceRevision` | string |  | SourceRevision of the files. |
 | `startTime` | string |  |  |
 
+## DXWCMAdminTask
+
+DXWCMAdminTask runs a maintenance module of Web Content Manager on DX Compose (member fixer, workflow checker), the ConfigEngine run-wcm-admin-task-* of traditional DX, once per spec; report only unless spec.fix.
+
+Short names: `dxwcmadmin`
+
+### spec
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `allLibraries` | boolean |  | AllLibraries: every library of the portal (read from WCM REST when the run starts), one request per library. |
+| `connectionRef` | object (required) |  | ConnectionRef: the DXConnection of the DX. |
+| `connectionRef.name` | string (required) |  | Name of the object. |
+| `dependsOn` | []object |  | DependsOn: resources that must be Ready first. |
+| `dependsOn[].apiVersion` | string |  | APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1. |
+| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport \| DXXMLAccess (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme, DXWCMLibraryImport or DXXMLAccess. |
+| `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
+| `fix` | boolean |  | Fix: apply the changes. Default false: report only (DX changes nothing). Run a report first: HCL warns that the fixes may not be easy to undo. |
+| `libraries` | []string |  | Libraries to process, by title. One request per library, one after the other. |
+| `memberFixer` | object |  | MemberFixer options (task MemberFixer). |
+| `memberFixer.altDn` | update \| remove |  | AltDn: references to users or groups that no longer exist: update replaces them with the alternate DNs of MemberFixerModule.properties, remove deletes them (altDn). |
+| `memberFixer.invalidDn` | update \| remove |  | InvalidDn: references with an invalid DN: update replaces them with the DN of the portal administrator, remove deletes them (invalidDn). |
+| `memberFixer.mismatchedId` | update \| remove |  | MismatchedId: references to users whose unique ID changed in the user repository: update fixes the ID, remove deletes them (mismatchedId). HCL warns to use it with care, mainly together with invalidDn. |
+| `memberFixer.noRealmDn` | boolean |  | NoRealmDn: also check references outside the base DNs of every realm (noRealmDn). |
+| `memberFixer.realm` | string |  | Realm to process in a federated user registry (default: the default realm). |
+| `output` | object |  | Output: where else the report goes. |
+| `output.oci` | object |  | OCI: push the report of every library as an OCI artifact (one file per library and REPORT-INFO.txt). |
+| `output.oci.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with credentials that may push to the repository. |
+| `output.oci.pushSecrets[].name` | string (required) |  | Name of the object. |
+| `output.oci.repository` | string (required) |  | Repository without tag, for example harbor.example.com/dx-exports/url-mappings. |
+| `output.oci.tag` | string |  | Tag of each run. ${DATE} is replaced by the time of the run (yyyymmdd-hhmmss, UTC). Default: ${DATE}. |
+| `preserveDates` | boolean |  | PreserveDates: keep the last modified date of the items that are saved (preserve_dates). |
+| `restrictOn` | []Content \| Folder \| Project \| PresentationTemplate \| AuthoringTemplate \| ContentTemplate \| SiteAreaTemplate \| Taxonomy \| Category \| SiteArea \| Workflow \| WorkflowStage \| WorkflowAction \| Cmpnt |  | RestrictOn: only these item types (default: all). |
+| `suspend` | boolean |  | Suspend stops the reconciliation. |
+| `task` | MemberFixer \| WorkflowControlChecker (required) |  | Task: the module to run. |
+| `timeout` | string |  | Timeout of the request of each library. Default 1h. |
+| `virtualPortal` | string |  | VirtualPortal: URL context of a virtual portal; empty for the base portal. |
+| `workflowChecker` | object |  | WorkflowChecker options (task WorkflowControlChecker). |
+| `workflowChecker.preserveSecurityInheritancePropagation` | boolean |  | PreserveSecurityInheritancePropagation, with updateDocSecurity: keep the inheritance and propagation of the security of each item. |
+| `workflowChecker.repairInvalidWorkflow` | boolean |  | RepairInvalidWorkflow finds the items whose workflow and workflow stage are both empty; with fix it moves them to the internal system workflow. |
+| `workflowChecker.rescheduleActions` | boolean |  | RescheduleActions schedules again the pending workflow actions (scheduled moves, expiry...). |
+| `workflowChecker.updateDocSecurity` | boolean |  | UpdateDocSecurity saves every workflowed item again, applying the security of its workflow stage. |
+
+### status
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `appliedHash` | string |  | AppliedHash of the spec of the last finished run (it runs again only when the spec changes, or with the annotation dx.europesip.com/reconcile). |
+| `completionTime` | string |  |  |
+| `conditions` | []object |  |  |
+| `conditions[].lastTransitionTime` | string (required) |  | lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable. |
+| `conditions[].message` | string (required) |  | message is a human readable message indicating details about the transition. This may be an empty string. |
+| `conditions[].observedGeneration` | integer |  | observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance. |
+| `conditions[].reason` | string (required) |  | reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty. |
+| `conditions[].status` | True \| False \| Unknown (required) |  | status of the condition, one of True, False, Unknown. |
+| `conditions[].type` | string (required) |  | type of condition in CamelCase or in foo.example.com/CamelCase. |
+| `currentLibrary` | integer |  | CurrentLibrary being processed (1-based), while it runs. |
+| `libraries` | []object |  | Libraries: the summary of each library, in order. |
+| `libraries[].errors` | integer |  | Errors DX detected. |
+| `libraries[].itemsProcessed` | integer |  | ItemsProcessed, ItemsUpdated: "Items Processed", "Items Updated and Saved". |
+| `libraries[].itemsUpdated` | integer |  |  |
+| `libraries[].library` | string (required) |  |  |
+| `libraries[].referencesToRemove` | integer |  | Member fixer: references that need removal / update, virtual members that need update. |
+| `libraries[].referencesToUpdate` | integer |  |  |
+| `libraries[].result` | string (required) |  | Result: ok, or the error of the request. |
+| `libraries[].virtualMembersToUpdate` | integer |  |  |
+| `message` | string |  |  |
+| `observedGeneration` | integer |  |  |
+| `outputDigest` | string |  |  |
+| `outputRef` | string |  | OutputRef and OutputDigest: the artifact with the report, when spec.output.oci is set. |
+| `phase` | Pending \| Running \| Succeeded \| Failed |  | WCMAdminTaskPhase is where a run is. |
+| `reportConfigMap` | string |  | ReportConfigMap: the ConfigMap with DX's answer for every library (the per item detail is only in the log of the Web Engine). |
+| `startTime` | string |  |  |
+

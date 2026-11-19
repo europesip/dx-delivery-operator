@@ -51,6 +51,7 @@ rules:
   - dxpages/status
   - dxscriptapplications/status
   - dxthemes/status
+  - dxwcmadmintasks/status
   - dxwcmlibraryexports/status
   - dxwcmlibraryimports/status
   - dxxmlaccesses/status
@@ -67,6 +68,7 @@ rules:
   - dxpages
   - dxscriptapplications
   - dxthemes
+  - dxwcmadmintasks
   - dxwcmlibraryexports
   - dxwcmlibraryimports
   - dxxmlaccesses
