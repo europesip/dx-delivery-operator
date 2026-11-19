@@ -97,6 +97,15 @@ type DXXMLAccessSpec struct {
 	// ContinueOnError: run the next requests after a failed one. Default false: stop at the first failure.
 	// +optional
 	ContinueOnError bool `json:"continueOnError,omitempty"`
+	// ObjectIDs: what DX does with the object IDs (objectid) of the resources the requests create, chosen when importing
+	// (as DXWCMLibraryImport mode Import / ImportCopy). Keep (default): the requests are sent as they are, so the IDs of
+	// the XML are kept (staging → production, portals that are syndicated later; pair it with mode Import for Portal
+	// Site). New: create-oids="true" is set on every <request>, so DX gives new IDs (a copy into a portal where they
+	// would collide; pair it with mode ImportCopy). Also for XML exported with xmlaccess.sh of a traditional DX.
+	// +optional
+	// +kubebuilder:validation:Enum=Keep;New
+	// +kubebuilder:default=Keep
+	ObjectIDs string `json:"objectIDs,omitempty"`
 	// Cleanup: a request run when the resource is deleted. Without it, deleting the resource changes nothing in
 	// DX. A failed cleanup is reported as an event; the resource is removed anyway.
 	// +optional

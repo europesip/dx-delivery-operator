@@ -128,3 +128,31 @@ func TestSaveOutputNeverCuts(t *testing.T) {
 		t.Fatalf("big+oci: %v %q", err, read()["README"])
 	}
 }
+
+func TestObjectIDs(t *testing.T) {
+	req := `<request type="update"><portal action="locate"/></request>`
+	o := &dxv1.DXXMLAccess{}
+	inline := func(only string) string {
+		reqs, _, err := (&DXXMLAccessReconciler{}).requests(context.Background(), o, only)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return reqs[0].Body
+	}
+	o.Spec.XML = req
+	if got := inline(""); got != req {
+		t.Errorf("Keep (default) must send the request as it is: %s", got)
+	}
+	o.Spec.ObjectIDs = "Keep"
+	if got := inline(""); got != req {
+		t.Errorf("Keep: %s", got)
+	}
+	o.Spec.ObjectIDs = ObjectIDsNew
+	if got := inline(""); got != `<request type="update" create-oids="true"><portal action="locate"/></request>` {
+		t.Errorf("New: %s", got)
+	}
+	o.Spec.Cleanup = &dxv1.XMLAccessCleanup{XML: `<request type="update"><portal action="locate"/></request>`}
+	if got := inline(xmlInlineName); strings.Contains(got, "create-oids") {
+		t.Errorf("the cleanup request is sent as written: %s", got)
+	}
+}

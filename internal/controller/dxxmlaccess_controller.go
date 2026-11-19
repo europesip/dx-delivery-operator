@@ -146,6 +146,18 @@ func requestFiles(dir string, files []string) ([]string, error) {
 	return out, nil
 }
 
+// ObjectIDsNew: spec.objectIDs value that makes DX give new object IDs.
+const ObjectIDsNew = "New"
+
+// objectIDs applies spec.objectIDs to a request of the run: New sets create-oids="true" on its <request> elements;
+// Keep (default) sends it as it is. The cleanup request (only != "") is sent as written.
+func objectIDs(o *dxv1.DXXMLAccess, only, body string) string {
+	if o.Spec.ObjectIDs == ObjectIDsNew && only == "" {
+		return dx.SetCreateOIDs(body)
+	}
+	return body
+}
+
 // requests reads the requests of the spec (inline or from the source) with the variables replaced. The returned
 // revision identifies the source (empty for inline XML).
 func (r *DXXMLAccessReconciler) requests(ctx context.Context, o *dxv1.DXXMLAccess, only string) ([]xmlRequest, string, error) {
@@ -154,7 +166,7 @@ func (r *DXXMLAccessReconciler) requests(ctx context.Context, o *dxv1.DXXMLAcces
 		if only == xmlInlineName && o.Spec.Cleanup != nil {
 			body = o.Spec.Cleanup.XML
 		}
-		return []xmlRequest{{File: xmlInlineName, Body: substitute(body, o.Spec.Variables)}}, "", nil
+		return []xmlRequest{{File: xmlInlineName, Body: objectIDs(o, only, substitute(body, o.Spec.Variables))}}, "", nil
 	}
 	tree, err := r.Fetcher.Fetch(ctx, o.Namespace, *o.Spec.Source)
 	if err != nil {
@@ -178,7 +190,7 @@ func (r *DXXMLAccessReconciler) requests(ctx context.Context, o *dxv1.DXXMLAcces
 		if err != nil {
 			return nil, tree.Revision, err
 		}
-		out = append(out, xmlRequest{File: n, Body: substitute(string(b), o.Spec.Variables)})
+		out = append(out, xmlRequest{File: n, Body: objectIDs(o, only, substitute(string(b), o.Spec.Variables))})
 	}
 	return out, tree.Revision, nil
 }

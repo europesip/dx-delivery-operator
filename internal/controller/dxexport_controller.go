@@ -427,12 +427,33 @@ type bundleRefs struct {
 	Portlets []string `json:"portlets,omitempty"`
 }
 
+// bundleStep: one step of the import, in DX Compose and in a traditional DX, for both choices of object IDs.
 type bundleStep struct {
-	Step        int    `json:"step"`
-	Part        string `json:"part"`
-	File        string `json:"file"`
-	Compose     string `json:"compose"`
-	Traditional string `json:"traditional"`
+	Step              int    `json:"step"`
+	Part              string `json:"part"`
+	File              string `json:"file"`
+	Compose           string `json:"compose"`
+	ComposeNewIDs     string `json:"composeNewIds"`
+	Traditional       string `json:"traditional"`
+	TraditionalNewIDs string `json:"traditionalNewIds"`
+}
+
+// bundleObjectIDs: the object IDs are chosen when importing (as WCM import / import-copy); the files keep the IDs of
+// the source.
+type bundleObjectIDs struct {
+	InFiles     string `json:"inFiles"`
+	Recommended string `json:"recommended"`
+	Keep        string `json:"keep"`
+	New         string `json:"new"`
+}
+
+func objectIDsOf() bundleObjectIDs {
+	return bundleObjectIDs{
+		InFiles:     "kept: the object IDs and WCM UUIDs of the source, as DX exported them",
+		Recommended: "keep",
+		Keep:        "keep the IDs of the source (staging to production, portals that are syndicated later): pages sent as they are (DXXMLAccess objectIDs: Keep), WCM with mode Import (taskType=import)",
+		New:         "new IDs (a copy into a portal where the IDs would collide): pages with create-oids=\"true\" (DXXMLAccess objectIDs: New), WCM with mode ImportCopy (taskType=import-copy); use the same choice for pages and Portal Site",
+	}
 }
 
 type bundleManifest struct {
@@ -450,6 +471,7 @@ type bundleManifest struct {
 	Libraries   []dxv1.WCMExportedLibrary `json:"libraries,omitempty"`
 	References  bundleRefs                `json:"references"`
 	Warnings    []string                  `json:"warnings,omitempty"`
+	ObjectIDs   bundleObjectIDs           `json:"objectIds"`
 	Import      []bundleStep              `json:"import"`
 	Files       []bundleFileEntry         `json:"files"`
 }
@@ -475,6 +497,7 @@ func bundleOf(conn *Connection, o *dxv1.DXExport) bundleManifest {
 		Source:      bundleSource{Server: conn.Config.BaseURL, Connection: o.Namespace + "/" + o.Spec.ConnectionRef.Name, VirtualPortal: o.Spec.VirtualPortal},
 		RequestedBy: strings.TrimPrefix(strings.TrimPrefix(ann[source.ResChangedBy], "user:"), "default/"),
 		Reason:      strings.TrimSpace(ann[source.ResReason]), Tools: tools, Attributes: o.Spec.Destination.Attributes, Parts: parts,
+		ObjectIDs: objectIDsOf(),
 	}
 }
 
@@ -502,18 +525,27 @@ func importSteps(o *dxv1.DXExport, pages bool, titles []string) []bundleStep {
 		vpProp = " -DVirtualPortalContext=" + vp
 	}
 	var steps []bundleStep
+	vpPath := ""
+	if vp != "" {
+		vpPath = "/" + vp
+	}
 	if pages {
+		xa := "<wp_profile>/PortalServer/bin/xmlaccess.sh -in " + bundlePagesFile + " -user <admin> -password <pwd> -url " + cfg + " -out result.xml"
 		steps = append(steps, bundleStep{
 			Step: len(steps) + 1, Part: "pages", File: bundlePagesFile,
-			Compose:     "DXXMLAccess with source.image.ref=<this artifact> and files=[" + bundlePagesFile + "] (Backstage: Run XMLAccess), dry run first",
-			Traditional: "<wp_profile>/PortalServer/bin/xmlaccess.sh -in " + bundlePagesFile + " -user <admin> -password <pwd> -url " + cfg + " -out result.xml",
+			Compose:           "DXXMLAccess with source.image.ref=<this artifact>, files=[" + bundlePagesFile + "] and objectIDs: Keep (Backstage: Run XMLAccess), dry run first",
+			ComposeNewIDs:     "the same with objectIDs: New",
+			Traditional:       xa,
+			TraditionalNewIDs: "sed -i '0,/<request /s//<request create-oids=\"true\" /' " + bundlePagesFile + " && " + xa,
 		})
 	}
 	if len(titles) > 0 {
 		steps = append(steps, bundleStep{
 			Step: len(steps) + 1, Part: "wcm", File: "wcm/wcm-export-" + unsafeChars.ReplaceAllString(strings.ToLower(o.Name), "-") + ".zip",
-			Compose:     "DXWCMLibraryImport with source.image.ref=<this artifact> (Backstage: Import WCM libraries)" + portalSiteNote(o.Spec.Parts.PortalSite) + ", dry run first",
-			Traditional: "unzip it into <folder> on the DX server, then <wp_profile>/ConfigEngine/ConfigEngine.sh import-wcm-data -Dimport.directory=<folder>" + vpProp + " -DWasPassword=<pwd> -DPortalAdminPwd=<pwd>",
+			Compose:           "DXWCMLibraryImport with source.image.ref=<this artifact> and mode: Import (Backstage: Import WCM libraries)" + portalSiteNote(o.Spec.Parts.PortalSite) + ", dry run first",
+			ComposeNewIDs:     "the same with mode: ImportCopy",
+			Traditional:       "unzip it into <folder> on the DX server, then <wp_profile>/ConfigEngine/ConfigEngine.sh import-wcm-data -Dimport.directory=<folder>" + vpProp + " -DWasPassword=<pwd> -DPortalAdminPwd=<pwd>",
+			TraditionalNewIDs: "unzip it into <folder> on the DX server and, signed in to the portal as an administrator, open /wps/wcm/myconnect" + vpPath + "?MOD=data&processLibraries=false&taskType=import-copy&input.dir=<folder> (import-wcm-data has no copy mode)",
 		})
 	}
 	return steps
@@ -615,18 +647,28 @@ CF level as the source (%s) or a newer one, in this order. The target must alrea
 portlets listed above (themes travel in a later version of the bundle).
 
 `, val(b.Source.Version, "see above"))
+	fmt.Fprintf(&w, `Object IDs: the files keep the object IDs and WCM UUIDs of the source. Choose when importing, and use the same
+choice for the pages and for Portal Site:
+  - KEEP (recommended): the IDs of the source. For staging -> production and for portals that are syndicated later
+    (syndication matches items by their ID). Importing again updates what exists.
+  - NEW: DX gives new IDs. For a copy into a portal where the IDs would collide. The association of managed pages
+    with their Portal Site content is by ID: test a copy with Portal Site in a test portal first.
+
+`)
 	fmt.Fprintf(&w, "A. HCL DX Compose (DX Script App Operator, or Backstage):\n")
 	for _, s := range b.Import {
-		fmt.Fprintf(&w, "   %d. %s (%s): %s\n", s.Step, s.Part, s.File, s.Compose)
+		fmt.Fprintf(&w, "   %d. %s (%s): %s\n      New IDs: %s\n", s.Step, s.Part, s.File, s.Compose, s.ComposeNewIDs)
 	}
 	fmt.Fprintf(&w, "   The source of both resources is this artifact:\n     source:\n       image:\n         ref: %s\n", o.Spec.Destination.Image)
 	fmt.Fprintf(&w, "\nB. Traditional HCL DX on WebSphere (8.5 / 9.0 / 9.5), with its own tools:\n")
 	fmt.Fprintf(&w, "   Download the bundle (oras pull %s) and copy it to the DX server.\n", o.Spec.Destination.Image)
 	for _, s := range b.Import {
-		fmt.Fprintf(&w, "   %d. %s:\n        %s\n", s.Step, s.Part, s.Traditional)
+		fmt.Fprintf(&w, "   %d. %s:\n        Keep IDs: %s\n        New IDs:  %s\n", s.Step, s.Part, s.Traditional, s.TraditionalNewIDs)
 	}
-	fmt.Fprintf(&w, `   Notes: xmlaccess.sh is in <wp_profile>/PortalServer/bin (xmlaccess.bat on Windows); the request already has
-   create-oids="true", so the pages get new object IDs. import-wcm-data imports every library of the folder (it has
+	fmt.Fprintf(&w, `   Notes: xmlaccess.sh is in <wp_profile>/PortalServer/bin (xmlaccess.bat on Windows); the request keeps the
+   object IDs of the source (create-oids="true" on <request> makes DX give new ones). The owners of access control
+   were removed (users of the source registry need not exist): the importing administrator owns the pages; the
+   roles are kept. import-wcm-data imports every library of the folder (it has
    no library name property); Portal Site, when it is in the zip, goes after the pages so the managed pages find
    their content. After it, HCL asks to reset the web content event log and restart the server. Or, signed in to the
    portal, the WCM data module:

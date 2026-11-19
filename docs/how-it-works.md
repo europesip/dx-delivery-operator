@@ -222,8 +222,8 @@ DX on WebSphere (see [Portable bundles](portable-bundles.md)):
 
 1. **Check**: the parts (at least one), the library titles (with Portal Site when `parts.portalSite`) must exist.
 2. **Pages**: one XMLAccess export of every page (`export-descendants` per page) against `/wps/config[/<vp>]`, turned
-   into an update request with `create-oids="true"` without status, build, comments and owners:
-   `xmlaccess/01-pages.xml`. A page that does not exist fails the run (`PageNotFound`); the themes, skins and portlets
+   into an update request that keeps the object IDs of the source (0.9.1), without status, build, comments and owners:
+   `xmlaccess/01-pages.xml`. Kept or new IDs are chosen when importing (`DXXMLAccess` `objectIDs`). A page that does not exist fails the run (`PageNotFound`); the themes, skins and portlets
    the pages need, parents without a unique name and managed pages without Portal Site become `status.warnings`.
 3. **WCM**: the libraries and Portal Site with the data module into one zip (as DXWCMLibraryExport):
    `wcm/wcm-export-<name>.zip`.
@@ -240,7 +240,10 @@ Status: `phase`, `currentStep`, `pages` (content nodes of each), `pagesExported`
 mappings, policies, credential vault slots, WSRP, tags, exports...). It works **like a Job**, not like `DXPage`:
 
 1. **Requests**: `spec.xml` (one, inline) or the `.xml` files of a source (URL archive, OCI image or ORAS artifact,
-   ConfigMap), in the order of `files` or sorted by path. `${NAME}` is replaced with `variables`.
+   ConfigMap), in the order of `files` or sorted by path. `${NAME}` is replaced with `variables`. `objectIDs`
+   (0.9.1): `Keep` (default) sends them as they are, so the object IDs in the XML are kept; `New` sets
+   `create-oids="true"` on every `<request>` (once), so DX gives new IDs to what it creates, like a WCM import with
+   `mode: ImportCopy`. The cleanup request is sent as written.
 2. **Check first**: every file must be well-formed XML with `<request type="...">`. If one is not, **nothing** is
    sent. `dryRun: true` stops here and lists the requests.
 3. **Run**: each request is posted to `/wps/config` (or `/wps/config/<context>` with `virtualPortal`), one at a time

@@ -5,6 +5,19 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.9.1 · unreleased · Object IDs chosen when importing (#35)
+
+- **Object IDs are chosen when importing** (like WCM import / import-copy), also for XML exported with
+  `xmlaccess.sh` of a traditional DX: **`DXXMLAccess.spec.objectIDs`**: `Keep` (default, as before: the requests are
+  sent as they are, so the IDs in the XML are kept) or `New` (`create-oids="true"` on every `<request>`, once: DX gives
+  new IDs). The cleanup request is sent as written.
+- **DXExport keeps the object IDs** of the pages in `xmlaccess/01-pages.xml` (0.9.0 set `create-oids="true"`): the
+  choice is made at import. The owners of access control are still removed (an unknown owner makes the import fail).
+  `EXPORT-INFO.txt` and `bundle.json` (`objectIds`, and `composeNewIds` / `traditionalNewIds` per step) give both
+  ways: keep (recommended) or new IDs, with the traditional commands (a `sed` for `create-oids`, the data module
+  `taskType=import-copy` for WCM). Same choice for pages and Portal Site (Keep ↔ `mode: Import`, New ↔
+  `mode: ImportCopy`); docs *Portable bundles*.
+
 ## 0.9.0 · 2026-11-19 · Portable bundles (DXExport)
 
 - **New resource `DXExport`** (#31): pages (XMLAccess), the Portal Site library and WCM libraries of a DX Compose

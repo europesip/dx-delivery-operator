@@ -54,13 +54,14 @@ func TestPagesImportXML(t *testing.T) {
 			t.Errorf("import request still has %q", bad)
 		}
 	}
-	for _, want := range []string{`<?xml version="1.0" encoding="UTF-8"?>`, `type="update" create-oids="true">`, `xsi:noNamespaceSchemaLocation="PortalConfig_8.5.0.xsd"`, `objectid="Z6_ORB"`, `content-id="c884745c-b20c-4045-994d-f3669fb036fa"`} {
+	for _, want := range []string{`<?xml version="1.0" encoding="UTF-8"?>`, `type="update">`, `xsi:noNamespaceSchemaLocation="PortalConfig_8.5.0.xsd"`, `objectid="Z6_ORB"`, `content-id="c884745c-b20c-4045-994d-f3669fb036fa"`} {
 		if !strings.Contains(req, want) {
 			t.Errorf("import request lacks %q", want)
 		}
 	}
 	head := req[strings.Index(req, "<request"):strings.Index(req, "\n    <portal")]
-	if strings.Count(head, "create-oids") != 1 || strings.Count(head, ` type="`) != 1 {
+	// 0.9.1: the object IDs of the source are kept (chosen when importing)
+	if strings.Contains(head, "create-oids") || strings.Count(head, ` type="`) != 1 {
 		t.Errorf("request attributes: %s", head)
 	}
 	if inv.Nodes != 2 || inv.PerPage["orbita-site"] != 2 || inv.ManagedPages != 1 {
@@ -89,5 +90,22 @@ func TestPagesImportXMLUnnamedParent(t *testing.T) {
 	}
 	if len(inv.UnnamedParents) != 1 || inv.UnnamedParents[0] != "Z6_PARENT" {
 		t.Errorf("unnamed parents %v", inv.UnnamedParents)
+	}
+}
+
+func TestSetCreateOIDs(t *testing.T) {
+	for in, want := range map[string]string{
+		`<request type="update"><portal/></request>`:                                   `<request type="update" create-oids="true"><portal/></request>`,
+		`<request type="update" create-oids="false" x="1"><portal/></request>`:         `<request type="update" x="1" create-oids="true"><portal/></request>`,
+		`<request create-oids="true" type="update">`:                                   `<request type="update" create-oids="true">`,
+		"<?xml version=\"1.0\"?>\n<request\n type=\"update\">":                    "<?xml version=\"1.0\"?>\n<request type=\"update\" create-oids=\"true\">",
+		`<request>`:                                                                    `<request create-oids="true">`,
+	} {
+		if got := SetCreateOIDs(in); got != want {
+			t.Errorf("SetCreateOIDs(%q) = %q, want %q", in, got, want)
+		}
+		if got := SetCreateOIDs(SetCreateOIDs(in)); strings.Count(got, "create-oids") != 1 {
+			t.Errorf("twice: %q", got)
+		}
 	}
 }
