@@ -413,6 +413,18 @@ Short names: `dxwcmimport`
 | `message` | string |  | Message: last result in words. |
 | `observedGeneration` | integer |  |  |
 | `phase` | string |  | WCMImportPhase is the step an import is in. |
+| `resume` | object |  | Resume: the plan and progress of a run with chunks, kept while it runs so that an operator that restarts goes on at the chunk it was on instead of starting again (0.9.1). Removed when the run ends. |
+| `resume.attempt` | integer |  | Attempt: number of the run on this plan (1, 2 after a restart...); it names the dxFileTransfer folders, so a folder DX may still be reading is never deleted or reused. |
+| `resume.chunkStartedAt` | string |  | ChunkStartedAt: when the import request of chunk Completed+1 was sent to DX (empty while it is packed or uploaded). Set when the operator stops: DX may still be importing that chunk. |
+| `resume.chunks` | [][]string (required) |  | Chunks: the titles of the libraries of each chunk, in order. |
+| `resume.completed` | integer (required) |  | Completed: chunks finished (imported, or failed and recorded in Failed). |
+| `resume.existing` | []string |  | Existing: planned libraries that already existed in the target before the run (lowercase titles). |
+| `resume.failed` | []object |  | Failed: the libraries of finished chunks that failed, with the reason. |
+| `resume.failed[].reason` | string |  | Reason when it was skipped or failed. |
+| `resume.failed[].title` | string (required) |  |  |
+| `resume.hash` | string (required) |  | Hash of the spec the plan was made for (as appliedHash): another spec starts a new run. |
+| `resume.longestChunkSeconds` | integer |  | LongestChunkSeconds: the longest import of a finished chunk of this run (to estimate how long DX may still be busy with an interrupted one). |
+| `resume.sourceRevision` | string |  | SourceRevision the plan was made for: another revision of the export starts a new run. |
 | `skippedLibraries` | []object |  |  |
 | `skippedLibraries[].reason` | string |  | Reason when it was skipped or failed. |
 | `skippedLibraries[].title` | string (required) |  |  |

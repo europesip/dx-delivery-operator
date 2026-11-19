@@ -5,6 +5,15 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.9.1 · sin publicar · Las importaciones se reanudan tras un reinicio
+
+- **`DXWCMLibraryImport` sigue en el lote donde iba** tras un reinicio del operador (#33): el plan de lotes y el avance se
+  guardan en `status.resume`; los lotes terminados no se vuelven a importar. El lote interrumpido, que DX puede seguir
+  importando, se vuelve a importar tras una espera (1,5 veces el lote más largo, de 3 a 30 minutos) en una carpeta nueva
+  de dxFileTransfer (los nombres llevan el intento; las carpetas antiguas se borran al terminar: borrar la carpeta que
+  DX estaba leyendo hacía fallar su importación). Las importaciones como copia marcan el lote interrumpido como fallido
+  en vez de duplicarlo. Si cambia el spec o la exportación, empieza de cero.
+
 ## 0.9.0 · 2026-11-19 · Paquetes portables (DXExport)
 
 - **Recurso nuevo `DXExport`** (#31): páginas (XMLAccess), la biblioteca Portal Site y bibliotecas WCM de un portal
