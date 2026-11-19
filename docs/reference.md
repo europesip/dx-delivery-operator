@@ -379,7 +379,7 @@ Short names: `dxwcmimport`
 | `virtualPortal.context` | string (required) |  | Context: URL context of the virtual portal (the part after /wps/portal/), for example "europesip". |
 | `virtualPortal.create` | boolean |  | Create the virtual portal when it does not exist (XMLAccess, PortalVPHandler). Default false: a missing virtual portal makes the import fail before anything is downloaded or uploaded. |
 | `virtualPortal.description` | string |  | Description of the virtual portal when the operator creates it. |
-| `virtualPortal.realm` | string |  | Realm of the virtual portal when the operator creates it (default: the realm of the first virtual portal that already exists, or defaultWIMFileBasedRealm). |
+| `virtualPortal.realm` | string |  | Realm of the virtual portal when the operator creates it (default: the realm of the first virtual portal that already exists, else FederatedRealm and then defaultWIMFileBasedRealm, each checked in the list of virtual portals). |
 | `virtualPortal.title` | string |  | Title of the virtual portal when the operator creates it (default: the context). |
 
 ### status

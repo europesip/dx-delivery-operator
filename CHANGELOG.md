@@ -5,6 +5,16 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.10.1 · 2026-11-19 · Imports of folders pushed with oras; virtual portals with LDAP
+
+- **Folders pushed with `oras push <ref> <folder>`** (#41) are unpacked as `oras pull` does (they were one level too
+  deep and DX failed: SER3009E), and the chunk zips always start at the export folder DX expects (two levels above the
+  `<library>.node` files), whatever extra folders the source has.
+- **Virtual portals on DX Compose with LDAP** (#42): the realm is the one of the spec, of an existing virtual portal,
+  else `FederatedRealm` and then `defaultWIMFileBasedRealm`; each try is checked in the list of virtual portals
+  (XMLAccess answers `ok` also when DX rejects it), so a failed creation stops the run instead of importing into the
+  base portal.
+
 ## 0.10.0 · 2026-11-19 · WCM maintenance modules
 
 - **New resource `DXWCMAdminTask`** (#39): the member fixer and the workflow checker of WCM on DX Compose over HTTP

@@ -5,6 +5,16 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.10.1 · 2026-11-19 · Importar carpetas subidas con oras; portales virtuales con LDAP
+
+- **Carpetas subidas con `oras push <ref> <carpeta>`** (#41): se desempaquetan como hace `oras pull` (quedaban un
+  nivel más abajo y DX fallaba: SER3009E), y los zip de los lotes empiezan siempre en la carpeta del export que espera
+  DX (dos niveles por encima de los `<biblioteca>.node`), tenga la fuente las carpetas que tenga.
+- **Portales virtuales en DX Compose con LDAP** (#42): el realm es el del spec, el de un portal virtual que ya exista
+  o, si no, `FederatedRealm` y después `defaultWIMFileBasedRealm`; cada intento se comprueba en la lista de portales
+  virtuales (XMLAccess contesta `ok` aunque DX lo rechace), así que un fallo para la ejecución en vez de importar en el
+  portal base.
+
 ## 0.10.0 · 2026-11-19 · Módulos de mantenimiento de WCM
 
 - **Recurso nuevo `DXWCMAdminTask`** (#39): el member fixer y el workflow checker de WCM en DX Compose por HTTP

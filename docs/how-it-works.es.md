@@ -154,9 +154,15 @@ DX Compose no tiene ConfigEngine, y DXClient `wcm-library-import` depende de él
 ofrece por HTTP:
 
 1. **Portal virtual**: se lista (y se crea con `create: true`) por XMLAccess con el esquema `PortalVPHandler.xsd`. Si
-   no existe, la ejecución termina antes de descargar nada.
+   no existe, la ejecución termina antes de descargar nada. XMLAccess contesta `ok` también cuando DX rechaza la
+   creación, así que desde la 0.10.1 el operador espera a que el portal nuevo aparezca en esa lista (#42). Realm: el
+   `realm` del spec; si no, el de un portal virtual que ya exista; si no, `FederatedRealm` (DX Compose con LDAP: el
+   realm del repositorio federado de Liberty) y después `defaultWIMFileBasedRealm`. Si no aparece con ninguno, falla
+   sin importar nada.
 2. **Export**: se obtiene como cualquier fuente (URL a disco, imagen OCI o artefacto ORAS con el fichero); si la fuente
-   trae un fichero comprimido, se descomprime. Las bibliotecas son los `<biblioteca>.node` del export, con su `icm:title`.
+   trae un fichero comprimido, se descomprime. Una carpeta subida con `oras push <ref> <carpeta>` se desempaqueta
+   como hace `oras pull` (0.10.1, #41). Las bibliotecas son los `<biblioteca>.node` del export, con su `icm:title`; la
+   carpeta del export está dos niveles por encima (`<workspace>/<nodo raíz>/`), así que da igual que haya carpetas de más.
 3. **Selección**: include, exclude, `excludeHCLDefaults`; las que ya existen en el destino (WCM REST
    `query?type=Library`) se saltan salvo `overwrite`; **Portal Site** (ID fijo `TWFuYWdlZCBQYWdlcyBSb290IExpYnJhcnk`)
    solo con `portalSiteLibraryOverwrite`. Las bibliotecas con nombres que dxFileTransfer rechaza se informan y no se suben.

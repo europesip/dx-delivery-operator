@@ -330,7 +330,8 @@ func isFileArtifact(m *v1.Manifest) bool {
 }
 
 // writeArtifactFiles writes each layer of an ORAS artifact to dir/<title>. Folders pushed by ORAS (annotation
-// io.deis.oras.content.unpack=true, a tar+gzip of the folder) are unpacked into dir/<title>.
+// io.deis.oras.content.unpack=true, a tar+gzip of the folder) are unpacked as "oras pull" does: their entries already
+// start with the folder name, so they go into dir (dir/<title>/...), not into dir/<title>/<title>/... (#41).
 func writeArtifactFiles(img v1.Image, m *v1.Manifest, dir string) (int, error) {
 	n := 0
 	for _, d := range m.Layers {
@@ -353,7 +354,7 @@ func writeArtifactFiles(img v1.Image, m *v1.Manifest, dir string) (int, error) {
 				_ = rc.Close()
 				return n, gerr
 			}
-			k, uerr := untar(gz, dst, "")
+			k, uerr := untar(gz, dir, "")
 			_ = rc.Close()
 			if uerr != nil {
 				return n, uerr
