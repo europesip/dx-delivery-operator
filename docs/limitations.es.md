@@ -121,3 +121,18 @@
   nada), y el operador nunca los borra, ni tampoco bibliotecas.
 - **Varias réplicas del Web Engine**: aún sin probar; la subida y la importación pueden llegar a pods distintos.
 - **Trivy** en Harbor escanea imágenes, no artefactos ORAS.
+
+## Exportación de bibliotecas WCM
+
+- **Una réplica del Web Engine**: la exportación escribe en una carpeta de dxFileTransfer de un pod y la descarga debe
+  llegar al mismo pod. Con varias réplicas del Web Engine (base de datos que no es Derby) las peticiones pueden ir a
+  pods distintos: aún no está soportado.
+- **Tamaño**: el zip se descarga al volumen de trabajo del operador (8Gi por defecto) y se descomprime allí para
+  comprobarlo: una exportación necesita libres unas 2,5 veces el tamaño de su zip.
+- **Peticiones de 20 minutos**: cada biblioteca es una petición al módulo de datos; una biblioteca que tarde más de lo
+  que permite el HAProxy de DX Compose (1200 s) hace fallar la ejecución.
+- **Versiones**: importa en un DX del mismo nivel de CF que el origen o uno más nuevo (`EXPORT-INFO.txt` dice el
+  build de origen). DX tradicional: `import-wcm-data` importa todas las bibliotecas de la carpeta (no hay propiedad de
+  nombre de biblioteca).
+- **El control de acceso** viaja con las bibliotecas, como en las importaciones: el destino puede no tener los mismos
+  usuarios y grupos.

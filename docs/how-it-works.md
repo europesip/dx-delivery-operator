@@ -186,6 +186,34 @@ offers over HTTP:
 The run is **one-shot**: the status keeps a hash of the spec, and the import runs again only when the spec or the
 `dx.europesip.com/reconcile` annotation changes. Imports to the same DX never overlap with its XMLAccess calls.
 
+## WCM library exports (DXWCMLibraryExport, 0.7.0)
+
+The other way round: chosen libraries of a DX Compose portal go to an **OCI artifact** in a registry (Harbor), to be
+imported into another DX Compose or into a **traditional HCL DX on WebSphere**. Everything is HTTP, as for imports:
+
+1. **Check**: every title of `libraries` must be a library of the portal (WCM REST); otherwise `LibraryNotFound` and
+   nothing is exported.
+2. **Export**: one dxFileTransfer folder; for each library the WCM data module
+   (`/wps/wcm/myconnect[/<vp>]?MOD=data&processLibraries=false&taskType=export&exportLibrary=<title>&output.dir=<folder>`,
+   answer `The library "<title>" was exported successfully.`). The libraries merge into one JCR tree.
+3. **Download**: the folder as one zip (`dft?action=download&file=`), streamed to the work volume, unpacked and
+   checked (every library must be in it). The folder in DX is removed.
+4. **Push**: an ORAS file artifact (empty config, no artifactType): `wcm-export-<name>.zip`, **exactly as DX writes
+   it** (the same JCR folder format as ConfigEngine `export-wcm-data`), and `EXPORT-INFO.txt`: source server, DX
+   product and build, virtual portal, date and time (UTC), libraries with their size, and how to import it.
+
+**Importing the artifact**
+
+- **DX Compose**: a `DXWCMLibraryImport` with `source.image.ref` = the artifact (the operator unpacks the zip).
+- **Traditional DX** (8.5, 9.0, 9.5 on WebSphere): `oras pull` the artifact, unzip it on the DX server (for example
+  into `/tmp/wcm-import`) and run `./ConfigEngine.sh import-wcm-data -Dimport.directory=/tmp/wcm-import
+  -DWasPassword=... -DPortalAdminPwd=...` (`-DVirtualPortalContext=<context>` for a virtual portal).
+  `import-wcm-data` has no library name property: it imports every library of the folder. Or, signed in, the data
+  module URL with `taskType=import&input.dir=/tmp/wcm-import`. Do not rename folders or files of the export.
+- The target should be at the **same CF level as the source or newer**: `EXPORT-INFO.txt` names the source build.
+
+One-shot per spec, like the import; deleting the resource stops a running export within 10 s and keeps the artifact.
+
 ## XMLAccess requests (DXXMLAccess, 0.5.0)
 
 `DXXMLAccess` runs XMLAccess requests of your own: the way to do anything the typed resources do not cover yet (URL

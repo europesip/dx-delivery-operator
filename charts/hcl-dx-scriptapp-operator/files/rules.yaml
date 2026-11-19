@@ -45,6 +45,7 @@ rules:
   - dxpages/status
   - dxscriptapplications/status
   - dxthemes/status
+  - dxwcmlibraryexports/status
   - dxwcmlibraryimports/status
   - dxxmlaccesses/status
   verbs:
@@ -59,6 +60,7 @@ rules:
   - dxpages
   - dxscriptapplications
   - dxthemes
+  - dxwcmlibraryexports
   - dxwcmlibraryimports
   - dxxmlaccesses
   verbs:

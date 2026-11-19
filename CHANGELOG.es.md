@@ -5,6 +5,17 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.7.0 · 2026-11-19 · Exportar bibliotecas WCM
+
+- **Recurso nuevo `DXWCMLibraryExport`** (#27): exporta las bibliotecas WCM que elijas de un portal DX Compose
+  (base o virtual) con el módulo de datos de WCM y las sube a un registro como artefacto de ficheros ORAS (sin
+  artifactType): `wcm-export-<nombre>.zip`, tal cual lo escribe DX (el formato JCR de `export-wcm-data` de
+  ConfigEngine), y `EXPORT-INFO.txt` (servidor de origen, build de DX, portal virtual, fecha y hora, bibliotecas con
+  su tamaño, cómo importarlo). `DXWCMLibraryImport` lo lee como origen de imagen; un DX tradicional importa la
+  carpeta descomprimida con `import-wcm-data`. Status: `phase`, `currentLibrary`, `exportedLibraries`,
+  `totalBytes`, `image`, `digest`. Borrarlo detiene una exportación en marcha. Ejemplo 12, documentación (cómo
+  funciona, referencia). Chart: la CRD nueva y las reglas RBAC.
+
 ## 0.6.2 · 2026-11-18 · Borrar una importación en marcha la detiene
 
 - `DXWCMLibraryImport` (#25): mientras dura una ejecución, el operador comprueba cada 10 s si su recurso se ha borrado;

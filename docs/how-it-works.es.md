@@ -173,6 +173,38 @@ ofrece por HTTP:
 Es una operación **de una sola vez**: el estado guarda un hash del spec y solo se vuelve a importar si cambia el spec o
 la anotación `dx.europesip.com/reconcile`. Las importaciones a un DX nunca coinciden con sus llamadas XMLAccess.
 
+## Exportación de bibliotecas WCM (DXWCMLibraryExport, 0.7.0)
+
+Al revés: las bibliotecas que elijas de un portal DX Compose van a un **artefacto OCI** en un registro (Harbor), para
+importarlas en otro DX Compose o en un **HCL DX tradicional sobre WebSphere**. Todo por HTTP, como las importaciones:
+
+1. **Comprobación**: cada título de `libraries` debe ser una biblioteca del portal (WCM REST); si no, `LibraryNotFound`
+   y no se exporta nada.
+2. **Exportación**: una carpeta de dxFileTransfer; por cada biblioteca, el módulo de datos de WCM
+   (`/wps/wcm/myconnect[/<vp>]?MOD=data&processLibraries=false&taskType=export&exportLibrary=<título>&output.dir=<carpeta>`,
+   responde `The library "<título>" was exported successfully.`). Las bibliotecas se juntan en un solo árbol JCR.
+3. **Descarga**: la carpeta como un zip (`dft?action=download&file=`), al volumen de trabajo sin pasar por memoria,
+   se descomprime y se comprueba (deben estar todas). La carpeta en DX se borra.
+4. **Subida**: un artefacto de ficheros ORAS (config vacía, sin artifactType): `wcm-export-<nombre>.zip`, **tal cual
+   lo escribe DX** (el mismo formato de carpetas JCR que `export-wcm-data` de ConfigEngine), y `EXPORT-INFO.txt`:
+   servidor de origen, producto y build de DX, portal virtual, fecha y hora (UTC), bibliotecas con su tamaño y cómo
+   importarlo.
+
+**Importar el artefacto**
+
+- **DX Compose**: un `DXWCMLibraryImport` con `source.image.ref` = el artefacto (el operador descomprime el zip).
+- **DX tradicional** (8.5, 9.0, 9.5 sobre WebSphere): `oras pull` del artefacto, descomprimirlo en el servidor de DX
+  (por ejemplo en `/tmp/wcm-import`) y ejecutar `./ConfigEngine.sh import-wcm-data -Dimport.directory=/tmp/wcm-import
+  -DWasPassword=... -DPortalAdminPwd=...` (`-DVirtualPortalContext=<contexto>` para un portal virtual).
+  `import-wcm-data` no tiene propiedad de nombre de biblioteca: importa todas las de la carpeta. O, con sesión
+  iniciada, la URL del módulo de datos con `taskType=import&input.dir=/tmp/wcm-import`. No renombres carpetas ni
+  ficheros del export.
+- El destino debe tener el **mismo nivel de CF que el origen o uno más nuevo**: `EXPORT-INFO.txt` dice el build de
+  origen.
+
+Una sola vez por spec, como la importación; borrar el recurso detiene una exportación en marcha en 10 s y conserva el
+artefacto.
+
 ## Peticiones XMLAccess (DXXMLAccess, 0.5.0)
 
 `DXXMLAccess` ejecuta peticiones XMLAccess propias: la forma de hacer lo que aún no cubren los recursos con tipo

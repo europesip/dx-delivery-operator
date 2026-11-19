@@ -117,3 +117,16 @@
   does nothing), and the operator never deletes them nor libraries.
 - **Several Web Engine replicas** are not tested yet: the upload and the import may reach different pods.
 - **Trivy** in Harbor scans images, not ORAS file artifacts.
+
+## WCM library exports
+
+- **One Web Engine replica**: the export writes into a dxFileTransfer folder of one pod and the download must reach
+  the same pod. With several Web Engine replicas (non-Derby database) the requests may land on different pods: not
+  supported yet.
+- **Size**: the zip is downloaded to the work volume of the operator (8Gi by default) and unpacked there to check it:
+  an export needs about 2.5 times its zip size free.
+- **20-minute requests**: each library is one request to the data module; a library that takes longer than the
+  HAProxy of DX Compose allows (1200 s) fails the run.
+- **Versions**: import into a DX of the same CF level as the source or newer (`EXPORT-INFO.txt` names the source
+  build). Traditional DX: `import-wcm-data` imports every library of the folder (there is no library name property).
+- **Access control** goes with the libraries, as in imports: the target may not have the same users and groups.
