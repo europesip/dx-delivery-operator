@@ -168,9 +168,14 @@ DX Compose has no ConfigEngine, and DXClient `wcm-library-import` relies on it. 
 offers over HTTP:
 
 1. **Virtual portal**: listed (and created if `create: true`) with XMLAccess and the `PortalVPHandler.xsd` schema. A
-   missing portal ends the run before anything is downloaded.
+   missing portal ends the run before anything is downloaded. XMLAccess answers `ok` also when DX rejects the
+   creation, so since 0.10.1 the operator waits until the new portal is in that list (#42). Realm: `realm` of the
+   spec, else the one of an existing virtual portal, else `FederatedRealm` (DX Compose with LDAP: the realm of the
+   Liberty federated repository) and then `defaultWIMFileBasedRealm`; none listed: the run fails, nothing imported.
 2. **Export**: fetched like any source (URL streamed to disk, OCI image, or an ORAS file artifact); an archive inside
-   the source is unpacked. Libraries are the `<library>.node` files of the export, titled by `icm:title`.
+   the source is unpacked. A folder pushed with `oras push <ref> <folder>` is unpacked as `oras pull` does (0.10.1,
+   #41). Libraries are the `<library>.node` files of the export, titled by `icm:title`; the export folder is two
+   levels above them (`<workspace>/<root node>/`), so extra folders around it do not matter.
 3. **Selection**: include, exclude, `excludeHCLDefaults`; libraries that already exist in the target (WCM REST
    `query?type=Library`) are skipped unless `overwrite`; **Portal Site** (fixed ID `TWFuYWdlZCBQYWdlcyBSb290IExpYnJhcnk`)
    only with `portalSiteLibraryOverwrite`. Libraries with file names dxFileTransfer rejects are reported, not uploaded.

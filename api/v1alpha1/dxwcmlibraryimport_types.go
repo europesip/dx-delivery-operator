@@ -54,7 +54,8 @@ type WCMVirtualPortal struct {
 	// +optional
 	Description string `json:"description,omitempty"`
 	// Realm of the virtual portal when the operator creates it (default: the realm of the first virtual portal
-	// that already exists, or defaultWIMFileBasedRealm).
+	// that already exists, else FederatedRealm and then defaultWIMFileBasedRealm, each checked in the list of
+	// virtual portals).
 	// +optional
 	Realm string `json:"realm,omitempty"`
 }

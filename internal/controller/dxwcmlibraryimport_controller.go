@@ -48,7 +48,10 @@ var cancelCheckEvery = 10 * time.Second
 const (
 	defaultMaxChunk     = int64(450 << 20)
 	defaultImportWait   = 2 * time.Hour
+	// realms tried, in order, to create a virtual portal when neither the spec nor an existing virtual portal gives one
+	federatedRealm      = "FederatedRealm"
 	defaultRealm        = "defaultWIMFileBasedRealm"
+	vpListedWait        = 90 * time.Second
 	vpReadyWait         = 10 * time.Minute
 	reasonSucceeded     = "Succeeded"
 	reasonDryRun        = "DryRun"
@@ -724,25 +727,36 @@ func (r *DXWCMLibraryImportReconciler) done(o *dxv1.DXWCMLibraryImport, reason s
 }
 
 // createVirtualPortal creates the virtual portal of the spec and waits until its WCM answers.
+//
+// XMLAccess answers result="ok" also when DX rejects the creation (wrong realm: EJPEB0805E only in the DX log), so
+// every try is checked in the list of virtual portals (#42). Realm: spec.virtualPortal.realm, else the realm of an
+// existing virtual portal, else FederatedRealm (DX Compose with LDAP: the realm of the Liberty federated repository)
+// and then defaultWIMFileBasedRealm (a DX with the file registry only).
 func (r *DXWCMLibraryImportReconciler) createVirtualPortal(ctx context.Context, o *dxv1.DXWCMLibraryImport, c *dx.Client, existing []dx.VirtualPortal) error {
 	v := o.Spec.VirtualPortal
-	realm := v.Realm
-	if realm == "" {
-		realm = defaultRealm
-		for _, e := range existing {
-			if e.Realm != "" {
-				realm = e.Realm
-				break
-			}
-		}
-	}
 	title := v.Title
 	if title == "" {
 		title = v.Context
 	}
+	realms := vpRealms(v.Realm, existing)
 	r.progress(ctx, o, dxv1.WCMImportPending, "creating the virtual portal "+v.Context)
-	if err := c.CreateVirtualPortal(ctx, dx.VirtualPortal{Name: title, Realm: realm, Description: v.Description, Context: v.Context}); err != nil {
-		return fatal(reasonDXError, "%v", err)
+	realm, err := "", error(nil)
+	for _, try := range realms {
+		if err = c.CreateVirtualPortal(ctx, dx.VirtualPortal{Name: title, Realm: try, Description: v.Description, Context: v.Context}); err != nil {
+			return fatal(reasonDXError, "%v", err)
+		}
+		ok, lerr := waitVirtualPortalListed(ctx, c, v.Context, vpListedWait)
+		if lerr != nil {
+			return lerr
+		}
+		if ok {
+			realm = try
+			break
+		}
+	}
+	if realm == "" {
+		return fatal(reasonDXError, "DX did not create the virtual portal %s with the realm(s) %s (XMLAccess answered ok; the Web Engine log says why, for example EJPEB0805E: the realm is not valid): set spec.virtualPortal.realm; nothing was imported",
+			v.Context, strings.Join(realms, ", "))
 	}
 	r.Recorder.Eventf(o, nil, corev1.EventTypeNormal, "VirtualPortalCreated", "Import", "virtual portal %s (%s) created, realm %s", v.Context, title, realm)
 	deadline := time.Now().Add(vpReadyWait)
@@ -889,4 +903,40 @@ func cutWait(files int, rateFiles, rateSecs float64, elapsed time.Duration) time
 		return cutWaitMax
 	}
 	return need
+}
+
+// vpRealms: the realms to try for a new virtual portal (see createVirtualPortal).
+func vpRealms(spec string, existing []dx.VirtualPortal) []string {
+	if spec != "" {
+		return []string{spec}
+	}
+	for _, e := range existing {
+		if e.Realm != "" {
+			return []string{e.Realm}
+		}
+	}
+	return []string{federatedRealm, defaultRealm}
+}
+
+// waitVirtualPortalListed waits until DX lists the virtual portal ctxRoot (XMLAccess PortalVPHandler export).
+func waitVirtualPortalListed(ctx context.Context, c *dx.Client, ctxRoot string, wait time.Duration) (bool, error) {
+	deadline := time.Now().Add(wait)
+	for {
+		vps, err := c.VirtualPortals(ctx)
+		if err == nil {
+			for _, v := range vps {
+				if strings.EqualFold(v.Context, ctxRoot) {
+					return true, nil
+				}
+			}
+		}
+		if time.Now().After(deadline) {
+			return false, nil
+		}
+		select {
+		case <-ctx.Done():
+			return false, ctx.Err()
+		case <-time.After(5 * time.Second):
+		}
+	}
 }

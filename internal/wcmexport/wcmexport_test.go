@@ -215,3 +215,40 @@ func TestOpenReadsDescription(t *testing.T) {
 		t.Fatalf("descriptions: %#v", got)
 	}
 }
+
+// An export inside extra folders (a folder pushed with oras into a folder of its own, a zip with a top folder): the
+// chunk zips start at the export folder DX expects (<workspace>/<root node>/...), not at the extra folders (#41).
+func TestWriteZipNestedExport(t *testing.T) {
+	inner := fakeExport(t)
+	root := t.TempDir()
+	if err := os.Rename(inner, filepath.Join(root, "x")); err != nil {
+		// different devices: copy by re-creating
+		t.Skip(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "top"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(filepath.Join(root, "x"), filepath.Join(root, "top", "554ee7f5-parent")); err != nil {
+		t.Fatal(err)
+	}
+	exp, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exp.WS != filepath.Join("top", "554ee7f5-parent", "554ee7f5", "423dc4e4") {
+		t.Fatalf("ws = %s", exp.WS)
+	}
+	sel, _, _ := Select(exp.Libraries, []string{"EuropeSip_DS"}, nil, false)
+	out := filepath.Join(t.TempDir(), "c.zip")
+	if _, err := exp.WriteZip(sel, out); err != nil {
+		t.Fatal(err)
+	}
+	zr, err := zip.OpenReader(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer zr.Close() //nolint:errcheck
+	if len(zr.File) != 1 || zr.File[0].Name != "554ee7f5/423dc4e4/cccc3333.node" {
+		t.Fatalf("zip entries start at the wrong folder: %s", zr.File[0].Name)
+	}
+}

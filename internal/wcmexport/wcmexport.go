@@ -44,6 +44,17 @@ type Export struct {
 	Libraries []Library
 }
 
+// Base is the export folder as DX writes and reads it: two levels above WS (export-wcm-data writes
+// <export dir>/<workspace>/<root node>/<library>.node). An export inside one or more extra folders (a folder pushed
+// with "oras push", a zip with a top folder) is found there, and the zips sent to DX start at Base.
+func (e *Export) Base() string {
+	ws := filepath.Join(e.Root, e.WS)
+	if parts := strings.Split(filepath.ToSlash(e.WS), "/"); len(parts) >= 2 {
+		return filepath.Dir(filepath.Dir(ws))
+	}
+	return e.Root
+}
+
 var (
 	libraryMarker = []byte(`sv:name="icm:libraries[`)
 	titleRe       = regexp.MustCompile(`<sv:property sv:name="icm:title"[^>]*>\s*<sv:value>([^<]*)</sv:value>`)
@@ -306,8 +317,9 @@ func (e *Export) WriteZip(libs []Library, out string) (*ZipResult, error) {
 	bw := bufio.NewWriterSize(f, 1<<20)
 	zw := zip.NewWriter(bw)
 	res := &ZipResult{Path: out}
+	base := e.Base()
 	add := func(abs string) error {
-		rel, err := filepath.Rel(e.Root, abs)
+		rel, err := filepath.Rel(base, abs)
 		if err != nil {
 			return err
 		}

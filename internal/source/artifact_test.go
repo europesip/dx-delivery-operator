@@ -71,3 +71,40 @@ func TestORASFileArtifact(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A folder pushed with "oras push <ref> 554ee7f5" (Sergio, CF230): one tar+gzip layer whose entries start with the
+// folder name, annotation io.deis.oras.content.unpack=true. It is unpacked as "oras pull" does: dir/554ee7f5/...,
+// not dir/554ee7f5/554ee7f5/... (#41).
+func TestORASFolderArtifact(t *testing.T) {
+	srv := httptest.NewServer(registry.New())
+	defer srv.Close()
+	archive := tgz(t, map[string]string{"554ee7f5/423dc4e4/aaaa.node": "<x/>", "554ee7f5/423dc4e4/aaaa/b.node": "<y/>"})
+	img, err := mutate.Append(empty.Image, mutate.Addendum{
+		Layer: static.NewLayer(archive, types.MediaType("application/vnd.oci.image.layer.v1.tar+gzip")),
+		Annotations: map[string]string{"org.opencontainers.image.title": "554ee7f5", "io.deis.oras.content.unpack": "true"},
+	}, mutate.Addendum{
+		Layer:       static.NewLayer([]byte("leeme"), types.MediaType("application/vnd.oci.image.layer.v1.tar")),
+		Annotations: map[string]string{"org.opencontainers.image.title": "leeme.txt"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, _ := name.ParseReference(strings.TrimPrefix(srv.URL, "http://") + "/dx-wcm/folder:1")
+	if err := remote.Write(ref, img); err != nil {
+		t.Fatal(err)
+	}
+	f := &Fetcher{Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(), CacheDir: t.TempDir()}
+	tree, err := f.Fetch(context.Background(), "ns", dxv1.Source{Image: &dxv1.ImageSource{Ref: ref.String(), Path: "/app"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(tree.Dir, "554ee7f5/423dc4e4/aaaa/b.node")); err != nil {
+		t.Fatalf("folder layer not unpacked as oras does: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(tree.Dir, "554ee7f5/554ee7f5")); err == nil {
+		t.Fatal("folder layer unpacked one level too deep")
+	}
+	if _, err := os.Stat(filepath.Join(tree.Dir, "leeme.txt")); err != nil {
+		t.Fatal(err)
+	}
+}
