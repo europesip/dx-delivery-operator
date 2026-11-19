@@ -5,8 +5,14 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## 0.9.1 · sin publicar · Los IDs de objeto se eligen al importar (#35)
+## 0.9.1 · 2026-11-19 · Las importaciones se retoman tras un reinicio; los IDs se eligen al importar
 
+- **`DXWCMLibraryImport` sigue en el lote donde iba** tras un reinicio del operador (#33): el plan de lotes y el avance se
+  guardan en `status.resume`; los lotes terminados no se vuelven a importar. El lote interrumpido, que DX puede seguir
+  importando, se vuelve a importar tras una espera (1,5 veces el lote más largo, de 3 a 30 minutos) en una carpeta nueva
+  de dxFileTransfer (los nombres llevan el intento; las carpetas antiguas se borran al terminar: borrar la carpeta que
+  DX estaba leyendo hacía fallar su importación). Las importaciones como copia marcan el lote interrumpido como fallido
+  en vez de duplicarlo. Si cambia el spec o la exportación, empieza de cero.
 - **Los IDs de objeto se eligen al importar** (como WCM import / import-copy), también para XML exportado con
   `xmlaccess.sh` de un DX tradicional: **`DXXMLAccess.spec.objectIDs`**: `Keep` (por defecto, como antes: las
   peticiones se envían tal cual y se conservan los IDs del XML) o `New` (`create-oids="true"` en cada `<request>`, una

@@ -110,6 +110,10 @@
   values of an item by its name): the library is reported as not importable; rename the item in the source portal.
 - **20-minute requests**: the HAProxy of DX Compose cuts requests after 1200 s. Updating existing items is ~7 files/s
   (new items ~60): keep `upload.maxChunkFiles` low enough.
+- **Resume after a restart** (0.9.1): DX does not say whether it is still importing a chunk whose request was cut, so
+  the operator waits an estimate (1.5 times the longest chunk, 3 to 30 minutes) before importing it again. A chunk DX
+  takes longer to import than that may still overlap with the new attempt; check the DX log if the resumed chunk
+  fails. Better: do not upgrade or restart the operator while an import runs (`kubectl get dxwcmlibraryimports -A`).
 - **Access control**: imported libraries keep the ACLs of the source portal, whose users and groups usually do not
   exist in the target: only administrators see them until roles are given (`access`).
 - **Versions**: the export must come from the same or an older DX (tested CF230 → CF239).

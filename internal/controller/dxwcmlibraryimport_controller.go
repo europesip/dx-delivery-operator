@@ -177,6 +177,7 @@ func (r *DXWCMLibraryImportReconciler) run(ctx context.Context, o *dxv1.DXWCMLib
 	gen := o.Generation
 	finish := func(phase dxv1.WCMImportPhase, ready bool, reason, msg string) {
 		o.Status.Phase, o.Status.Message, o.Status.AppliedHash, o.Status.CompletionTime, o.Status.CurrentChunk = phase, msg, hash, now(), 0
+		o.Status.Resume = nil
 		setCondition(&o.Status.Conditions, gen, dxv1.ConditionReady, ready, reason, msg)
 		typ := corev1.EventTypeNormal
 		if !ready {
@@ -215,7 +216,10 @@ func (r *DXWCMLibraryImportReconciler) run(ctx context.Context, o *dxv1.DXWCMLib
 
 	// A new run: reset the results of the previous one.
 	st := &o.Status
-	st.StartTime, st.CompletionTime = now(), nil
+	if st.Resume == nil || st.Resume.Hash != hash || st.StartTime == nil {
+		st.StartTime = now()
+	}
+	st.CompletionTime = nil
 	st.ImportedLibraries, st.SkippedLibraries, st.FailedLibraries = nil, nil, nil
 	st.Chunks, st.CurrentChunk, st.LibrariesInExport, st.DryRun = 0, 0, 0, o.Spec.DryRun
 	st.ExportLibraries = nil
@@ -336,6 +340,24 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			existing[strings.ToLower(l.Title)] = true
 		}
 	}
+	// A run with a saved plan for this spec and export (the operator restarted while it ran) goes on where it was:
+	// its planned libraries are imported even if earlier chunks already created them in the target.
+	hash := importHash(o)
+	res := st.Resume
+	resuming := resumable(res, hash, tree.Revision, o.Spec.DryRun)
+	planned := map[string]bool{}
+	if resuming {
+		before := map[string]bool{}
+		for _, t := range res.Existing {
+			before[t] = true
+		}
+		for _, c := range res.Chunks {
+			for _, t := range c {
+				planned[strings.ToLower(t)] = true
+				existing[strings.ToLower(t)] = before[strings.ToLower(t)]
+			}
+		}
+	}
 	var todo []wcmexport.Library
 	var unsafe []dxv1.WCMLibraryResult
 	plans := map[string]dxv1.WCMExportLibrary{} // by title: what this run does with each library of the export
@@ -360,7 +382,7 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			plans[l.Title] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanCannotUpload, Reason: unsafe[len(unsafe)-1].Reason}
 			continue
 		}
-		if existing[strings.ToLower(l.Title)] && !o.Spec.Overwrite {
+		if existing[strings.ToLower(l.Title)] && !o.Spec.Overwrite && !planned[strings.ToLower(l.Title)] {
 			why := "already exists in " + where + " (overwrite: false)"
 			st.SkippedLibraries = append(st.SkippedLibraries, dxv1.WCMLibraryResult{Title: l.Title, Reason: why})
 			plans[l.Title] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanSkip, Reason: why}
@@ -383,7 +405,16 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 	if o.Spec.Upload.MaxChunkFiles != nil {
 		maxFiles = int(*o.Spec.Upload.MaxChunkFiles)
 	}
-	chunks := wcmexport.Chunk(todo, maxChunk, maxFiles)
+	var chunks [][]wcmexport.Library
+	if resuming {
+		var ok bool
+		if chunks, ok = chunksOfPlan(res.Chunks, todo); !ok {
+			resuming = false // the libraries to import are not the planned ones any more: a new plan
+		}
+	}
+	if !resuming {
+		chunks = wcmexport.Chunk(todo, maxChunk, maxFiles)
+	}
 	st.Chunks = len(chunks)
 	if len(todo) == 0 && len(unsafe) > 0 {
 		return fatal(reasonImportFailed, "nothing imported into %s: %s", where, failedSummary(unsafe))
@@ -415,7 +446,9 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 	defer os.RemoveAll(work) //nolint:errcheck
 	// one dxFileTransfer folder per chunk, deleted as soon as the chunk is imported: the files land on the disk of
 	// the DX container (an unpacked export is ~1.5x its zip)
-	subOf := func(i int) string { return fmt.Sprintf("%s-%02d", transferDir(o), i+1) }
+	// The folder names carry the attempt: after a restart the interrupted chunk goes to a new folder, and the old one
+	// (DX may still be reading it) is removed only when the run ends.
+	subOf := func(i int) string { return fmt.Sprintf("%s-%02d-%d", transferDir(o), i+1, st.Resume.Attempt) }
 	cleanup := func(i int) {
 		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Minute)
 		defer cancel()
@@ -428,14 +461,46 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 		timeout = o.Spec.Timeout.Duration
 	}
 	failed := map[string]string{}
-	for i, chunk := range chunks {
-		if ctx.Err() != nil { // deleted while it ran: no more chunks
-			return ctx.Err()
+	startAt, interrupted := 0, false
+	if resuming {
+		res.Attempt++
+		startAt, interrupted = res.Completed, res.ChunkStartedAt != nil
+		for _, f := range res.Failed {
+			failed[f.Title] = f.Reason
 		}
+		r.Recorder.Eventf(o, nil, corev1.EventTypeNormal, "Resumed", "Import", "resumed at chunk %d/%d after a restart of the operator (attempt %d)", startAt+1, len(chunks), res.Attempt)
+	} else {
+		res = newResume(hash, tree.Revision, chunks, existing)
+	}
+	st.Resume = res
+	doChunk := func(i int) error {
+		chunk := chunks[i]
 		st.CurrentChunk = i + 1
 		titles := wcmexport.Titles(chunk)
+		note := ""
+		if resuming && i == startAt {
+			note = fmt.Sprintf(" (resumed at chunk %d/%d after a restart)", i+1, len(chunks))
+		}
+		if interrupted && i == startAt {
+			// DX may still be importing this chunk: the request was cut when the operator stopped, not the import.
+			if o.Spec.Mode == dxv1.WCMImportCopy {
+				for _, t := range titles { // a second import as a copy would duplicate what DX already copied
+					failed[t] = "interrupted by a restart of the operator while DX imported it as a copy: check in DX whether it was imported, then run it again for what is missing"
+				}
+				return nil
+			}
+			if w := resumeWait(res, time.Now()); w > 0 {
+				r.progress(ctx, o, dxv1.WCMImportImporting, fmt.Sprintf("chunk %d/%d%s: waiting %s (until %s UTC) so the import DX may still be running finishes, then importing it again",
+					i+1, len(chunks), note, w.Round(time.Second), time.Now().Add(w).UTC().Format("15:04")))
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(w):
+				}
+			}
+		}
 		zipPath := filepath.Join(work, fmt.Sprintf("chunk-%02d.zip", i+1))
-		r.progress(ctx, o, dxv1.WCMImportUploading, fmt.Sprintf("chunk %d/%d: packing and uploading %d libraries", i+1, len(chunks), len(chunk)))
+		r.progress(ctx, o, dxv1.WCMImportUploading, fmt.Sprintf("chunk %d/%d%s: packing and uploading %d libraries", i+1, len(chunks), note, len(chunk)))
 		zr, err := exp.WriteZip(chunk, zipPath)
 		if err != nil {
 			return err
@@ -445,9 +510,8 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 				failed[t] = fmt.Sprintf("its zip is %d MB: DX accepts at most 500 MB per upload", zr.Bytes>>20)
 			}
 			_ = os.Remove(zipPath)
-			continue
+			return nil
 		}
-		_ = c.FileTransferDeleteDir(ctx, subOf(i)) // leftovers of a run that was cut
 		if err := c.FileTransferCreateDir(ctx, subOf(i)); err != nil {
 			_ = os.Remove(zipPath)
 			if i == 0 {
@@ -456,7 +520,7 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			for _, t := range titles {
 				failed[t] = "dxFileTransfer: " + err.Error()
 			}
-			continue
+			return nil
 		}
 		dir, err := c.FileTransferUpload(ctx, subOf(i), zipPath)
 		_ = os.Remove(zipPath)
@@ -468,14 +532,22 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			for _, t := range titles {
 				failed[t] = "upload failed: " + err.Error()
 			}
-			continue
+			return nil
 		}
-		r.progress(ctx, o, dxv1.WCMImportImporting, fmt.Sprintf("chunk %d/%d: importing %s into %s", i+1, len(chunks), strings.Join(titles, ", "), where))
+		started := now()
+		res.ChunkStartedAt = started
+		r.progress(ctx, o, dxv1.WCMImportImporting, fmt.Sprintf("chunk %d/%d%s: importing %s into %s", i+1, len(chunks), note, strings.Join(titles, ", "), where))
 		_, err = c.DataModuleImport(ctx, vp, dir, o.Spec.Mode == dxv1.WCMImportCopy, timeout)
+		if ctx.Err() != nil {
+			return ctx.Err() // stopped (deleted, or the operator stops): the next run resumes at this chunk
+		}
+		if d := int64(time.Since(started.Time).Seconds()); d > res.LongestChunkSeconds {
+			res.LongestChunkSeconds = d
+		}
 		if errors.Is(err, dx.ErrCutByProxy) {
 			// Do not delete the files: DX goes on importing them (deleting them made the import fail on CF239).
-			// The next run removes the folder before uploading again.
-			err = fmt.Errorf("%v: the files stay in %s/%s until the next run; check the DX log, and use smaller chunks "+
+			// A later run (another attempt, another folder) removes it when it ends.
+			err = fmt.Errorf("%v: the files stay in %s/%s until a later run ends; check the DX log, and use smaller chunks "+
 				"(upload.maxChunkFiles) if it happens again", err, dx.FileTransferRoot, subOf(i))
 		} else {
 			cleanup(i)
@@ -487,6 +559,31 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			r.Recorder.Eventf(o, nil, corev1.EventTypeWarning, reasonImportFailed, chunkAction(i), "chunk %d/%d: %v", i+1, len(chunks), err)
 		} else {
 			r.Recorder.Eventf(o, nil, corev1.EventTypeNormal, "ChunkImported", chunkAction(i), "chunk %d/%d imported: %s", i+1, len(chunks), strings.Join(titles, ", "))
+		}
+		return nil
+	}
+	for i := startAt; i < len(chunks); i++ {
+		if ctx.Err() != nil { // deleted while it ran: no more chunks
+			return ctx.Err()
+		}
+		if err := doChunk(i); err != nil {
+			return err
+		}
+		res.Completed, res.ChunkStartedAt = i+1, nil
+		for _, t := range wcmexport.Titles(chunks[i]) {
+			if why, bad := failed[t]; bad {
+				res.Failed = append(res.Failed, dxv1.WCMLibraryResult{Title: t, Reason: why})
+			}
+		}
+		r.progress(ctx, o, dxv1.WCMImportImporting, fmt.Sprintf("chunk %d/%d finished", i+1, len(chunks)))
+	}
+	if res.Attempt > 1 { // folders of the earlier attempt that DX may have still been reading: gone now
+		for i := range chunks {
+			for _, sub := range []string{fmt.Sprintf("%s-%02d", transferDir(o), i+1), fmt.Sprintf("%s-%02d-%d", transferDir(o), i+1, res.Attempt-1)} {
+				cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
+				_ = c.FileTransferDeleteDir(cctx, sub)
+				cancel()
+			}
 		}
 	}
 
@@ -579,6 +676,7 @@ func failedSummary(f []dxv1.WCMLibraryResult) string {
 // done records the final status of a run that ended as planned.
 func (r *DXWCMLibraryImportReconciler) done(o *dxv1.DXWCMLibraryImport, reason string, ready bool, msg string) {
 	o.Status.Message, o.Status.AppliedHash = msg, importHash(o)
+	o.Status.Resume = nil
 	setCondition(&o.Status.Conditions, o.Generation, dxv1.ConditionReady, ready, reason, msg)
 	r.Recorder.Eventf(o, nil, corev1.EventTypeNormal, reason, "Import", "%s", msg)
 }
@@ -661,4 +759,66 @@ func exportLibraries(libs []wcmexport.Library, plans map[string]dxv1.WCMExportLi
 		out = append(out, e)
 	}
 	return out
+}
+
+// resumable tells whether a saved plan is for this spec and export, and not finished (dry runs never resume).
+func resumable(res *dxv1.WCMImportResume, hash, revision string, dryRun bool) bool {
+	return res != nil && !dryRun && res.Hash == hash && res.SourceRevision == revision && len(res.Chunks) > 0 && res.Completed < len(res.Chunks)
+}
+
+// newResume is the plan of a new run: the titles of each chunk and which planned libraries already exist in the target.
+func newResume(hash, revision string, chunks [][]wcmexport.Library, existing map[string]bool) *dxv1.WCMImportResume {
+	res := &dxv1.WCMImportResume{Hash: hash, SourceRevision: revision, Attempt: 1, Chunks: make([][]string, 0, len(chunks))}
+	for _, c := range chunks {
+		titles := wcmexport.Titles(c)
+		res.Chunks = append(res.Chunks, titles)
+		for _, t := range titles {
+			if existing[strings.ToLower(t)] {
+				res.Existing = append(res.Existing, strings.ToLower(t))
+			}
+		}
+	}
+	return res
+}
+
+// chunksOfPlan rebuilds the chunks of a saved plan from the libraries to import; false when they are not exactly the
+// planned ones (the export or the target changed in a way the plan does not cover).
+func chunksOfPlan(plan [][]string, todo []wcmexport.Library) ([][]wcmexport.Library, bool) {
+	byTitle := map[string]wcmexport.Library{}
+	for _, l := range todo {
+		byTitle[strings.ToLower(l.Title)] = l
+	}
+	out, n := make([][]wcmexport.Library, 0, len(plan)), 0
+	for _, titles := range plan {
+		var c []wcmexport.Library
+		for _, t := range titles {
+			l, ok := byTitle[strings.ToLower(t)]
+			if !ok {
+				return nil, false
+			}
+			c = append(c, l)
+			n++
+		}
+		out = append(out, c)
+	}
+	return out, n == len(todo)
+}
+
+// resumeWait is how long to wait before importing again a chunk whose import request was cut by a restart: DX goes on
+// importing it, and two imports at once on one DX fail. 1.5 times the longest chunk of the run (3 to 30 minutes), or
+// 5 minutes when no chunk finished yet, counted from when the request was sent.
+func resumeWait(res *dxv1.WCMImportResume, t time.Time) time.Duration {
+	if res == nil || res.ChunkStartedAt == nil {
+		return 0
+	}
+	grace := 5 * time.Minute
+	if res.LongestChunkSeconds > 0 {
+		grace = time.Duration(res.LongestChunkSeconds) * time.Second * 3 / 2
+		grace = max(grace, 3*time.Minute)
+		grace = min(grace, 30*time.Minute)
+	}
+	if w := res.ChunkStartedAt.Add(grace).Sub(t); w > 0 {
+		return w
+	}
+	return 0
 }

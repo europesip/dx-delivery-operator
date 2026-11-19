@@ -168,6 +168,16 @@ ofrece por HTTP:
    `dxFileTransfer` (`unzip=true`), se importa con el módulo de datos de WCM
    (`/wps/wcm/myconnect[/<vp>]?MOD=data&taskType=import|import-copy&input.dir=...`) y se borra su carpeta. Si un proxy
    corta la petición (502/503/504), la carpeta se conserva: DX sigue importando.
+   **Reanudar tras un reinicio (0.9.1)**: el plan de lotes (los títulos de cada lote) y el avance se guardan en
+   `status.resume` mientras dura la ejecución. Si el operador se reinicia (una actualización, un nodo), la siguiente
+   ejecución con el mismo spec y la misma exportación sigue en el lote donde iba: los lotes terminados no se vuelven a
+   importar, y sus bibliotecas cuentan como planificadas aunque ya existan en el destino. Si la petición de importación
+   del lote interrumpido ya se había enviado, DX puede seguir importándolo: el operador espera 1,5 veces el lote más largo
+   de la ejecución (de 3 a 30 minutos; 5 si aún no terminó ninguno), contando desde que se envió, y lo vuelve a importar
+   en una **carpeta nueva**: los nombres llevan el intento (`dxop-<ns>-<nombre>-<lote>-<intento>`) y las carpetas del
+   intento anterior solo se borran al terminar. Una importación **como copia** (`mode: ImportCopy`) no reimporta el lote
+   interrumpido (duplicaría lo que DX copió): sus bibliotecas salen como fallidas con el motivo. Si cambia el spec o la
+   exportación, o es una simulación, empieza de cero.
 5. **Comprobación y roles**: se vuelven a listar las bibliotecas y se añaden los roles de `access`.
 
 Es una operación **de una sola vez**: el estado guarda un hash del spec y solo se vuelve a importar si cambia el spec o

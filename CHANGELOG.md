@@ -5,8 +5,14 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
-## 0.9.1 · unreleased · Object IDs chosen when importing (#35)
+## 0.9.1 · 2026-11-19 · Imports resume after a restart; object IDs chosen when importing
 
+- **`DXWCMLibraryImport` resumes at the chunk it was on** after a restart of the operator (#33): the chunk plan and the
+  progress are kept in `status.resume`; finished chunks are not imported again. The interrupted chunk, whose import DX
+  may still be running, is imported again after a wait (1.5 times the longest chunk, 3 to 30 minutes) into a new
+  dxFileTransfer folder (the names carry the attempt; the old folders are deleted when the run ends: deleting the folder
+  DX was reading made its import fail). Imports as a copy report the interrupted chunk as failed instead of duplicating
+  it. A changed spec or export starts from scratch.
 - **Object IDs are chosen when importing** (like WCM import / import-copy), also for XML exported with
   `xmlaccess.sh` of a traditional DX: **`DXXMLAccess.spec.objectIDs`**: `Keep` (default, as before: the requests are
   sent as they are, so the IDs in the XML are kept) or `New` (`create-oids="true"` on every `<request>`, once: DX gives

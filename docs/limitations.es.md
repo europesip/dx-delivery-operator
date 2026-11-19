@@ -114,6 +114,10 @@
   renombrar el elemento en el portal de origen.
 - **Peticiones de 20 minutos**: el HAProxy de DX Compose corta a los 1200 s. Actualizar elementos existentes va a ~7
   ficheros/s (nuevos ~60): ajusta `upload.maxChunkFiles`.
+- **Reanudar tras un reinicio** (0.9.1): DX no dice si sigue importando un lote cuya petición se cortó, así que el
+  operador espera una estimación (1,5 veces el lote más largo, de 3 a 30 minutos) antes de volver a importarlo. Un lote
+  que DX tarde más en importar podría solaparse con el nuevo intento; mira el log de DX si el lote reanudado falla.
+  Mejor: no actualices ni reinicies el operador mientras haya una importación (`kubectl get dxwcmlibraryimports -A`).
 - **Control de acceso**: las bibliotecas importadas conservan los permisos del portal de origen, cuyos usuarios y
   grupos no suelen existir en el destino: solo los administradores las ven hasta dar roles (`access`).
 - **Versiones**: el export debe venir del mismo DX o de uno anterior (probado CF230 → CF239).
