@@ -81,10 +81,10 @@ func ConnectionConfig(ctx context.Context, c client.Client, conn *dxv1.DXConnect
 	if user == "" || pass == "" {
 		return dx.Config{}, "", fmt.Errorf("credentials secret %s needs the keys username and password", cred.Name)
 	}
-	cfg := dx.Config{BaseURL: strings.TrimRight(conn.Spec.URL, "/"), Username: user, Password: pass,
+	cfg := dx.Config{BaseURL: strings.TrimRight(conn.Spec.URL, "/"), InternalURL: strings.TrimRight(conn.Spec.InternalURL, "/"), Username: user, Password: pass,
 		Insecure: conn.Spec.InsecureSkipTLSVerify, ContentHandlerPath: conn.Spec.ContentHandlerPath,
 		VirtualPortalContext: conn.Spec.VirtualPortalContext}
-	fp := conn.Spec.URL + "|" + cred.ResourceVersion + "|" + fmt.Sprint(conn.Spec.InsecureSkipTLSVerify) + "|" + conn.Spec.ContentHandlerPath
+	fp := conn.Spec.URL + "|" + conn.Spec.InternalURL + "|" + cred.ResourceVersion + "|" + fmt.Sprint(conn.Spec.InsecureSkipTLSVerify) + "|" + conn.Spec.ContentHandlerPath
 	if conn.Spec.CASecret != nil {
 		var ca corev1.Secret
 		if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Spec.CASecret.Name}, &ca); err != nil {

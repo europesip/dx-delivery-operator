@@ -108,8 +108,12 @@
 - **Uploads**: dxFileTransfer accepts at most 500 MB per upload (the operator chunks by library; a single library over
   500 MB compressed cannot be imported) and rejects file names with spaces. Such names cannot be renamed (DX finds the
   values of an item by its name): the library is reported as not importable; rename the item in the source portal.
-- **20-minute requests**: the HAProxy of DX Compose cuts requests after 1200 s. Updating existing items is ~7 files/s
-  (new items ~60): keep `upload.maxChunkFiles` low enough.
+- **20-minute requests**: the HAProxy of DX Compose cuts requests after 1200 s (Traefik or another proxy in front may
+  cut earlier). Updating existing items is ~7 files/s (new items ~60): keep `upload.maxChunkFiles` low enough, or set
+  `internalURL` in the DXConnection (0.9.2) so the long requests reach the Web Engine without proxies.
+- **A cut chunk** (0.9.2): DX gives no "done" signal over HTTP, so after a cut the operator waits an estimate before
+  the next chunk; if DX is slower than the estimate (a very busy Derby) two imports may still overlap. A library that
+  already existed in the target and whose `updated` did not change is reported failed: check it in DX.
 - **Resume after a restart** (0.9.1): DX does not say whether it is still importing a chunk whose request was cut, so
   the operator waits an estimate (1.5 times the longest chunk, 3 to 30 minutes) before importing it again. A chunk DX
   takes longer to import than that may still overlap with the new attempt; check the DX log if the resumed chunk

@@ -24,10 +24,25 @@ import (
 // AdminTaskModule runs one WCM module with the query q (MOD is set from mod) on the base portal (vp "") or a virtual
 // portal and returns DX's answer as text. It holds the XMLAccess lock of this DX, so it never overlaps a data module
 // import or an XMLAccess request.
+// With an internalURL the request goes to the in-cluster URL (no Traefik or HAProxy timeout); when that URL cannot be
+// reached at all it is sent through BaseURL.
 func (c *Client) AdminTaskModule(ctx context.Context, vp, mod string, q url.Values, timeout time.Duration) (string, error) {
-	mu, _ := xmlAccessLocks.LoadOrStore(c.cfg.BaseURL, &sync.Mutex{})
+	mu, _ := xmlAccessLocks.LoadOrStore(c.lockID(), &sync.Mutex{})
 	mu.(*sync.Mutex).Lock()
 	defer mu.(*sync.Mutex).Unlock()
+	c.mu.Lock()
+	long := c.long
+	c.mu.Unlock()
+	if long != nil {
+		if text, err := long.adminTaskModule(ctx, vp, mod, q, timeout); !unreachable(err) {
+			return text, err
+		}
+	}
+	return c.adminTaskModule(ctx, vp, mod, q, timeout)
+}
+
+// adminTaskModule is AdminTaskModule without the lock and the internal URL.
+func (c *Client) adminTaskModule(ctx context.Context, vp, mod string, q url.Values, timeout time.Duration) (string, error) {
 	p := c.wpsRoot() + "/wcm/myconnect"
 	if vp != "" {
 		p += "/" + url.PathEscape(vp)

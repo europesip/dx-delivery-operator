@@ -270,8 +270,7 @@ func (r *DXWCMAdminTaskReconciler) runAll(ctx context.Context, o *dxv1.DXWCMAdmi
 	st := &o.Status
 	c := conn.Client
 	vp := o.Spec.VirtualPortal
-	// TODO(#37): use the in-cluster URL of the connection (spec.internalURL) once 0.9.2 is merged, so long runs are not
-	// cut by Traefik/HAProxy.
+	// With spec.internalURL on the connection the requests go to the in-cluster URL (no proxy timeout), as imports do.
 	libs := o.Spec.Libraries
 	if o.Spec.AllLibraries {
 		all, err := c.ListLibraries(ctx, vp)
