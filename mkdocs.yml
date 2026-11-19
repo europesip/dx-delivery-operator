@@ -22,6 +22,7 @@ nav:
   - Restrictions and limitations: limitations.md
   - Portable bundles (DXExport): portable-bundles.md
   - Attributes of the artifacts: artifact-annotations.md
+  - 'WCM maintenance modules': wcm-admin-tasks.md
   - API reference: reference.md
   - How we work: workflow.md
   - Español:
@@ -31,6 +32,7 @@ nav:
       - Restricciones y limitaciones: limitations.es.md
       - Paquetes portables (DXExport): portable-bundles.es.md
       - Atributos de los artefactos: artifact-annotations.es.md
+      - 'Módulos de mantenimiento de WCM': wcm-admin-tasks.es.md
       - Cómo trabajamos: workflow.es.md
 
 # Heading anchors as GitHub makes them (accents kept: #instalación), so the same links work on GitHub and here

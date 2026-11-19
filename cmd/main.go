@@ -285,6 +285,15 @@ func main() {
 		setupLog.Error(err, "Failed to create controller", "controller", "dxwcmlibraryexport")
 		os.Exit(1)
 	}
+	if err := (&controller.DXWCMAdminTaskReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+		Scheme:    mgr.GetScheme(),
+		Shared:    shared,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "dxwcmadmintask")
+		os.Exit(1)
+	}
 	if err := (&controller.DXDatabaseReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

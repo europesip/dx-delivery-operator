@@ -5,6 +5,16 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.10.0 · unreleased · WCM maintenance modules
+
+- **New resource `DXWCMAdminTask`** (#39): the member fixer and the workflow checker of WCM on DX Compose over HTTP
+  (`/wps/wcm/myconnect?MOD=MemberFixer|WorkflowControlChecker`), the `ConfigEngine run-wcm-admin-task-*` of traditional
+  DX: libraries or all libraries, one request each, **report mode unless `fix: true`**, only the documented options
+  (`memberFixer`: altDn, invalidDn, mismatchedId, realm, noRealmDn; `workflowChecker`: updateDocSecurity,
+  rescheduleActions, repairInvalidWorkflow; restrictOn, preserveDates). Summary per library in `status.libraries`, DX's
+  answer in the ConfigMap `<name>-report`, optionally an OCI artifact. Holds the lock of the DX (never with an import).
+  Docs *WCM maintenance modules*, sample 14.
+
 ## 0.9.1 · 2026-11-19 · Imports resume after a restart; object IDs chosen when importing
 
 - **`DXWCMLibraryImport` resumes at the chunk it was on** after a restart of the operator (#33): the chunk plan and the
