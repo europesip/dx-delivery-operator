@@ -5,7 +5,7 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## 0.9.2 · sin publicar · Las importaciones WCM no se solapan tras un corte del proxy; internalURL
+## 0.9.2 · 2026-11-19 · Las importaciones WCM no se solapan tras un corte del proxy; internalURL
 
 - **Sin lotes solapados** (#37): cuando un proxy corta la petición del módulo de datos de un lote (HTTP 502/503/504), DX
   sigue importándolo; ahora el operador espera, antes del siguiente lote, el tiempo que DX necesita (1,5 × sus ficheros a

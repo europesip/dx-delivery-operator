@@ -5,7 +5,7 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
-## 0.9.2 · unreleased · WCM imports never overlap after a proxy cut; internalURL
+## 0.9.2 · 2026-11-19 · WCM imports never overlap after a proxy cut; internalURL
 
 - **No overlapping chunks** (#37): when a proxy cuts the data-module request of a chunk (HTTP 502/503/504) DX goes on
   importing it; the operator now waits, before the next chunk, the time DX needs for it (1.5 × its files at the speed of
