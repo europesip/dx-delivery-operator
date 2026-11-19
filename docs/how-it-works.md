@@ -214,6 +214,26 @@ imported into another DX Compose or into a **traditional HCL DX on WebSphere**. 
 
 One-shot per spec, like the import; deleting the resource stops a running export within 10 s and keeps the artifact.
 
+## Portable bundles (DXExport, 0.9.0)
+
+`DXExport` puts pages, the Portal Site library and WCM libraries of a portal into one OCI artifact, a **DX bundle**
+(`dx-bundle/v1`), every file in the native format of DX, so it imports into another DX Compose or into a traditional
+DX on WebSphere (see [Portable bundles](portable-bundles.md)):
+
+1. **Check**: the parts (at least one), the library titles (with Portal Site when `parts.portalSite`) must exist.
+2. **Pages**: one XMLAccess export of every page (`export-descendants` per page) against `/wps/config[/<vp>]`, turned
+   into an update request with `create-oids="true"` without status, build, comments and owners:
+   `xmlaccess/01-pages.xml`. A page that does not exist fails the run (`PageNotFound`); the themes, skins and portlets
+   the pages need, parents without a unique name and managed pages without Portal Site become `status.warnings`.
+3. **WCM**: the libraries and Portal Site with the data module into one zip (as DXWCMLibraryExport):
+   `wcm/wcm-export-<name>.zip`.
+4. **Push**: `EXPORT-INFO.txt` (with the import commands for DX Compose and for `xmlaccess.sh` / `ConfigEngine.sh`),
+   `bundle.json` (ordered import steps, size and sha256 of every file) and the files above, with the attributes of the
+   artifact (`com.europesip.dx.kind: dx-bundle`).
+
+Status: `phase`, `currentStep`, `pages` (content nodes of each), `pagesExported`, `exportedLibraries`, `files`,
+`warnings`, `totalBytes`, `image` (repository@digest). One-shot per spec; deleting it stops a running export.
+
 ## XMLAccess requests (DXXMLAccess, 0.5.0)
 
 `DXXMLAccess` runs XMLAccess requests of your own: the way to do anything the typed resources do not cover yet (URL

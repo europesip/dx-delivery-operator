@@ -8,6 +8,7 @@ resources:
 - bases/dx.europesip.com_dxdamcollections.yaml
 - bases/dx.europesip.com_dxdatabases.yaml
 - bases/dx.europesip.com_dxthemes.yaml
+- bases/dx.europesip.com_dxexports.yaml
 - bases/dx.europesip.com_dxwcmlibraryexports.yaml
 - bases/dx.europesip.com_dxwcmlibraryimports.yaml
 - bases/dx.europesip.com_dxxmlaccesses.yaml

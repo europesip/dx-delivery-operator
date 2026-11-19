@@ -20,6 +20,7 @@ nav:
   - How it works: how-it-works.md
   - 'Guide: migrate a portal, XMLAccess': migration-guide.md
   - Restrictions and limitations: limitations.md
+  - Portable bundles (DXExport): portable-bundles.md
   - Attributes of the artifacts: artifact-annotations.md
   - API reference: reference.md
   - How we work: workflow.md
@@ -28,6 +29,7 @@ nav:
       - Cómo funciona: how-it-works.es.md
       - 'Guía: migrar un portal, XMLAccess': migration-guide.es.md
       - Restricciones y limitaciones: limitations.es.md
+      - Paquetes portables (DXExport): portable-bundles.es.md
       - Atributos de los artefactos: artifact-annotations.es.md
       - Cómo trabajamos: workflow.es.md
 

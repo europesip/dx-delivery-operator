@@ -2,8 +2,8 @@
 
 [English](artifact-annotations.md) · **Español**
 
-Cada artefacto que el operador sube a un registro (las exportaciones WCM de `DXWCMLibraryExport` y las respuestas de
-`DXXMLAccess`) se describe a sí mismo con **anotaciones del manifiesto**: las estándar `org.opencontainers.image.*` y
+Cada artefacto que el operador sube a un registro (las exportaciones WCM de `DXWCMLibraryExport`, los paquetes de `DXExport` y las
+respuestas de `DXXMLAccess`) se describe a sí mismo con **anotaciones del manifiesto**: las estándar `org.opencontainers.image.*` y
 las nuestras, `com.europesip.dx.*`. Los registros las muestran (Harbor: *Annotations* del artefacto;
 `oras manifest fetch <ref>`), y una herramienta puede listar o filtrar artefactos por ellas sin descargar los ficheros.
 No se pone *artifact type*: las exportaciones WCM se reconocen por la carpeta `wcm/` de su repositorio y por
@@ -19,10 +19,11 @@ significado.
 | `org.opencontainers.image.source` | El DX de origen |
 | `org.opencontainers.image.vendor` | `EUROPESIP` |
 | `com.europesip.dx.schema` | Versión de esta convención (`1`) |
-| `com.europesip.dx.kind` | `wcm-export` o `xmlaccess-output` |
+| `com.europesip.dx.kind` | `wcm-export`, `dx-bundle` o `xmlaccess-output` |
 | `com.europesip.dx.resource` | El recurso que lo creó (namespace/nombre) |
 | `com.europesip.dx.source.server` / `.version` / `.connection` / `.portal` | Servidor DX, versión que da DX, DXConnection, portal virtual (vacío: el portal base) |
 | `com.europesip.dx.libraries` / `.libraries.count` | Exportaciones WCM: los títulos (separados por ` \| `) y cuántas |
+| `com.europesip.dx.bundle.schema` / `.bundle.parts` / `.pages` | Paquetes DX: formato (`dx-bundle/v1`), partes (`pages,portal-site,libraries`) y nombres únicos de las páginas |
 | `com.europesip.dx.requested-by` | Quién lo pidió (anotación `dx.europesip.com/changed-by` del recurso) |
 | `com.europesip.dx.reason` | Por qué (anotación `dx.europesip.com/reason`) |
 | `com.europesip.dx.tool.operator` | Este operador y su versión |

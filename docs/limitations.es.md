@@ -136,3 +136,18 @@
   nombre de biblioteca).
 - **El control de acceso** viaja con las bibliotecas, como en las importaciones: el destino puede no tener los mismos
   usuarios y grupos.
+
+## Paquetes portables (DXExport)
+
+- **Los temas aún no van en el paquete**: las páginas localizan su tema y skins por nombre único; el destino debe
+  tenerlos (`EXPORT-INFO.txt` y `status.warnings` los listan).
+- **Padres**: una página cuyo padre no tiene nombre único no se puede colocar en otro portal; exportar desde un padre
+  que lo tenga. Las páginas bajo la raíz de contenido no tienen problema.
+- Se quitan los **owners** del control de acceso; los roles y sus mapeos se mantienen, así que los grupos y usuarios
+  deben existir en el directorio del destino.
+- **Portlets propios** (JSR 286): sin el Java Transition Module no funcionan en Compose.
+- La parte **WCM** tiene los límites de las exportaciones de bibliotecas (una réplica del Web Engine, volumen de
+  trabajo, 20 minutos por biblioteca).
+- Los comandos de importación en el **tradicional** están escritos según la documentación de HCL; se validarán en un
+  DX 9.5 CF230.
+

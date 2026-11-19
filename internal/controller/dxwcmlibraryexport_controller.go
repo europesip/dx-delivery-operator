@@ -27,7 +27,6 @@ import (
 	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
 	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
 	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/wcmexport"
 )
 
 // DXWCMLibraryExportReconciler exports WCM libraries of DX to an OCI artifact, once per spec.
@@ -210,97 +209,41 @@ func (r *DXWCMLibraryExportReconciler) exportAll(ctx context.Context, o *dxv1.DX
 
 	// 1. The libraries must exist (DX would answer LibraryNotFoundException one by one)
 	r.progress(ctx, o, dxv1.WCMExportPending, "checking the libraries of "+where)
-	libs, err := c.ListLibraries(ctx, vp)
-	if err != nil {
-		return fmt.Errorf("libraries of %s: %w", where, err)
-	}
-	have := map[string]string{}
-	for _, l := range libs {
-		have[strings.ToLower(l.Title)] = l.Title
-	}
-	var missing []string
-	for i, t := range titles {
-		if real, ok := have[strings.ToLower(t)]; ok {
-			titles[i] = real
-		} else {
-			missing = append(missing, t)
-		}
-	}
-	if len(missing) > 0 {
-		return fatal(reasonLibNotFound, "not in %s: %s; nothing was exported", where, strings.Join(missing, ", "))
+	if titles, err = resolveLibraries(ctx, c, vp, where, titles); err != nil {
+		return err
 	}
 
-	// 2. Export each library into one dxFileTransfer folder (the data module merges them into one JCR tree)
-	sub := exportTransferDir(o)
-	_ = c.FileTransferDeleteDir(ctx, sub) // leftovers of a run that was cut
-	if err := c.FileTransferCreateDir(ctx, sub); err != nil {
-		return fmt.Errorf("dxFileTransfer: %w", err)
-	}
-	defer func() {
-		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Minute)
-		defer cancel()
-		if err := c.FileTransferDeleteDir(cctx, sub); err != nil {
-			r.Recorder.Eventf(o, nil, corev1.EventTypeWarning, "CleanupFailed", "Export", "the exported files stay in %s/%s: %v", dx.FileTransferRoot, sub, err)
-		}
-	}()
+	// 2. and 3. Export them into one dxFileTransfer folder, download it as one zip and check it
 	timeout := defaultExportWait
 	if o.Spec.Timeout != nil && o.Spec.Timeout.Duration > 0 {
 		timeout = o.Spec.Timeout.Duration
 	}
-	for i, t := range titles {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		st.CurrentLibrary = i + 1
-		r.progress(ctx, o, dxv1.WCMExportExporting, fmt.Sprintf("library %d/%d: exporting %s from %s", i+1, len(titles), t, where))
-		if _, err := c.DataModuleExport(ctx, vp, t, dx.FileTransferRoot+"/"+sub, timeout); err != nil {
-			if errors.Is(err, dx.ErrCutByProxy) {
-				return fatal(reasonExportFailed, "library %s: %v", t, err)
-			}
-			if strings.Contains(err.Error(), "DX export failed") {
-				return fatal(reasonExportFailed, "library %s: %v", t, err)
-			}
-			return fmt.Errorf("library %s: %w", t, err)
-		}
-	}
-	st.CurrentLibrary = 0
-
-	// 3. Download the folder as one zip and check it
-	work := filepath.Join(r.WorkDir, "wcm-export", o.Namespace+"-"+o.Name)
-	_ = os.RemoveAll(work)
-	if err := os.MkdirAll(work, 0o700); err != nil {
+	work, err := exportWorkDir(r.WorkDir, "wcm-export", o.Namespace, o.Name)
+	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(work) //nolint:errcheck
 	zipName := "wcm-export-" + unsafeChars.ReplaceAllString(strings.ToLower(o.Name), "-") + ".zip"
 	zipPath := filepath.Join(work, zipName)
-	r.progress(ctx, o, dxv1.WCMExportDownloading, fmt.Sprintf("downloading the export of %d libraries", len(titles)))
-	n, err := c.FileTransferDownload(ctx, sub, zipPath)
+	sub := exportTransferDir(o)
+	n, exported, err := wcmExportJob{
+		Client: c, VP: vp, Where: where, Titles: titles, Sub: sub, ZipPath: zipPath, Timeout: timeout,
+		OnLibrary: func(i, total int, t string) {
+			st.CurrentLibrary = i
+			r.progress(ctx, o, dxv1.WCMExportExporting, fmt.Sprintf("library %d/%d: exporting %s from %s", i, total, t, where))
+		},
+		OnDownload: func() {
+			st.CurrentLibrary = 0
+			r.progress(ctx, o, dxv1.WCMExportDownloading, fmt.Sprintf("downloading the export of %d libraries", len(titles)))
+		},
+		OnCleanupError: func(err error) {
+			r.Recorder.Eventf(o, nil, corev1.EventTypeWarning, "CleanupFailed", "Export", "the exported files stay in %s/%s: %v", dx.FileTransferRoot, sub, err)
+		},
+	}.run(ctx)
 	if err != nil {
 		return err
 	}
-	st.TotalBytes = n
-	unpacked := filepath.Join(work, "check")
-	if _, err := source.ExtractArchiveProgressContext(ctx, zipPath, unpacked, nil); err != nil {
-		return fatal(reasonExportFailed, "the zip downloaded from DX cannot be read: %v", err)
-	}
-	exp, err := wcmexport.Open(unpacked)
-	if err != nil {
-		return fatal(reasonExportFailed, "the export downloaded from DX: %v", err)
-	}
-	_ = os.RemoveAll(unpacked)
-	got := map[string]wcmexport.Library{}
-	for _, l := range exp.Libraries {
-		got[strings.ToLower(l.Title)] = l
-	}
-	for _, t := range titles {
-		l, ok := got[strings.ToLower(t)]
-		if !ok {
-			return fatal(reasonExportFailed, "DX said %s was exported, but it is not in the downloaded export", t)
-		}
-		st.ExportedLibraries = append(st.ExportedLibraries, dxv1.WCMExportedLibrary{Title: l.Title, Bytes: l.Bytes, Files: l.Files})
-	}
-	sort.Slice(st.ExportedLibraries, func(i, j int) bool { return st.ExportedLibraries[i].Title < st.ExportedLibraries[j].Title })
+	st.TotalBytes, st.ExportedLibraries = n, exported
 
 	// 4. Push the zip and EXPORT-INFO.txt
 	when := time.Now().UTC()
@@ -352,7 +295,7 @@ func exportMeta(conn *Connection, o *dxv1.DXWCMLibraryExport, version string, ti
 	return source.ArtifactMeta{
 		Kind: "wcm-export", Title: "WCM export " + o.Name,
 		Description: fmt.Sprintf("WCM export of %d libraries from %s", len(titles), sourceName(conn, o.Spec.VirtualPortal)),
-		Resource: o.Namespace + "/" + o.Name, SourceServer: conn.Config.BaseURL, SourceVersion: version,
+		Resource:    o.Namespace + "/" + o.Name, SourceServer: conn.Config.BaseURL, SourceVersion: version,
 		SourceConnection: o.Namespace + "/" + o.Spec.ConnectionRef.Name, SourcePortal: o.Spec.VirtualPortal,
 		Libraries: titles, ResourceAnnotations: o.Annotations, Attributes: o.Spec.Destination.Attributes, Created: when,
 	}
