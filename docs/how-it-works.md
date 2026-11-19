@@ -181,6 +181,16 @@ offers over HTTP:
    `dxFileTransfer` (`unzip=true`), imported with the WCM data module
    (`/wps/wcm/myconnect[/<vp>]?MOD=data&taskType=import|import-copy&input.dir=...`) and its folder deleted. If a proxy
    cuts the request (502/503/504), the folder is kept: DX goes on importing.
+   **Resume after a restart (0.9.1)**: the chunk plan (titles of each chunk) and the progress are kept in
+   `status.resume` while the run goes on. If the operator restarts (an upgrade, a node), the next run with the same
+   spec and export goes on at the chunk it was on: finished chunks are not imported again, and their libraries count
+   as planned even if they now exist in the target. If the import request of the interrupted chunk had been sent, DX
+   may still be importing it, so the operator waits 1.5 times the longest chunk of the run (3 to 30 minutes; 5 without
+   a finished chunk), counted from when it was sent, and imports it again into a **new folder**: the folder names carry
+   the attempt (`dxop-<ns>-<name>-<chunk>-<attempt>`), and the folders of the earlier attempt are deleted only when the
+   run ends. An import **as a copy** (`mode: ImportCopy`) does not import the interrupted chunk again (it would
+   duplicate what DX copied): its libraries are reported as failed with the reason. A changed spec or export, or a
+   dry run, starts from scratch.
 5. **Check and roles**: the libraries are listed again; `access` roles are added (WCM access control REST).
 
 The run is **one-shot**: the status keeps a hash of the spec, and the import runs again only when the spec or the

@@ -192,6 +192,37 @@ type WCMExportLibrary struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+// WCMImportResume is the plan and progress of a run with chunks.
+type WCMImportResume struct {
+	// Hash of the spec the plan was made for (as appliedHash): another spec starts a new run.
+	Hash string `json:"hash"`
+	// SourceRevision the plan was made for: another revision of the export starts a new run.
+	// +optional
+	SourceRevision string `json:"sourceRevision,omitempty"`
+	// Chunks: the titles of the libraries of each chunk, in order.
+	Chunks [][]string `json:"chunks"`
+	// Completed: chunks finished (imported, or failed and recorded in Failed).
+	Completed int `json:"completed"`
+	// Failed: the libraries of finished chunks that failed, with the reason.
+	// +optional
+	Failed []WCMLibraryResult `json:"failed,omitempty"`
+	// Existing: planned libraries that already existed in the target before the run (lowercase titles).
+	// +optional
+	Existing []string `json:"existing,omitempty"`
+	// ChunkStartedAt: when the import request of chunk Completed+1 was sent to DX (empty while it is packed or
+	// uploaded). Set when the operator stops: DX may still be importing that chunk.
+	// +optional
+	ChunkStartedAt *metav1.Time `json:"chunkStartedAt,omitempty"`
+	// LongestChunkSeconds: the longest import of a finished chunk of this run (to estimate how long DX may still be
+	// busy with an interrupted one).
+	// +optional
+	LongestChunkSeconds int64 `json:"longestChunkSeconds,omitempty"`
+	// Attempt: number of the run on this plan (1, 2 after a restart...); it names the dxFileTransfer folders, so a
+	// folder DX may still be reading is never deleted or reused.
+	// +optional
+	Attempt int `json:"attempt,omitempty"`
+}
+
 // DXWCMLibraryImportStatus is the result of the import.
 type DXWCMLibraryImportStatus struct {
 	// +optional
@@ -224,6 +255,10 @@ type DXWCMLibraryImportStatus struct {
 	// CurrentChunk being uploaded or imported (1-based).
 	// +optional
 	CurrentChunk int `json:"currentChunk,omitempty"`
+	// Resume: the plan and progress of a run with chunks, kept while it runs so that an operator that restarts goes on
+	// at the chunk it was on instead of starting again (0.9.1). Removed when the run ends.
+	// +optional
+	Resume *WCMImportResume `json:"resume,omitempty"`
 	// DryRun: true when the status describes a dry run.
 	// +optional
 	DryRun bool `json:"dryRun,omitempty"`

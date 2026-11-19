@@ -5,6 +5,15 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.9.1 · unreleased · Imports resume after a restart
+
+- **`DXWCMLibraryImport` resumes at the chunk it was on** after a restart of the operator (#33): the chunk plan and the
+  progress are kept in `status.resume`; finished chunks are not imported again. The interrupted chunk, whose import DX
+  may still be running, is imported again after a wait (1.5 times the longest chunk, 3 to 30 minutes) into a new
+  dxFileTransfer folder (the names carry the attempt; the old folders are deleted when the run ends: deleting the folder
+  DX was reading made its import fail). Imports as a copy report the interrupted chunk as failed instead of duplicating
+  it. A changed spec or export starts from scratch.
+
 ## 0.9.0 · 2026-11-19 · Portable bundles (DXExport)
 
 - **New resource `DXExport`** (#31): pages (XMLAccess), the Portal Site library and WCM libraries of a DX Compose
