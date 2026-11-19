@@ -1,0 +1,29 @@
+# Sample 13 · DXExport: a portable "DX bundle" of pages, the Portal Site library and WCM libraries of a DX Compose
+# portal, pushed to an OCI registry (Harbor), to import it into another DX Compose or into a traditional HCL DX on
+# WebSphere. Every file is in the native format of DX:
+#   EXPORT-INFO.txt            what it holds and HOW TO IMPORT it (DX Compose and xmlaccess.sh / ConfigEngine)
+#   bundle.json                the same for tools (dx-bundle/v1): parts, import steps, files with sha256
+#   xmlaccess/01-pages.xml     the pages as an XMLAccess update request (create-oids="true")
+#   wcm/wcm-export-<name>.zip  the WCM data module export (the JCR format of ConfigEngine export-wcm-data)
+# Read it with
+#   oras pull registry.example.com/dx-artifacts/sites/acme-20261119:1
+# Deleting the resource keeps the artifact; to export again, change the spec or add the annotation
+# dx.europesip.com/reconcile with a new value.
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXExport
+metadata:
+  name: acme-site-export
+  annotations:
+    dx.europesip.com/reason: copy the Acme site to the test portal   # goes into EXPORT-INFO.txt
+spec:
+  connectionRef: { name: dx }
+  # virtualPortal: acme        # context of a virtual portal; empty = the base portal
+  parts:
+    pages:
+      - uniqueName: acme.site  # with the pages under it (descendants: true is the default)
+    portalSite: true           # the content of the managed pages (imported after the pages)
+    libraries: [Acme Content, Acme Design]
+  destination:
+    image: registry.example.com/dx-artifacts/sites/acme-20261119:1
+    pushSecrets: [{ name: registry-credentials }]   # kubernetes.io/dockerconfigjson with push rights
+    attributes: { customer: acme, environment: test }   # com.europesip.dx.attr.<key> annotations

@@ -130,3 +130,17 @@
 - **Versions**: import into a DX of the same CF level as the source or newer (`EXPORT-INFO.txt` names the source
   build). Traditional DX: `import-wcm-data` imports every library of the folder (there is no library name property).
 - **Access control** goes with the libraries, as in imports: the target may not have the same users and groups.
+
+## Portable bundles (DXExport)
+
+- **Themes are not in the bundle yet**: the pages locate their theme and skins by unique name, so the target must have
+  them (listed in `EXPORT-INFO.txt` and `status.warnings`).
+- **Parents**: a page whose parent has no unique name cannot be placed in another portal; export from a parent that has
+  one, or give it one. Pages under the content root are fine.
+- **Owners** of access control are dropped (users of the source registry need not exist in the target); the roles and
+  their mappings are kept, so groups and users of the mappings must exist in the target directory.
+- **Portlets of your own** (JSR 286) do not run on DX Compose without the Java Transition Module.
+- The **WCM** part has the limits of WCM library exports above (one Web Engine replica, work volume, 20 minutes per
+  library).
+- The **traditional import** commands are written from the HCL documentation; to be validated on DX 9.5 CF230.
+

@@ -5,6 +5,18 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.9.0 · sin publicar · Paquetes portables (DXExport)
+
+- **Recurso nuevo `DXExport`** (#31): páginas (XMLAccess), la biblioteca Portal Site y bibliotecas WCM de un portal
+  DX Compose (base o virtual) en un artefacto OCI, un **DX bundle** (`dx-bundle/v1`): `EXPORT-INFO.txt` (origen,
+  versiones, quién y por qué, contenido, avisos y **cómo importarlo en DX Compose y en un DX tradicional sobre
+  WebSphere**, con los comandos `xmlaccess.sh` y `ConfigEngine.sh import-wcm-data`), `bundle.json` (pasos de
+  importación ordenados, tamaño y sha256 de cada fichero), `xmlaccess/01-pages.xml` (la exportación XMLAccess
+  convertida en petición update con `create-oids="true"`, sin status, build, comentarios ni owners) y
+  `wcm/wcm-export-<nombre>.zip` (la exportación del módulo de datos). DXXMLAccess y DXWCMLibraryImport leen un paquete
+  como fuente de imagen (comprobado en DX Compose CF239). Documentación: *Paquetes portables*. Ejemplo 13.
+- La parte WCM de `DXWCMLibraryExport` se comparte con `DXExport` (sin cambios de comportamiento).
+
 ## 0.8.0 · 2026-11-19 · Atributos de los artefactos
 
 - **Atributos de los artefactos** (docs/artifact-annotations.es.md): todo artefacto que se sube (exportaciones WCM,

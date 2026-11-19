@@ -205,6 +205,22 @@ importarlas en otro DX Compose o en un **HCL DX tradicional sobre WebSphere**. T
 Una sola vez por spec, como la importación; borrar el recurso detiene una exportación en marcha en 10 s y conserva el
 artefacto.
 
+## Paquetes portables (DXExport, 0.9.0)
+
+`DXExport` mete páginas, la biblioteca Portal Site y bibliotecas WCM de un portal en un solo artefacto OCI, un **DX
+bundle** (`dx-bundle/v1`), cada fichero en el formato nativo de DX, para importarlo en otro DX Compose o en un DX
+tradicional sobre WebSphere (ver [Paquetes portables](portable-bundles.es.md)):
+
+1. **Comprobación**: las partes (al menos una) y que existan las bibliotecas (Portal Site si `parts.portalSite`).
+2. **Páginas**: una exportación XMLAccess de todas (`export-descendants` por página) contra `/wps/config[/<vp>]`,
+   convertida en una petición update con `create-oids="true"`, sin status, build, comentarios ni owners:
+   `xmlaccess/01-pages.xml`. Una página que no existe hace fallar la ejecución (`PageNotFound`); temas, skins y portlets
+   que necesitan, padres sin nombre único y páginas gestionadas sin Portal Site van a `status.warnings`.
+3. **WCM**: bibliotecas y Portal Site con el módulo de datos en un zip: `wcm/wcm-export-<nombre>.zip`.
+4. **Subida**: `EXPORT-INFO.txt` (con los comandos de importación para DX Compose y para `xmlaccess.sh` /
+   `ConfigEngine.sh`), `bundle.json` (pasos ordenados, tamaño y sha256 de cada fichero) y los ficheros, con los
+   atributos del artefacto (`com.europesip.dx.kind: dx-bundle`).
+
 ## Peticiones XMLAccess (DXXMLAccess, 0.5.0)
 
 `DXXMLAccess` ejecuta peticiones XMLAccess propias: la forma de hacer lo que aún no cubren los recursos con tipo

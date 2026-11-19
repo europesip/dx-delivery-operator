@@ -28,6 +28,9 @@ const (
 	AnnToolOperator   = AnnPrefix + "tool.operator"     // hcl-dx-scriptapp-operator <version>
 	AnnToolCreatedBy  = AnnPrefix + "tool.created-with" // what created the resource (Backstage, its plugin)
 	AnnAttrPrefix     = AnnPrefix + "attr."             // free attributes: com.europesip.dx.attr.<key>
+	AnnBundleSchema   = AnnPrefix + "bundle.schema"     // dx-bundle/v1 (DXExport)
+	AnnBundleParts    = AnnPrefix + "bundle.parts"      // pages,portal-site,libraries
+	AnnPages          = AnnPrefix + "pages"             // unique names of the pages exported, separated by " | "
 	AnnSchemaVersion  = "1"
 
 	// Annotations of the resource read for the artifact (Backstage writes them).
@@ -56,7 +59,9 @@ type ArtifactMeta struct {
 	Libraries                      []string
 	ResourceAnnotations            map[string]string
 	Attributes                     map[string]string
-	Created                        time.Time
+	// Extra annotations (com.europesip.dx.* keys of this file), written as they are.
+	Extra   map[string]string
+	Created time.Time
 }
 
 // Annotations builds the manifest annotations of an artifact. Empty values are left out.
@@ -94,6 +99,9 @@ func (m ArtifactMeta) Annotations() map[string]string {
 	set(AnnRequestedBy, strings.TrimPrefix(strings.TrimPrefix(ra[ResChangedBy], "user:"), "default/"))
 	set(AnnReason, ra[ResReason])
 	set(AnnToolCreatedBy, ra[ResCreatedWith])
+	for k, v := range m.Extra {
+		set(k, v)
+	}
 	keys := make([]string, 0, len(m.Attributes))
 	for k := range m.Attributes {
 		keys = append(keys, k)

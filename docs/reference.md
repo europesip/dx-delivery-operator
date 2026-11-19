@@ -471,6 +471,72 @@ Short names: `dxwcmexport`
 | `startTime` | string |  |  |
 | `totalBytes` | integer |  | TotalBytes: size of the zip of the export. |
 
+## DXExport
+
+DXExport exports pages, the Portal Site library and WCM libraries of HCL DX Compose (base or virtual portal) into one portable OCI artifact, a "DX bundle" (EXPORT-INFO.txt, bundle.json, xmlaccess/, wcm/), once per spec. Every file is in the native format of DX (XMLAccess, the JCR export of the WCM data module), so the bundle can be imported into another DX Compose (DXXMLAccess, DXWCMLibraryImport) or into a traditional DX on WebSphere (xmlaccess.sh, ConfigEngine import-wcm-data).
+
+Short names: `dxexport`
+
+### spec
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `connectionRef` | object (required) |  | ConnectionRef: the DXConnection of the DX to export from. |
+| `connectionRef.name` | string (required) |  | Name of the object. |
+| `dependsOn` | []object |  | DependsOn: resources that must be Ready first. |
+| `dependsOn[].apiVersion` | string |  | APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1. |
+| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport \| DXXMLAccess (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme, DXWCMLibraryImport or DXXMLAccess. |
+| `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
+| `destination` | object (required) |  | Destination: the OCI artifact (the "DX bundle"), its push secrets and attributes. |
+| `destination.attributes` | object |  | Attributes: free key/value labels of the artifact, written as manifest annotations com.europesip.dx.attr.<key> next to the standard ones (docs/artifact-annotations.md), so artifacts can be listed and filtered by them later. Keys: lowercase letters, digits, dots and dashes (at most 63); values at most 256 characters. |
+| `destination.image` | string (required) |  | Image: reference of the artifact, for example harbor.example.com/project/wcm/orbita-20261119:1. It holds the zip of the export (wcm-export-<name>.zip) and EXPORT-INFO.txt, and DXWCMLibraryImport reads it as an image source. |
+| `destination.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with push rights on the repository. |
+| `destination.pushSecrets[].name` | string (required) |  | Name of the object. |
+| `parts` | object (required) |  | Parts of the bundle. |
+| `parts.libraries` | []string |  | Libraries: titles of WCM libraries to export with the WCM data module (wcm/wcm-export-<name>.zip, with Portal Site when portalSite is set). |
+| `parts.pages` | []object |  | Pages: XMLAccess export of these pages (layout, portlets, properties, access, friendly URLs, the WCM content mapping of managed pages), as one request importable into another portal (xmlaccess/01-pages.xml). |
+| `parts.pages[].descendants` | boolean | `True` | Descendants: also every page under it (export-descendants). Default true. |
+| `parts.pages[].uniqueName` | string (required) |  | UniqueName of the page in DX (for example orbita-site). |
+| `parts.portalSite` | boolean |  | PortalSite: also export the Portal Site library (the content of the managed pages), with the WCM data module. Imported after the pages. |
+| `suspend` | boolean |  | Suspend stops the reconciliation. |
+| `timeout` | string |  | Timeout of each export request to DX. Default 1h. |
+| `virtualPortal` | string |  | VirtualPortal: URL context of a virtual portal; empty for the base portal. |
+
+### status
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `appliedHash` | string |  | AppliedHash of the spec of the last finished run. |
+| `completionTime` | string |  |  |
+| `conditions` | []object |  |  |
+| `conditions[].lastTransitionTime` | string (required) |  | lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable. |
+| `conditions[].message` | string (required) |  | message is a human readable message indicating details about the transition. This may be an empty string. |
+| `conditions[].observedGeneration` | integer |  | observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance. |
+| `conditions[].reason` | string (required) |  | reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty. |
+| `conditions[].status` | True \| False \| Unknown (required) |  | status of the condition, one of True, False, Unknown. |
+| `conditions[].type` | string (required) |  | type of condition in CamelCase or in foo.example.com/CamelCase. |
+| `currentStep` | string |  | CurrentStep while it runs, in words. |
+| `digest` | string |  |  |
+| `exportedLibraries` | []object |  | ExportedLibraries: the WCM libraries in the bundle (Portal Site included), with their size. |
+| `exportedLibraries[].bytes` | integer |  | Bytes and Files: its size in the export, before compression. |
+| `exportedLibraries[].files` | integer |  |  |
+| `exportedLibraries[].title` | string (required) |  |  |
+| `files` | []object |  | Files of the bundle with their size and sha256. |
+| `files[].bytes` | integer |  |  |
+| `files[].path` | string (required) |  |  |
+| `files[].sha256` | string |  |  |
+| `image` | string |  | Image: the artifact pushed, as repository@digest. |
+| `message` | string |  |  |
+| `observedGeneration` | integer |  |  |
+| `pages` | []object |  | Pages exported, with the content nodes of each. |
+| `pages[].nodes` | integer |  | Nodes: content nodes exported for it (the page and, with descendants, the pages under it). |
+| `pages[].uniqueName` | string (required) |  |  |
+| `pagesExported` | integer |  | PagesExported: content nodes in xmlaccess/01-pages.xml. |
+| `phase` | string |  | Phase: Pending, Exporting, Downloading, Pushing, Succeeded or Failed. |
+| `startTime` | string |  |  |
+| `totalBytes` | integer |  | TotalBytes: size of all the files of the bundle. |
+| `warnings` | []string |  | Warnings: what the target must already have (themes, skins, portlets) or may not import (see EXPORT-INFO.txt). |
+
 ## DXXMLAccess
 
 DXXMLAccess runs XMLAccess requests against HCL DX (base or virtual portal), once per change of the spec or of its source, like a Job: it does not watch for drift.

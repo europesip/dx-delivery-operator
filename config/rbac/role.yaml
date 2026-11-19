@@ -47,6 +47,7 @@ rules:
   - dxconnections/status
   - dxdamcollections/status
   - dxdatabases/status
+  - dxexports/status
   - dxpages/status
   - dxscriptapplications/status
   - dxthemes/status
@@ -62,6 +63,7 @@ rules:
   resources:
   - dxdamcollections
   - dxdatabases
+  - dxexports
   - dxpages
   - dxscriptapplications
   - dxthemes
