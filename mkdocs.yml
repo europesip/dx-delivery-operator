@@ -20,6 +20,7 @@ nav:
   - How it works: how-it-works.md
   - 'Guide: migrate a portal, XMLAccess': migration-guide.md
   - Restrictions and limitations: limitations.md
+  - Attributes of the artifacts: artifact-annotations.md
   - API reference: reference.md
   - How we work: workflow.md
   - Español:
@@ -27,6 +28,7 @@ nav:
       - Cómo funciona: how-it-works.es.md
       - 'Guía: migrar un portal, XMLAccess': migration-guide.es.md
       - Restricciones y limitaciones: limitations.es.md
+      - Atributos de los artefactos: artifact-annotations.es.md
       - Cómo trabajamos: workflow.es.md
 
 # Heading anchors as GitHub makes them (accents kept: #instalación), so the same links work on GitHub and here

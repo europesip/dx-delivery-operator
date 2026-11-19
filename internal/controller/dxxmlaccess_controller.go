@@ -438,12 +438,14 @@ func (r *DXXMLAccessReconciler) pushOutput(ctx context.Context, o *dxv1.DXXMLAcc
 		"sourceRevision": o.Status.SourceRevision, "time": time.Now().UTC().Format(time.RFC3339),
 	}, "", "  ")
 	files["results.json"] = summary
-	digest, err := r.Fetcher.Push(ctx, o.Namespace, ref, oci.PushSecrets, files, "application/xml", map[string]string{
-		"org.opencontainers.image.created": time.Now().UTC().Format(time.RFC3339),
-		"org.opencontainers.image.source":  server,
-		"dx.europesip.com/resource":        o.Namespace + "/" + o.Name,
-		"dx.europesip.com/virtual-portal":  vp,
-	})
+	ann := source.ArtifactMeta{
+		Kind: "xmlaccess-output", Title: "XMLAccess answers " + o.Name, Description: "Answers of DX to the XMLAccess requests of " + o.Namespace + "/" + o.Name,
+		Resource: o.Namespace + "/" + o.Name, SourceServer: server, SourceConnection: o.Namespace + "/" + o.Spec.ConnectionRef.Name,
+		SourcePortal: vp, ResourceAnnotations: o.Annotations, Created: time.Now(),
+	}.Annotations()
+	// the names of 0.6 and earlier, kept for whoever reads them
+	ann["dx.europesip.com/resource"], ann["dx.europesip.com/virtual-portal"] = o.Namespace+"/"+o.Name, vp
+	digest, err := r.Fetcher.Push(ctx, o.Namespace, ref, oci.PushSecrets, files, "application/xml", ann)
 	if err != nil {
 		return err
 	}

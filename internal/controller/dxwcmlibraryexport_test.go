@@ -67,9 +67,12 @@ func TestExportArtifactIsImportable(t *testing.T) {
 	o.Spec.ConnectionRef.Name = "dx"
 	ref := host + "/europesip/wcm/x:1"
 	o.Spec.Destination.Image = ref
+	o.Annotations = map[string]string{source.ResChangedBy: "user:default/andres", source.ResReason: "copy to prod", source.ResCreatedWith: "backstage-europesip 1.0.0; @europesip/backstage-plugin-hcl-dx 0.6.0"}
+	o.Spec.Destination.Attributes = map[string]string{"customer": "europesip"}
 	libs := []dxv1.WCMExportedLibrary{{Title: "orbita", Files: 2}, {Title: "Social Lists 1.0", Files: 1}}
 	text := exportInfo(conn, o, "HCL Digital Experience Compose/9.5 build 20261103-170843", libs, 123, time.Date(2026, 11, 19, 7, 0, 0, 0, time.UTC))
-	for _, want := range []string{"https://dx.example.com", "2026-11-19 07:00:00", "Libraries:       2", "- orbita", "import-wcm-data", "build 20261103-170843", ref} {
+	for _, want := range []string{"https://dx.example.com", "2026-11-19 07:00:00", "Libraries:       2", "- orbita", "import-wcm-data", "build 20261103-170843", ref,
+		"Requested by:    andres", "Reason:          copy to prod", "Operator:        hcl-dx-scriptapp-operator", "@europesip/backstage-plugin-hcl-dx 0.6.0", "Attributes:      customer=europesip"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("EXPORT-INFO.txt lacks %q:\n%s", want, text)
 		}

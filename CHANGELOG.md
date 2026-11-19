@@ -5,6 +5,17 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.8.0 · 2026-11-19 · Attributes of the artifacts
+
+- **Attributes of the artifacts** (docs/artifact-annotations.md): every artifact pushed (WCM exports, XMLAccess answers)
+  carries manifest annotations `org.opencontainers.image.*` and `com.europesip.dx.*` (kind, source server, version,
+  connection and portal, libraries, requested by, reason, operator version, what created the resource), so a later
+  version can list and filter by them. **`DXWCMLibraryExport.spec.destination.attributes`**: free key/value
+  attributes, written as `com.europesip.dx.attr.<key>`.
+- **EXPORT-INFO.txt** also says who asked for it and why, the operator version, what created the resource (Backstage
+  and its plugin, from the annotation `dx.europesip.com/created-with`) and the attributes.
+- The chart passes `OPERATOR_VERSION` (its appVersion) to the operator.
+
 ## 0.7.0 · 2026-11-19 · Export WCM libraries
 
 - **New resource `DXWCMLibraryExport`** (#27): exports chosen WCM libraries of a DX Compose portal (base or virtual
