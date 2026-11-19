@@ -419,6 +419,57 @@ Short names: `dxwcmimport`
 | `sourceRevision` | string |  | SourceRevision of the export. |
 | `startTime` | string |  |  |
 
+## DXWCMLibraryExport
+
+DXWCMLibraryExport exports Web Content Manager libraries of HCL DX Compose (base or virtual portal) to an OCI artifact (the zip of the export and EXPORT-INFO.txt), once per spec. DXWCMLibraryImport imports it elsewhere.
+
+Short names: `dxwcmexport`
+
+### spec
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `connectionRef` | object (required) |  | ConnectionRef: the DXConnection of the DX the libraries are exported from. |
+| `connectionRef.name` | string (required) |  | Name of the object. |
+| `dependsOn` | []object |  | DependsOn: resources that must be Ready first. |
+| `dependsOn[].apiVersion` | string |  | APIVersion of the object, for example apps/v1 (default) or dx.europesip.com/v1alpha1. |
+| `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport \| DXXMLAccess (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme, DXWCMLibraryImport or DXXMLAccess. |
+| `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
+| `destination` | object (required) |  | Destination of the export. |
+| `destination.image` | string (required) |  | Image: reference of the artifact, for example harbor.example.com/project/wcm/orbita-20261119:1. It holds the zip of the export (wcm-export-<name>.zip) and EXPORT-INFO.txt, and DXWCMLibraryImport reads it as an image source. |
+| `destination.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with push rights on the repository. |
+| `destination.pushSecrets[].name` | string (required) |  | Name of the object. |
+| `libraries` | []string (required) |  | Libraries: titles of the libraries to export (each one must exist). |
+| `suspend` | boolean |  | Suspend stops the reconciliation. |
+| `timeout` | string |  | Timeout of the export request of each library. Default 1h. |
+| `virtualPortal` | string |  | VirtualPortal: URL context of the virtual portal the libraries are in. Empty: the base portal. |
+
+### status
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `appliedHash` | string |  | AppliedHash of the spec of the last finished run: the export runs again only when it changes (or with the reconcile annotation). |
+| `completionTime` | string |  |  |
+| `conditions` | []object |  |  |
+| `conditions[].lastTransitionTime` | string (required) |  | lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable. |
+| `conditions[].message` | string (required) |  | message is a human readable message indicating details about the transition. This may be an empty string. |
+| `conditions[].observedGeneration` | integer |  | observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance. |
+| `conditions[].reason` | string (required) |  | reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty. |
+| `conditions[].status` | True \| False \| Unknown (required) |  | status of the condition, one of True, False, Unknown. |
+| `conditions[].type` | string (required) |  | type of condition in CamelCase or in foo.example.com/CamelCase. |
+| `currentLibrary` | integer |  | CurrentLibrary being exported (1-based), while it runs. |
+| `digest` | string |  | Digest of the manifest of the artifact. |
+| `exportedLibraries` | []object |  | ExportedLibraries: the libraries in the artifact, with their size. |
+| `exportedLibraries[].bytes` | integer |  | Bytes and Files: its size in the export, before compression. |
+| `exportedLibraries[].files` | integer |  |  |
+| `exportedLibraries[].title` | string (required) |  |  |
+| `image` | string |  | Image: the artifact pushed, as repository@digest. |
+| `message` | string |  | Message: last result in words. |
+| `observedGeneration` | integer |  |  |
+| `phase` | string |  | WCMExportPhase is the step an export is in. |
+| `startTime` | string |  |  |
+| `totalBytes` | integer |  | TotalBytes: size of the zip of the export. |
+
 ## DXXMLAccess
 
 DXXMLAccess runs XMLAccess requests against HCL DX (base or virtual portal), once per change of the spec or of its source, like a Job: it does not watch for drift.

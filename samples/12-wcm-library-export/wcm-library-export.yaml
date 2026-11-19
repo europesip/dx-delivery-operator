@@ -1,0 +1,21 @@
+# Sample 12 · DXWCMLibraryExport: export WCM libraries of a DX Compose portal to an OCI artifact (Harbor, any OCI
+# registry), to import them elsewhere: another DX Compose (DXWCMLibraryImport with this image as source) or a
+# traditional HCL DX on WebSphere (ConfigEngine import-wcm-data; see EXPORT-INFO.txt inside the artifact).
+#
+# The artifact holds wcm-export-<name>.zip (the export as DX writes it) and EXPORT-INFO.txt. Read it with
+#   oras pull registry.example.com/dx-artifacts/wcm/acme-20261119:1
+# Deleting the resource keeps the artifact; to export again, change the spec (for example the tag) or add the
+# annotation dx.europesip.com/reconcile with a new value.
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXWCMLibraryExport
+metadata:
+  name: acme-libraries-export
+spec:
+  connectionRef: { name: dx }
+  # virtualPortal: acme        # context of a virtual portal; empty = the base portal
+  libraries:                   # titles, as WCM shows them
+    - Acme Content
+    - Acme Design
+  destination:
+    image: registry.example.com/dx-artifacts/wcm/acme-20261119:1
+    pushSecrets: [{ name: registry-credentials }]   # kubernetes.io/dockerconfigjson with push rights

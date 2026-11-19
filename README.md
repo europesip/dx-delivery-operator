@@ -79,6 +79,7 @@ The operator turns those steps into **resources with a desired state and a statu
 | **DXTheme** | A **theme**: uploads the files of its source (a complete theme of its own, such as the [EUROPESIP sample theme](https://github.com/europesip/hcl-dx-theme-sample), or files added to a copy of a theme of the same DX) to the WebDAV store, optional HTML in the `<head>` of its templates, and registers it with XMLAccess. Pages use it with `spec.theme`; restored if its registration or folder is deleted in DX |
 | **DXDatabase** | Creates the database of a backend and its owner in an existing **PostgreSQL, Oracle or SQL Server**, and writes a **Secret** for the backend (`uri`, `jdbcUrl`, user, password...). The password is generated once and kept |
 | **DXWCMLibraryImport** | **Imports WCM libraries** from a library export (`ConfigEngine export-wcm-data` of a traditional portal, or the WCM data module of DX Compose: no ConfigEngine needed) into the base portal or a **virtual portal** (created if asked). From a URL or a registry (the file as delivered, pushed with ORAS); selection by title, existing libraries and **Portal Site** protected unless asked, automatic **chunks** (500 MB / 20-minute limits of DX), `dryRun` inventory, roles on the imported libraries. **One-shot**: it imports when the resource changes and never restores or deletes content |
+| **DXWCMLibraryExport** | **Exports WCM libraries** of a DX Compose portal (base or virtual) to an **OCI artifact** (Harbor): the zip as DX writes it plus `EXPORT-INFO.txt` (source server, DX build, date, libraries). Importable with `DXWCMLibraryImport` into another DX Compose, or with ConfigEngine `import-wcm-data` into a traditional DX. **One-shot** |
 | **DXXMLAccess** | **Runs XMLAccess requests** of your own against the base portal or a virtual portal: inline, or the `.xml` files of a URL archive (for example a folder of a Git repository), a registry (ORAS) or a ConfigMap, with `${NAME}` variables. Every file is checked before anything is sent; results per request in the status, and DX's answers (exports) in a ConfigMap. **Once per change**, like a Job; an optional `cleanup` request on delete |
 
 And for every resource: **dependencies** (`dependsOn`: Deployments, StatefulSets, Jobs and the other resources,
@@ -177,6 +178,7 @@ Small applications, each one showing one case. Apply them in a namespace with th
 | [08-page](samples/08-page/page.yaml) | One page with three applications, a position and a deletion policy |
 | [09-theme](samples/09-theme/theme.yaml) | A theme of its own (the [EUROPESIP sample theme](https://github.com/europesip/hcl-dx-theme-sample), from its release) and a page that uses it |
 | [10-wcm-library-import](samples/10-wcm-library-import/wcm-library-import.yaml) | Import the WCM libraries of a ConfigEngine export into a virtual portal, after a dry run |
+| [12-wcm-library-export](samples/12-wcm-library-export/wcm-library-export.yaml) | Export WCM libraries to an OCI artifact in a registry |
 
 ![Samples 03, 05 and 01 on the page of sample 08](docs/images/showcase.png)
 
