@@ -34,6 +34,12 @@ type WCMExportDestination struct {
 	// PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with push rights on the repository.
 	// +optional
 	PushSecrets []LocalObjectReference `json:"pushSecrets,omitempty"`
+	// Attributes: free key/value labels of the artifact, written as manifest annotations com.europesip.dx.attr.<key>
+	// next to the standard ones (docs/artifact-annotations.md), so artifacts can be listed and filtered by them later.
+	// Keys: lowercase letters, digits, dots and dashes (at most 63); values at most 256 characters.
+	// +optional
+	// +kubebuilder:validation:MaxProperties=32
+	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
 // DXWCMLibraryExportSpec is what to export and where to.

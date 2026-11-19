@@ -202,6 +202,11 @@ func (r *DXWCMLibraryExportReconciler) exportAll(ctx context.Context, o *dxv1.DX
 	if err != nil {
 		return fatal(reasonInvalidSpec, "%v", err)
 	}
+	for k, v := range o.Spec.Destination.Attributes {
+		if !source.AttributeKeyRe.MatchString(k) || len(v) > 256 {
+			return fatal(reasonInvalidSpec, "destination.attributes: key %q must be lowercase letters, digits, dots and dashes (at most 63), its value at most 256 characters", k)
+		}
+	}
 
 	// 1. The libraries must exist (DX would answer LibraryNotFoundException one by one)
 	r.progress(ctx, o, dxv1.WCMExportPending, "checking the libraries of "+where)
@@ -305,11 +310,7 @@ func (r *DXWCMLibraryExportReconciler) exportAll(ctx context.Context, o *dxv1.DX
 		return err
 	}
 	r.progress(ctx, o, dxv1.WCMExportPushing, fmt.Sprintf("pushing %s (%d MB) to %s", zipName, n>>20, o.Spec.Destination.Image))
-	ann := map[string]string{
-		"org.opencontainers.image.created":     when.Format(time.RFC3339),
-		"org.opencontainers.image.description": fmt.Sprintf("WCM export of %d libraries from %s", len(titles), sourceName(conn, vp)),
-		"org.opencontainers.image.source":      conn.Config.BaseURL,
-	}
+	ann := exportMeta(conn, o, version, titles, when).Annotations()
 	digest, err := r.Fetcher.PushFiles(ctx, o.Namespace, o.Spec.Destination.Image, o.Spec.Destination.PushSecrets,
 		[]source.ArtifactFile{{Path: zipPath, MediaType: exportZipMediaType}, {Path: infoPath, MediaType: exportInfoMediaType}}, ann)
 	if err != nil {
@@ -346,6 +347,17 @@ func uniqueTitles(in []string) ([]string, error) {
 	return out, nil
 }
 
+// exportMeta: the attributes of the artifact (docs/artifact-annotations.md).
+func exportMeta(conn *Connection, o *dxv1.DXWCMLibraryExport, version string, titles []string, when time.Time) source.ArtifactMeta {
+	return source.ArtifactMeta{
+		Kind: "wcm-export", Title: "WCM export " + o.Name,
+		Description: fmt.Sprintf("WCM export of %d libraries from %s", len(titles), sourceName(conn, o.Spec.VirtualPortal)),
+		Resource: o.Namespace + "/" + o.Name, SourceServer: conn.Config.BaseURL, SourceVersion: version,
+		SourceConnection: o.Namespace + "/" + o.Spec.ConnectionRef.Name, SourcePortal: o.Spec.VirtualPortal,
+		Libraries: titles, ResourceAnnotations: o.Annotations, Attributes: o.Spec.Destination.Attributes, Created: when,
+	}
+}
+
 func sourceName(conn *Connection, vp string) string {
 	s := conn.Config.BaseURL
 	if vp != "" {
@@ -371,6 +383,35 @@ func exportInfo(conn *Connection, o *dxv1.DXWCMLibraryExport, version string, li
 	fmt.Fprintf(&b, "Virtual portal:  %s\n", vp)
 	fmt.Fprintf(&b, "Exported at:     %s (UTC)\n", when.Format("2006-01-02 15:04:05"))
 	fmt.Fprintf(&b, "Exported by:     DXWCMLibraryExport %s/%s\n", o.Namespace, o.Name)
+	ann := o.Annotations
+	who := strings.TrimPrefix(strings.TrimPrefix(ann[source.ResChangedBy], "user:"), "default/")
+	if who == "" {
+		who = "(not recorded)"
+	}
+	reason := strings.TrimSpace(ann[source.ResReason])
+	if reason == "" {
+		reason = "(none given)"
+	}
+	fmt.Fprintf(&b, "Requested by:    %s\n", who)
+	fmt.Fprintf(&b, "Reason:          %s\n", reason)
+	fmt.Fprintf(&b, "Operator:        hcl-dx-scriptapp-operator %s\n", source.OperatorVersion())
+	if cw := strings.TrimSpace(ann[source.ResCreatedWith]); cw != "" {
+		fmt.Fprintf(&b, "Created with:    %s\n", cw)
+	} else {
+		fmt.Fprintf(&b, "Created with:    the resource itself (kubectl, Git), no Backstage\n")
+	}
+	if len(o.Spec.Destination.Attributes) > 0 {
+		keys := make([]string, 0, len(o.Spec.Destination.Attributes))
+		for k := range o.Spec.Destination.Attributes {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		parts := make([]string, 0, len(keys))
+		for _, k := range keys {
+			parts = append(parts, k+"="+o.Spec.Destination.Attributes[k])
+		}
+		fmt.Fprintf(&b, "Attributes:      %s\n", strings.Join(parts, ", "))
+	}
 	fmt.Fprintf(&b, "Libraries:       %d\n", len(libs))
 	fmt.Fprintf(&b, "Zip size:        %d bytes\n\n", zipBytes)
 	for _, l := range libs {

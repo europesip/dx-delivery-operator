@@ -436,6 +436,7 @@ Short names: `dxwcmexport`
 | `dependsOn[].kind` | Deployment \| StatefulSet \| Job \| DXScriptApplication \| DXPage \| DXDamCollection \| DXDatabase \| DXTheme \| DXWCMLibraryImport \| DXXMLAccess (required) |  | Kind: Deployment, StatefulSet, Job, DXScriptApplication, DXPage, DXDamCollection, DXDatabase, DXTheme, DXWCMLibraryImport or DXXMLAccess. |
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `destination` | object (required) |  | Destination of the export. |
+| `destination.attributes` | object |  | Attributes: free key/value labels of the artifact, written as manifest annotations com.europesip.dx.attr.<key> next to the standard ones (docs/artifact-annotations.md), so artifacts can be listed and filtered by them later. Keys: lowercase letters, digits, dots and dashes (at most 63); values at most 256 characters. |
 | `destination.image` | string (required) |  | Image: reference of the artifact, for example harbor.example.com/project/wcm/orbita-20261119:1. It holds the zip of the export (wcm-export-<name>.zip) and EXPORT-INFO.txt, and DXWCMLibraryImport reads it as an image source. |
 | `destination.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with push rights on the repository. |
 | `destination.pushSecrets[].name` | string (required) |  | Name of the object. |

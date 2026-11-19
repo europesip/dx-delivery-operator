@@ -111,6 +111,15 @@ spec:
               destination:
                 description: Destination of the export.
                 properties:
+                  attributes:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Attributes: free key/value labels of the artifact, written as manifest annotations com.europesip.dx.attr.<key>
+                      next to the standard ones (docs/artifact-annotations.md), so artifacts can be listed and filtered by them later.
+                      Keys: lowercase letters, digits, dots and dashes (at most 63); values at most 256 characters.
+                    maxProperties: 32
+                    type: object
                   image:
                     description: |-
                       Image: reference of the artifact, for example harbor.example.com/project/wcm/orbita-20261119:1. It holds the

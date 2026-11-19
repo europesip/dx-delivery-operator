@@ -47,6 +47,7 @@ spec:
           env:
             - { name: DXCLIENT_ACCEPT_LICENSE, value: "true" }
             - { name: WORK_DIR, value: /work }
+            - { name: OPERATOR_VERSION, value: {{ .Chart.AppVersion | quote }} }
             - { name: LOG_EVENTS, value: {{ .Values.logEvents | quote }} }
             - { name: WATCH_NAMESPACES, value: {{ join "," .Values.watchNamespaces | quote }} }
             - { name: DX_FORM_LOGIN, value: {{ ternary "false" "auto" (eq (toString (.Values.dx).oidcCompatibility) "false") | quote }} }
