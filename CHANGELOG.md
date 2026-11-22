@@ -5,7 +5,7 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
-## 0.12.0 · unreleased · Artifact kinds `theme` and `app`
+## 0.12.0 · 2026-11-23 · Artifact kinds `theme` and `app`
 
 - **Kind `theme`** (#49): a `DXExport` with only `parts.themes` pushes an artifact of kind `theme` (push it to
   `<project>/themes/<origin>-<theme>`); every bundle with themes carries `com.europesip.dx.themes`, and

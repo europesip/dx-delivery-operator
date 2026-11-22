@@ -5,7 +5,7 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## 0.12.0 · sin publicar · Tipos de artefacto `theme` y `app`
+## 0.12.0 · 2026-11-23 · Tipos de artefacto `theme` y `app`
 
 - **Tipo `theme`** (#49): un `DXExport` con solo `parts.themes` sube un artefacto de tipo `theme` (súbelo a
   `<proyecto>/themes/<origen>-<tema>`); todo paquete con temas lleva `com.europesip.dx.themes` y `bundle.parts` ya
