@@ -102,7 +102,7 @@ func (r *DXDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	var depNote string
 	if dep := d.Spec.DeprecatedFields(); len(dep) > 0 {
 		depNote = "deprecated fields in use (still accepted, rename them): " + strings.Join(dep, ", ")
-		if d.Status.ObservedGeneration != gen {
+		if was := findCond(d.Status.Conditions); d.Status.ObservedGeneration != gen || was == nil || !strings.Contains(was.Message, "deprecated fields") {
 			r.Recorder.Eventf(&d, nil, corev1.EventTypeWarning, "DeprecatedField", "Reconcile", "%s", depNote)
 		}
 	}

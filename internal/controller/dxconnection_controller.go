@@ -46,7 +46,7 @@ func (r *DXConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if dep := conn.Spec.DeprecatedFields(); len(dep) > 0 {
 		note := "deprecated fields in use (still accepted, rename them): " + strings.Join(dep, ", ")
 		msg += "; " + note
-		if before.ObservedGeneration != conn.Generation {
+		if was := findCond(before.Conditions); before.ObservedGeneration != conn.Generation || was == nil || !strings.Contains(was.Message, "deprecated fields") {
 			r.Recorder.Eventf(&conn, nil, corev1.EventTypeWarning, "DeprecatedField", "Check", "%s", note)
 		}
 	}
