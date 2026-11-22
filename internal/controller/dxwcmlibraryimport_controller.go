@@ -374,7 +374,8 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			plans[l.Title] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanSkip, Reason: why}
 			continue
 		}
-		if len(l.UnsafePaths) > 0 {
+		// dxFileTransfer (DX Compose) rejects names with spaces; DXConnect (DX Core) uploads a tar and has no such limit
+		if len(l.UnsafePaths) > 0 && !c.UsesDXConnect() {
 			ex := l.UnsafePaths
 			if len(ex) > 3 {
 				ex = append(ex[:3:3], fmt.Sprintf("and %d more", len(l.UnsafePaths)-3))
