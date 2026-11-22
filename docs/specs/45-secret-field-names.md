@@ -1,6 +1,6 @@
 # Secret fields that say whose credentials they hold
 
-Issue: #45 · Status: Implemented (branch 45-secret-field-names, on top of #44) · Release: next minor
+Issue: #45 · Status: Implemented · Release: 0.11.0(branch 45-secret-field-names, on top of #44) · Release: next minor
 
 ## Summary
 Every Secret field says whose credentials it holds, following `dxConnect.cwCredentialsSecret` /

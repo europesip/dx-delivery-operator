@@ -5,7 +5,7 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
-## Unreleased · DX Core (traditional DX 9.5 on WebSphere)
+## 0.11.0 · 2026-11-22 · DX Core (traditional DX 9.5 on WebSphere)
 
 - **Secret fields that say whose credentials they hold** (#45, docs/secret-fields.md): new `DXConnection.spec.portalCredentialsSecret`
   and `tlsCASecret`, `DXDatabase.spec.dbAdminCredentialsSecret` (+ `dbAdminCredentialsSecretNamespace`) and `outputSecretName`.

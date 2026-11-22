@@ -1,6 +1,6 @@
 # DX Core (traditional DX 9.5 on WebSphere)
 
-Issue: #44 · Status: Implemented on branch 44-dx-core (not released) · Release: next
+Issue: #44 · Status: Implemented · Release: 0.11.044-dx-core (not released) · Release: next
 
 ## Summary
 Andrés (22-nov) wants the operator to work against DX Core (the `core` pod of the HCL chart, and traditional DX on a
