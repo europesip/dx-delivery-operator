@@ -17,8 +17,10 @@ wcm/wcm-export-<name>.zip  the WCM libraries and Portal Site: the JCR export of 
 ```
 
 Files are layers named by `org.opencontainers.image.title` (with their folder). The manifest carries the
-[attributes of the artifacts](artifact-annotations.md) with `com.europesip.dx.kind: dx-bundle`,
-`com.europesip.dx.bundle.schema: dx-bundle/v1`, `com.europesip.dx.bundle.parts` and `com.europesip.dx.pages`.
+[attributes of the artifacts](artifact-annotations.md) with `com.europesip.dx.kind` (`site`; `theme` when the bundle
+holds only themes, since 0.12.0, #49), `com.europesip.dx.bundle.schema: dx-bundle/v1`, `com.europesip.dx.bundle.parts`
+(`themes` first when there are themes), `com.europesip.dx.pages` and `com.europesip.dx.themes`. Push a theme-only
+bundle to `<project>/themes/<origin>-<theme>`, the rest to `<project>/sites/…`.
 
 `bundle.json`:
 

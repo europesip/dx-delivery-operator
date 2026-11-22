@@ -20,25 +20,33 @@ const (
 	AnnSourceServer   = AnnPrefix + "source.server"  // base URL of the DX
 	AnnSourceVersion  = AnnPrefix + "source.version" // HCL Digital Experience Compose/9.5 build ...
 	AnnSourceConn     = AnnPrefix + "source.connection"
-	AnnSourcePortal   = AnnPrefix + "source.portal" // virtual portal context, "" = base portal (schema 1; kept in schema 2)
+	AnnSourcePortal   = AnnPrefix + "source.portal"         // virtual portal context, "" = base portal (schema 1; kept in schema 2)
 	AnnSourceVP       = AnnPrefix + "source.virtual-portal" // virtual portal context, "" = base portal (schema 2, guide v1)
 	AnnSourceURL      = AnnPrefix + "source.url"            // base URL of the DX (schema 2); source.server is a short name
-	AnnLibraries      = AnnPrefix + "libraries"     // titles, separated by " | " (cut at 4 KiB)
+	AnnLibraries      = AnnPrefix + "libraries"             // titles, separated by " | " (cut at 4 KiB)
 	AnnLibrariesCount = AnnPrefix + "libraries.count"
 	AnnRequestedBy    = AnnPrefix + "requested-by"
 	AnnReason         = AnnPrefix + "reason"
-	AnnToolOperator   = AnnPrefix + "tool.operator"     // hcl-dx-scriptapp-operator <version>
+	AnnToolOperator   = AnnPrefix + "tool.operator" // hcl-dx-scriptapp-operator <version>
 	AnnAuthors        = "org.opencontainers.image.authors"
 	AnnToolCreatedBy  = AnnPrefix + "tool.created-with" // what created the resource (Backstage, its plugin)
 	AnnAttrPrefix     = AnnPrefix + "attr."             // free attributes: com.europesip.dx.attr.<key>
 	AnnBundleSchema   = AnnPrefix + "bundle.schema"     // dx-bundle/v1 (DXExport)
 	AnnBundleParts    = AnnPrefix + "bundle.parts"      // pages,portal-site,libraries
 	AnnPages          = AnnPrefix + "pages"             // unique names of the pages exported, separated by " | "
+	AnnThemes         = AnnPrefix + "themes"            // unique names of the themes, separated by " | " (theme, site)
+	AnnScriptApps     = AnnPrefix + "scriptapps"        // names of the Script Applications, separated by " | " (app)
+	AnnPortlets       = AnnPrefix + "portlets"          // names of the portlets / web modules, separated by " | " (app)
+	AnnPortletsJSR    = AnnPrefix + "portlets.jsr"      // 168, 286 or mixed (app)
+	AnnPortletsWAR    = AnnPrefix + "portlets.war"      // included or missing (app)
 	AnnSchemaVersion  = "2"
 
-	// Kinds (com.europesip.dx.kind, schema 2). Each one has its folder in the project: wcm/, sites/, xmlaccess/, portal/.
+	// Kinds (com.europesip.dx.kind, schema 2). Each one has its folder in the project: wcm/, sites/, themes/, apps/,
+	// xmlaccess/, portal/.
 	KindWCM       = "wcm"       // WCM libraries only
 	KindSite      = "site"      // a bundle: themes, pages, Portal Site and/or libraries (com.europesip.dx.bundle.parts)
+	KindTheme     = "theme"     // a bundle with only themes (registration + skins + WebDAV folder), issue #49
+	KindApp       = "app"       // Script Applications and/or portlets (WAR + XMLAccess), issue #50
 	KindXMLAccess = "xmlaccess" // answers of DXXMLAccess
 	KindPortal    = "portal"    // reserved: a whole portal (XMLAccess release export); never with credentials
 
@@ -61,11 +69,11 @@ func OperatorVersion() string {
 
 // ArtifactMeta is what an artifact says about itself.
 type ArtifactMeta struct {
-	Kind, Title, Description       string
-	Resource                       string
+	Kind, Title, Description string
+	Resource                 string
 	// SourceServer: short name of the DX (DXConnection spec.sourceName, or its name); SourceURL: its base URL.
-	SourceServer, SourceURL        string
-	SourceVersion                  string
+	SourceServer, SourceURL string
+	SourceVersion           string
 	// Authors and Reason; empty: the annotations dx.europesip.com/changed-by and dx.europesip.com/reason of the
 	// resource (then the attribute reason).
 	Authors, Reason                string
@@ -148,8 +156,12 @@ func NormalizeKind(k string) string {
 	switch strings.ToLower(strings.TrimSpace(k)) {
 	case "wcm-export", "wcm":
 		return KindWCM
-	case "dx-bundle", "site", "sites", "pages", "theme", "themes":
+	case "dx-bundle", "site", "sites", "pages":
 		return KindSite
+	case "theme", "themes":
+		return KindTheme
+	case "app", "apps", "application", "applications":
+		return KindApp
 	case "xmlaccess-output", "xmlaccess":
 		return KindXMLAccess
 	case "portal":
@@ -180,4 +192,29 @@ func VirtualPortalOf(a map[string]string) string {
 		return v
 	}
 	return a[AnnSourcePortal]
+}
+
+// FolderOf is the folder of the project (dx-artifacts) where artifacts of a kind are pushed.
+func FolderOf(kind string) string {
+	switch NormalizeKind(kind) {
+	case KindWCM:
+		return "wcm"
+	case KindTheme:
+		return "themes"
+	case KindApp:
+		return "apps"
+	case KindXMLAccess:
+		return "xmlaccess"
+	case KindPortal:
+		return "portal"
+	}
+	return "sites"
+}
+
+// KindOfBundle is the kind of a dx-bundle/v1 by its parts: only themes = theme; otherwise site.
+func KindOfBundle(parts []string) string {
+	if len(parts) == 1 && parts[0] == "themes" {
+		return KindTheme
+	}
+	return KindSite
 }

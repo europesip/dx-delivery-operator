@@ -46,7 +46,7 @@ func TestArtifactAnnotationsSpecFieldsWin(t *testing.T) {
 }
 
 func TestReaders(t *testing.T) {
-	for in, want := range map[string]string{"wcm-export": "wcm", "wcm": "wcm", "dx-bundle": "site", "pages": "site", "theme": "site", "xmlaccess-output": "xmlaccess", "portal": "portal"} {
+	for in, want := range map[string]string{"wcm-export": "wcm", "wcm": "wcm", "dx-bundle": "site", "pages": "site", "theme": "theme", "themes": "theme", "app": "app", "apps": "app", "sites": "site", "xmlaccess-output": "xmlaccess", "portal": "portal"} {
 		if got := NormalizeKind(in); got != want {
 			t.Errorf("NormalizeKind(%q) = %q, want %q", in, got, want)
 		}
@@ -59,5 +59,16 @@ func TestReaders(t *testing.T) {
 	}
 	if VirtualPortalOf(map[string]string{AnnSourcePortal: "x"}) != "x" || VirtualPortalOf(map[string]string{AnnSourceVP: "", AnnSourcePortal: "x"}) != "" {
 		t.Error("VirtualPortalOf")
+	}
+}
+
+func TestFolderAndBundleKind(t *testing.T) {
+	for k, want := range map[string]string{"wcm": "wcm", "theme": "themes", "app": "apps", "site": "sites", "dx-bundle": "sites", "xmlaccess": "xmlaccess", "portal": "portal"} {
+		if got := FolderOf(k); got != want {
+			t.Errorf("FolderOf(%q) = %q, want %q", k, got, want)
+		}
+	}
+	if KindOfBundle([]string{"themes"}) != KindTheme || KindOfBundle([]string{"themes", "pages"}) != KindSite || KindOfBundle([]string{"pages"}) != KindSite {
+		t.Error("KindOfBundle")
 	}
 }

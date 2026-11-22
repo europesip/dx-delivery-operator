@@ -163,3 +163,26 @@ func TestBundleIsReadByTheImports(t *testing.T) {
 		t.Fatalf("libraries %v %v", exp, err)
 	}
 }
+
+// Issue #49: a DXExport with only themes is an artifact of kind theme (folder themes/); with pages it stays a site,
+// and both carry com.europesip.dx.themes.
+func TestThemeOnlyBundleKind(t *testing.T) {
+	conn := &Connection{Config: dx.Config{BaseURL: "https://dx.example.com"}}
+	o := &dxv1.DXExport{}
+	o.Namespace, o.Name = "dx-portals", "export-theme"
+	o.Spec.Parts = dxv1.DXExportParts{Themes: []string{"custom.portal.theme.Orbita"}}
+	b := bundleOf(conn, o)
+	if b.Kind != source.KindTheme || strings.Join(b.Parts, ",") != "themes" {
+		t.Fatalf("theme only: kind %q parts %v", b.Kind, b.Parts)
+	}
+	ann := bundleMeta(o, b, time.Now()).Annotations()
+	if ann[source.AnnKind] != source.KindTheme || ann[source.AnnThemes] != "custom.portal.theme.Orbita" || ann[source.AnnBundleParts] != "themes" {
+		t.Errorf("theme annotations %v", ann)
+	}
+	o.Spec.Parts.Pages = []dxv1.DXExportPage{{UniqueName: "orbita-site"}}
+	b = bundleOf(conn, o)
+	ann = bundleMeta(o, b, time.Now()).Annotations()
+	if b.Kind != source.KindSite || ann[source.AnnKind] != source.KindSite || ann[source.AnnThemes] != "custom.portal.theme.Orbita" || ann[source.AnnBundleParts] != "themes,pages" {
+		t.Errorf("site with theme: kind %q %v", b.Kind, ann)
+	}
+}
