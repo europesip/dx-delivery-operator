@@ -28,11 +28,11 @@ spec:
   url: https://dx-core.example.com
   internalURL: http://dx-deployment-core.<namespace>.svc:10039   # the core pod, without HAProxy
   runtime: core
-  credentialsSecret: {name: dx-core-wps}            # wpsadmin
+  portalCredentialsSecret: {name: dx-core-wps}            # wpsadmin
   dxConnect:                                         # optional: defaults below
     url: https://dx-core.example.com                 # default spec.url (HAProxy routes /hcl/dxconnect)
-    cwCredentialsSecret: {name: dx-core-configwizard} # Config Wizard administrator (default: credentialsSecret)
-    wasCredentialsSecret: {name: dx-core-was}        # WebSphere administrator (default: credentialsSecret)
+    cwCredentialsSecret: {name: dx-core-configwizard} # Config Wizard administrator (default: portalCredentialsSecret)
+    wasCredentialsSecret: {name: dx-core-was}        # WebSphere administrator (default: portalCredentialsSecret)
     profileName: wp_profile
 ```
 

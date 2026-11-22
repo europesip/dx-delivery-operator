@@ -10,7 +10,7 @@ spec:
   url: https://dx-core.example.com
   internalURL: http://dx-deployment-core.dx-core.svc:10039
   runtime: core
-  credentialsSecret: {name: dx-core-wps}
+  portalCredentialsSecret: {name: dx-core-wps}
   dxConnect:
     cwCredentialsSecret: {name: dx-core-configwizard}
     wasCredentialsSecret: {name: dx-core-was}
@@ -23,8 +23,8 @@ spec:
   url: https://dx-vm.example.com:10042
   runtime: core
   contentHandlerPath: /mycontenthandler
-  credentialsSecret: {name: dx-vm-admin}
-  caSecret: {name: dx-vm-ca}
+  portalCredentialsSecret: {name: dx-vm-admin}
+  tlsCASecret: {name: dx-vm-ca}
 ---
 # 3. Export a site (page subtree) with its theme (registration + skins + WebDAV files)
 apiVersion: dx.europesip.com/v1alpha1

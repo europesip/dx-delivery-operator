@@ -60,8 +60,8 @@ spec:
             description: DXConnectionSpec is how the operator reaches an HCL DX server.
             properties:
               caSecret:
-                description: 'CASecret: Secret with the key "ca.crt", for a self-signed
-                  certificate or a private CA.'
+                description: 'CASecret: deprecated, use tlsCASecret (same meaning;
+                  still accepted, with a warning).'
                 properties:
                   name:
                     description: Name of the object.
@@ -77,9 +77,8 @@ spec:
                   traditional DX installed with an empty context root (XMLAccess at /config, the login at /j_security_check).
                 type: string
               credentialsSecret:
-                description: |-
-                  CredentialsSecret: Secret with the keys "username" and "password" of a DX user. Script Applications
-                  need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator.
+                description: 'CredentialsSecret: deprecated, use portalCredentialsSecret
+                  (same meaning; still accepted, with a warning).'
                 properties:
                   name:
                     description: Name of the object.
@@ -141,6 +140,19 @@ spec:
                   (a cut import goes on inside DX and the next one would run at the same time); everything else uses url.
                 pattern: ^https?://[^/]+/?$
                 type: string
+              portalCredentialsSecret:
+                description: |-
+                  PortalCredentialsSecret: Secret with the keys "username" and "password" of the DX portal user the operator
+                  signs in with (XMLAccess, WCM, DAM, DXClient). Script Applications need Editor access to the Script Application
+                  Library; pages (XMLAccess) and DAM need a DX administrator. Required (or the deprecated credentialsSecret).
+                properties:
+                  name:
+                    description: Name of the object.
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
               resyncInterval:
                 default: 10m
                 description: |-
@@ -165,6 +177,18 @@ spec:
                 maxLength: 63
                 pattern: ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$
                 type: string
+              tlsCASecret:
+                description: |-
+                  TLSCASecret: Secret with the key "ca.crt" to verify the TLS certificate of DX (a self-signed certificate or a
+                  private CA).
+                properties:
+                  name:
+                    description: Name of the object.
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
               url:
                 description: URL of DX as the operator reaches it, for example https://dx.example.com
                   (normally the public host).
@@ -175,9 +199,20 @@ spec:
                   this virtual portal.'
                 type: string
             required:
-            - credentialsSecret
             - url
             type: object
+            x-kubernetes-validations:
+            - message: set portalCredentialsSecret (credentialsSecret is its deprecated
+                name)
+              rule: has(self.portalCredentialsSecret) || has(self.credentialsSecret)
+            - message: 'portalCredentialsSecret and the deprecated credentialsSecret
+                name different Secrets: set only portalCredentialsSecret'
+              rule: '!has(self.portalCredentialsSecret) || !has(self.credentialsSecret)
+                || self.portalCredentialsSecret.name == self.credentialsSecret.name'
+            - message: 'tlsCASecret and the deprecated caSecret name different Secrets:
+                set only tlsCASecret'
+              rule: '!has(self.tlsCASecret) || !has(self.caSecret) || self.tlsCASecret.name
+                == self.caSecret.name'
           status:
             description: DXConnectionStatus is the last check of the connection.
             properties:

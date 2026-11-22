@@ -85,7 +85,7 @@
   and SQL Server 2022). **DB2 is not supported yet**: its Go driver needs the native IBM client library (cgo), which
   the static image of the operator does not include.
 - An existing server and an admin Secret readable by the operator (it may be in another namespace with
-  `adminSecretNamespace`). The operator generates the password of the owner; if your DBA must keep the credentials,
+  `dbAdminCredentialsSecretNamespace`). The operator generates the password of the owner; if your DBA must keep the credentials,
   skip the DXDatabase and give the backend the Secret they provide (for example an ExternalSecret from your vault).
 - Names: PostgreSQL lower-case identifiers; Oracle a lower-case schema name of up to 30 characters (the user is
   created in upper case); SQL Server letters, digits and `_`.

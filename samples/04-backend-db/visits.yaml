@@ -11,10 +11,10 @@ metadata:
 spec:
   engine: PostgreSQL                              # PostgreSQL (default), Oracle or SQLServer
   host: dx-pg-rw.dx-shared.svc.cluster.local     # your database server
-  adminSecret: { name: dx-pg-superuser }          # an administrator that can create users and databases
-  adminSecretNamespace: dx-shared
+  dbAdminCredentialsSecret: { name: dx-pg-superuser }          # an administrator that can create users and databases
+  dbAdminCredentialsSecretNamespace: dx-shared
   database: dxop_visits
-  secretName: dxop-visits-db                      # written by the operator: username, password, uri, jdbcUrl...
+  outputSecretName: dxop-visits-db                      # written by the operator: username, password, uri, jdbcUrl...
 ---
 apiVersion: apps/v1
 kind: Deployment

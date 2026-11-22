@@ -7,6 +7,12 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
 
 ## Unreleased · DX Core (traditional DX 9.5 on WebSphere)
 
+- **Secret fields that say whose credentials they hold** (#45, docs/secret-fields.md): new `DXConnection.spec.portalCredentialsSecret`
+  and `tlsCASecret`, `DXDatabase.spec.dbAdminCredentialsSecret` (+ `dbAdminCredentialsSecretNamespace`) and `outputSecretName`.
+- **Deprecated** (still accepted, with a `DeprecatedField` warning event and a note in the `Ready` condition; removal
+  announced later): `credentialsSecret` → `portalCredentialsSecret`, `caSecret` → `tlsCASecret`, `adminSecret` →
+  `dbAdminCredentialsSecret`, `adminSecretNamespace` → `dbAdminCredentialsSecretNamespace`, `secretName` → `outputSecretName`.
+  Setting the new and the old name with different values is rejected by the API server.
 - **Artifact format, schema 2** (shared with DX Transfer Studio and Backstage, `docs/artifact-annotations.md`):
   `com.europesip.dx.kind` is `wcm`, `site` or `xmlaccess` (`portal` reserved for whole-portal exports, never with
   credentials); `source.server` is a short name (`DXConnection.spec.sourceName`, default the connection name) and the
