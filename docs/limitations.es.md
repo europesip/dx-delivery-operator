@@ -88,7 +88,7 @@
   y SQL Server 2022). **DB2 aún no está soportado**: su driver de Go necesita la librería nativa del cliente de IBM
   (cgo), que la imagen estática del operador no incluye.
 - Un servidor existente y un Secret de administrador que el operador pueda leer (puede estar en otro namespace con
-  `adminSecretNamespace`). El operador genera la contraseña del propietario; si tu DBA debe custodiar las credenciales,
+  `dbAdminCredentialsSecretNamespace`). El operador genera la contraseña del propietario; si tu DBA debe custodiar las credenciales,
   no uses DXDatabase y da al backend el Secret que te facilite (por ejemplo, un ExternalSecret de tu gestor).
 - Nombres: PostgreSQL, identificadores en minúsculas; Oracle, un esquema en minúsculas de hasta 30 caracteres (el
   usuario se crea en mayúsculas); SQL Server, letras, dígitos y `_`.

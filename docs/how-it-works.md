@@ -119,7 +119,7 @@ Writes to the status are merge patches, so concurrent passes do not lose what wa
 
 ### DXDatabase
 
-- A Secret `<name>-db` (or `secretName`) with the connection details; the password is generated once and kept,
+- A Secret `<name>-db` (or `outputSecretName`) with the connection details; the password is generated once and kept,
   and the Secret is owned by the resource.
 - With the admin Secret, by engine (checked every 30 minutes):
   - **PostgreSQL**: create or alter the role (login, password), create the database owned by it if missing, create

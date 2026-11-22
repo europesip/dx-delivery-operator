@@ -74,8 +74,12 @@ func (c *Connection) Resync() time.Duration {
 // ConnectionConfig reads a DXConnection and its Secrets into a dx.Config.
 func ConnectionConfig(ctx context.Context, c client.Client, conn *dxv1.DXConnection) (dx.Config, string, error) {
 	var cred corev1.Secret
-	if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Spec.CredentialsSecret.Name}, &cred); err != nil {
-		return dx.Config{}, "", fmt.Errorf("credentials secret %s: %w", conn.Spec.CredentialsSecret.Name, err)
+	credName := conn.Spec.PortalCredentials()
+	if credName == "" {
+		return dx.Config{}, "", fmt.Errorf("spec.portalCredentialsSecret is not set")
+	}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: credName}, &cred); err != nil {
+		return dx.Config{}, "", fmt.Errorf("portal credentials secret %s: %w", credName, err)
 	}
 	user, pass := string(cred.Data["username"]), string(cred.Data["password"])
 	if user == "" || pass == "" {
@@ -119,10 +123,10 @@ func ConnectionConfig(ctx context.Context, c client.Client, conn *dxv1.DXConnect
 		cfg.DXConnect = d
 		fp += "|core|" + d.URL + "|" + d.ProfileName
 	}
-	if conn.Spec.CASecret != nil {
+	if caRef := conn.Spec.TLSCA(); caRef != nil {
 		var ca corev1.Secret
-		if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Spec.CASecret.Name}, &ca); err != nil {
-			return dx.Config{}, "", fmt.Errorf("CA secret %s: %w", conn.Spec.CASecret.Name, err)
+		if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: caRef.Name}, &ca); err != nil {
+			return dx.Config{}, "", fmt.Errorf("TLS CA secret %s: %w", caRef.Name, err)
 		}
 		cfg.CAPEM = ca.Data["ca.crt"]
 		if len(cfg.CAPEM) == 0 {

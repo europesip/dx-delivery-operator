@@ -141,8 +141,8 @@ kind: DXConnection
 metadata: { name: dx }
 spec:
   url: https://dx.example.com
-  credentialsSecret: { name: dx-admin }
-  caSecret: { name: dx-ca }
+  portalCredentialsSecret: { name: dx-admin }
+  tlsCASecret: { name: dx-ca }
 ```
 
 ```bash

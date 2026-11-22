@@ -22,6 +22,7 @@ nav:
   - Restrictions and limitations: limitations.md
   - Portable bundles (DXExport): portable-bundles.md
   - Attributes of the artifacts: artifact-annotations.md
+  - 'Secret fields: whose credentials': secret-fields.md
   - 'WCM maintenance modules': wcm-admin-tasks.md
   - 'DX Core (traditional DX on WebSphere)': dx-core.md
   - API reference: reference.md
@@ -33,6 +34,7 @@ nav:
       - Restricciones y limitaciones: limitations.es.md
       - Paquetes portables (DXExport): portable-bundles.es.md
       - Atributos de los artefactos: artifact-annotations.es.md
+      - 'Campos de Secrets: de quién es cada credencial': secret-fields.es.md
       - 'Módulos de mantenimiento de WCM': wcm-admin-tasks.es.md
       - 'DX Core (DX tradicional sobre WebSphere)': dx-core.es.md
       - Cómo trabajamos: workflow.es.md

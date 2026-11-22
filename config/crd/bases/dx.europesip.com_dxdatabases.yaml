@@ -63,10 +63,8 @@ spec:
               once and kept.
             properties:
               adminSecret:
-                description: |-
-                  AdminSecret: Secret with "username" and "password" of an administrator that can create users and databases
-                  (PostgreSQL: a superuser or CREATEROLE + CREATEDB; Oracle: CREATE USER and GRANT; SQL Server: sysadmin or
-                  dbcreator + securityadmin). In another namespace only if the operator may read it there (adminSecretNamespace).
+                description: 'AdminSecret: deprecated, use dbAdminCredentialsSecret
+                  (same meaning; still accepted, with a warning).'
                 properties:
                   name:
                     description: Name of the object.
@@ -76,13 +74,30 @@ spec:
                 - name
                 type: object
               adminSecretNamespace:
-                description: 'AdminSecretNamespace: namespace of the admin Secret
-                  (default: the namespace of the resource).'
+                description: 'AdminSecretNamespace: deprecated, use dbAdminCredentialsSecretNamespace.'
                 type: string
               database:
                 description: |-
                   Database name (default: the name of the resource, with "-" replaced by "_"). With Oracle it is the schema: a
                   user with that name.
+                type: string
+              dbAdminCredentialsSecret:
+                description: |-
+                  DBAdminCredentialsSecret: Secret with "username" and "password" of an administrator of the database server that
+                  can create users and databases (PostgreSQL: a superuser or CREATEROLE + CREATEDB; Oracle: CREATE USER and GRANT;
+                  SQL Server: sysadmin or dbcreator + securityadmin). In another namespace only if the operator may read it there
+                  (dbAdminCredentialsSecretNamespace). Required (or the deprecated adminSecret).
+                properties:
+                  name:
+                    description: Name of the object.
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
+              dbAdminCredentialsSecretNamespace:
+                description: 'DBAdminCredentialsSecretNamespace: namespace of that
+                  Secret (default: the namespace of the resource).'
                 type: string
               deletionPolicy:
                 default: Retain
@@ -127,6 +142,11 @@ spec:
                 required:
                 - service
                 type: object
+              outputSecretName:
+                description: |-
+                  OutputSecretName: the Secret the operator creates for the backend, with engine, username, password, host, port,
+                  database, uri and jdbcUrl. Default: <name>-db.
+                type: string
               owner:
                 description: |-
                   Owner: the user that owns the database and that the backend signs in with (default: the database name). With
@@ -138,9 +158,8 @@ spec:
                 format: int32
                 type: integer
               secretName:
-                description: |-
-                  SecretName: Secret the operator writes for the backend, with engine, username, password, host, port, database,
-                  uri and jdbcUrl. Default: <name>-db.
+                description: 'SecretName: deprecated, use outputSecretName (same meaning;
+                  still accepted, with a warning).'
                 type: string
               sqlServer:
                 description: SQLServer settings (engine SQLServer).
@@ -171,9 +190,24 @@ spec:
                 - verify-full
                 type: string
             required:
-            - adminSecret
             - host
             type: object
+            x-kubernetes-validations:
+            - message: set dbAdminCredentialsSecret (adminSecret is its deprecated
+                name)
+              rule: has(self.dbAdminCredentialsSecret) || has(self.adminSecret)
+            - message: 'dbAdminCredentialsSecret and the deprecated adminSecret name
+                different Secrets: set only dbAdminCredentialsSecret'
+              rule: '!has(self.dbAdminCredentialsSecret) || !has(self.adminSecret)
+                || self.dbAdminCredentialsSecret.name == self.adminSecret.name'
+            - message: 'dbAdminCredentialsSecretNamespace and the deprecated adminSecretNamespace
+                differ: set only dbAdminCredentialsSecretNamespace'
+              rule: '!has(self.dbAdminCredentialsSecretNamespace) || !has(self.adminSecretNamespace)
+                || self.dbAdminCredentialsSecretNamespace == self.adminSecretNamespace'
+            - message: 'outputSecretName and the deprecated secretName differ: set
+                only outputSecretName'
+              rule: '!has(self.outputSecretName) || !has(self.secretName) || self.outputSecretName
+                == self.secretName'
           status:
             description: DXDatabaseStatus is what the operator knows about the database.
             properties:

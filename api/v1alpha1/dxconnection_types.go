@@ -12,6 +12,9 @@ import (
 )
 
 // DXConnectionSpec is how the operator reaches an HCL DX server.
+// +kubebuilder:validation:XValidation:rule="has(self.portalCredentialsSecret) || has(self.credentialsSecret)",message="set portalCredentialsSecret (credentialsSecret is its deprecated name)"
+// +kubebuilder:validation:XValidation:rule="!has(self.portalCredentialsSecret) || !has(self.credentialsSecret) || self.portalCredentialsSecret.name == self.credentialsSecret.name",message="portalCredentialsSecret and the deprecated credentialsSecret name different Secrets: set only portalCredentialsSecret"
+// +kubebuilder:validation:XValidation:rule="!has(self.tlsCASecret) || !has(self.caSecret) || self.tlsCASecret.name == self.caSecret.name",message="tlsCASecret and the deprecated caSecret name different Secrets: set only tlsCASecret"
 type DXConnectionSpec struct {
 	// URL of DX as the operator reaches it, for example https://dx.example.com (normally the public host).
 	// +kubebuilder:validation:Pattern=`^https?://[^/]+/?$`
@@ -30,10 +33,19 @@ type DXConnectionSpec struct {
 	// +kubebuilder:validation:Pattern=`^https?://[^/]+/?$`
 	// +optional
 	InternalURL string `json:"internalURL,omitempty"`
-	// CredentialsSecret: Secret with the keys "username" and "password" of a DX user. Script Applications
-	// need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator.
-	CredentialsSecret LocalObjectReference `json:"credentialsSecret"`
-	// CASecret: Secret with the key "ca.crt", for a self-signed certificate or a private CA.
+	// PortalCredentialsSecret: Secret with the keys "username" and "password" of the DX portal user the operator
+	// signs in with (XMLAccess, WCM, DAM, DXClient). Script Applications need Editor access to the Script Application
+	// Library; pages (XMLAccess) and DAM need a DX administrator. Required (or the deprecated credentialsSecret).
+	// +optional
+	PortalCredentialsSecret *LocalObjectReference `json:"portalCredentialsSecret,omitempty"`
+	// CredentialsSecret: deprecated, use portalCredentialsSecret (same meaning; still accepted, with a warning).
+	// +optional
+	CredentialsSecret *LocalObjectReference `json:"credentialsSecret,omitempty"`
+	// TLSCASecret: Secret with the key "ca.crt" to verify the TLS certificate of DX (a self-signed certificate or a
+	// private CA).
+	// +optional
+	TLSCASecret *LocalObjectReference `json:"tlsCASecret,omitempty"`
+	// CASecret: deprecated, use tlsCASecret (same meaning; still accepted, with a warning).
 	// +optional
 	CASecret *LocalObjectReference `json:"caSecret,omitempty"`
 	// InsecureSkipTLSVerify: do not verify the certificate at all (labs only).
@@ -130,4 +142,35 @@ func init() {
 		s.AddKnownTypes(SchemeGroupVersion, &DXConnection{}, &DXConnectionList{})
 		return nil
 	})
+}
+
+// PortalCredentials is the Secret of the portal user: portalCredentialsSecret, or the deprecated credentialsSecret.
+func (s *DXConnectionSpec) PortalCredentials() string {
+	if s.PortalCredentialsSecret != nil && s.PortalCredentialsSecret.Name != "" {
+		return s.PortalCredentialsSecret.Name
+	}
+	if s.CredentialsSecret != nil {
+		return s.CredentialsSecret.Name
+	}
+	return ""
+}
+
+// TLSCA is the CA Secret: tlsCASecret, or the deprecated caSecret; nil when none.
+func (s *DXConnectionSpec) TLSCA() *LocalObjectReference {
+	if s.TLSCASecret != nil && s.TLSCASecret.Name != "" {
+		return s.TLSCASecret
+	}
+	return s.CASecret
+}
+
+// DeprecatedFields lists the deprecated fields in use, as "old → new".
+func (s *DXConnectionSpec) DeprecatedFields() []string {
+	var d []string
+	if s.CredentialsSecret != nil {
+		d = append(d, "credentialsSecret → portalCredentialsSecret")
+	}
+	if s.CASecret != nil {
+		d = append(d, "caSecret → tlsCASecret")
+	}
+	return d
 }

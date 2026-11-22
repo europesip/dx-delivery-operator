@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,6 +43,13 @@ func (r *DXConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	resync := (&Connection{Object: &conn}).Resync()
 
 	ok, reason, msg := r.check(ctx, &conn)
+	if dep := conn.Spec.DeprecatedFields(); len(dep) > 0 {
+		note := "deprecated fields in use (still accepted, rename them): " + strings.Join(dep, ", ")
+		msg += "; " + note
+		if before.ObservedGeneration != conn.Generation {
+			r.Recorder.Eventf(&conn, nil, corev1.EventTypeWarning, "DeprecatedField", "Check", "%s", note)
+		}
+	}
 	setCondition(&conn.Status.Conditions, conn.Generation, dxv1.ConditionReady, ok, reason, msg)
 	conn.Status.ObservedGeneration = conn.Generation
 	conn.Status.LastCheckTime = now()
@@ -106,9 +114,25 @@ func (r *DXConnectionReconciler) forSecret(ctx context.Context, o client.Object)
 	}
 	var out []reconcile.Request
 	for _, c := range list.Items {
-		if c.Spec.CredentialsSecret.Name == o.GetName() || (c.Spec.CASecret != nil && c.Spec.CASecret.Name == o.GetName()) {
+		if usesSecret(&c.Spec, o.GetName()) {
 			out = append(out, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&c)})
 		}
 	}
 	return out
+}
+
+// usesSecret tells whether a connection reads the Secret name (portal, TLS CA, Config Wizard or WebSphere).
+func usesSecret(s *dxv1.DXConnectionSpec, name string) bool {
+	if s.PortalCredentials() == name {
+		return true
+	}
+	if ca := s.TLSCA(); ca != nil && ca.Name == name {
+		return true
+	}
+	if d := s.DXConnect; d != nil {
+		if (d.CWCredentialsSecret != nil && d.CWCredentialsSecret.Name == name) || (d.WASCredentialsSecret != nil && d.WASCredentialsSecret.Name == name) {
+			return true
+		}
+	}
+	return false
 }
