@@ -20,10 +20,11 @@ metadata:
   title: DX Script App Operator, by EUROPESIP
   description: >-
     Kubernetes operator by EuropeSIP that declares HCL DX Script Applications, pages, DAM assets, themes and databases as Kubernetes resources (GitOps with Argo CD).
-  tags: [hcl-dx, dx-compose, operator, kubernetes, gitops]    # free labels, used by the catalog search and filters
+  tags: [hcl-dx, dx-compose, dx-core, operator, kubernetes, gitops]    # free labels, used by the catalog search and filters
   annotations:
     # GitHub repository of this component: Backstage uses it for the links and the GitHub cards of the entity page
     github.com/project-slug: europesip/hcl-dx-scriptapp-operator
+    backstage.io/kubernetes-namespace: dxop-system   # the Kubernetes tab shows the operator pods of this namespace
     # where the source lives (the "View source" button)
     backstage.io/source-location: url:https://github.com/europesip/hcl-dx-scriptapp-operator/tree/main/
     # TechDocs: Backstage builds the docs with mkdocs.yml (this same repository) and shows them in the Docs tab
@@ -37,3 +38,4 @@ spec:
   lifecycle: production               # experimental | production | deprecated
   owner: plataforma                   # team that answers for it (a Group of the catalog)
   system: gitops                    # the larger system it belongs to
+  dependsOn: [component:dx-web-engine]   # drawn in the catalog graph: the operator talks to DX
