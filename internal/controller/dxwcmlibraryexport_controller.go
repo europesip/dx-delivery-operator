@@ -303,7 +303,7 @@ func exportMeta(conn *Connection, o *dxv1.DXWCMLibraryExport, version string, ti
 }
 
 func sourceName(conn *Connection, vp string) string {
-	s := conn.Config.BaseURL
+	s := sourceNameOf(conn)
 	if vp != "" {
 		s += " (virtual portal " + vp + ")"
 	}
