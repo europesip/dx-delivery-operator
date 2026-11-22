@@ -5,6 +5,16 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.12.0 · 2026-11-23 · Artifact kinds `theme` and `app`
+
+- **Kind `theme`** (#49): a `DXExport` with only `parts.themes` pushes an artifact of kind `theme` (push it to
+  `<project>/themes/<origin>-<theme>`); every bundle with themes carries `com.europesip.dx.themes`, and
+  `bundle.parts` now lists `themes` (it was left out before). Readers map `theme`/`themes` to `theme` (not `site`).
+- **Kind `app`** (#50): Script Applications and portlets, folder `apps/`, written by DX Transfer Studio 0.2.5;
+  recognised and documented (annotations `scriptapps`, `portlets`, `portlets.jsr`, `portlets.war`), not imported by
+  the operator yet.
+- Docs: artifact-annotations, portable-bundles, spec docs/specs/49-50-theme-app-kinds.md.
+
 ## 0.11.0 · 2026-11-22 · DX Core (traditional DX 9.5 on WebSphere)
 
 - **Secret fields that say whose credentials they hold** (#45, docs/secret-fields.md): new `DXConnection.spec.portalCredentialsSecret`

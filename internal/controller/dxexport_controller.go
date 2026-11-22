@@ -545,6 +545,9 @@ func bundleOf(conn *Connection, o *dxv1.DXExport) bundleManifest {
 		tools["createdWith"] = cw
 	}
 	var parts []string
+	if len(o.Spec.Parts.Themes) > 0 {
+		parts = append(parts, "themes")
+	}
 	if len(o.Spec.Parts.Pages) > 0 {
 		parts = append(parts, "pages")
 	}
@@ -555,7 +558,7 @@ func bundleOf(conn *Connection, o *dxv1.DXExport) bundleManifest {
 		parts = append(parts, "libraries")
 	}
 	return bundleManifest{
-		Schema: BundleSchema, Kind: source.KindSite, Resource: o.Namespace + "/" + o.Name,
+		Schema: BundleSchema, Kind: source.KindOfBundle(parts), Resource: o.Namespace + "/" + o.Name,
 		Source:      bundleSource{Server: sourceNameOf(conn), URL: conn.Config.BaseURL, Connection: o.Namespace + "/" + o.Spec.ConnectionRef.Name, VirtualPortal: o.Spec.VirtualPortal},
 		RequestedBy: firstNonEmpty(o.Spec.Destination.Authors, strings.TrimPrefix(strings.TrimPrefix(ann[source.ResChangedBy], "user:"), "default/")),
 		Reason:      firstNonEmpty(o.Spec.Destination.Reason, strings.TrimSpace(ann[source.ResReason]), o.Spec.Destination.Attributes["reason"]), Tools: tools, Attributes: o.Spec.Destination.Attributes, Parts: parts,
@@ -648,14 +651,18 @@ func bundleMeta(o *dxv1.DXExport, b bundleManifest, when time.Time) source.Artif
 	for _, p := range b.Pages {
 		pages = append(pages, p.UniqueName)
 	}
+	extra := map[string]string{source.AnnBundleSchema: BundleSchema, source.AnnBundleParts: strings.Join(b.Parts, ","), source.AnnPages: strings.Join(pages, " | ")}
+	if len(o.Spec.Parts.Themes) > 0 {
+		extra[source.AnnThemes] = strings.Join(o.Spec.Parts.Themes, " | ")
+	}
 	return source.ArtifactMeta{
-		Kind: source.KindSite, Title: "DX bundle " + o.Name,
+		Kind: b.Kind, Title: "DX bundle " + o.Name,
 		Description: fmt.Sprintf("DX bundle (%s) from %s", strings.Join(b.Parts, ", "), b.Source.Server),
 		Resource:    o.Namespace + "/" + o.Name, SourceServer: b.Source.Server, SourceURL: b.Source.URL, SourceVersion: b.Source.Version,
 		Authors: o.Spec.Destination.Authors, Reason: o.Spec.Destination.Reason,
 		SourceConnection: b.Source.Connection, SourcePortal: o.Spec.VirtualPortal, Libraries: titles,
 		ResourceAnnotations: o.Annotations, Attributes: o.Spec.Destination.Attributes, Created: when,
-		Extra: map[string]string{source.AnnBundleSchema: BundleSchema, source.AnnBundleParts: strings.Join(b.Parts, ","), source.AnnPages: strings.Join(pages, " | ")},
+		Extra: extra,
 	}
 }
 

@@ -15,6 +15,8 @@ read each other's artifacts. No artifact type is set: the folder of the reposito
 |---|---|---|
 | `wcm` | `<project>/wcm/<origin>-<what>:<date>` | WCM libraries only: `wcm-export-<name>.zip` + `EXPORT-INFO.txt` |
 | `site` | `<project>/sites/<origin>-<what>:<date>` | a bundle (`dx-bundle/v1`): `EXPORT-INFO.txt`, `bundle.json`, `themes/`, `xmlaccess/01-pages.xml`, `wcm/`; what is inside in `com.europesip.dx.bundle.parts` |
+| `theme` | `<project>/themes/<origin>-<theme>:<date>` | a bundle (`dx-bundle/v1`, parts `themes`) with **only themes**: `EXPORT-INFO.txt`, `bundle.json`, `themes/theme-<slug>.xml` (registration and skins, XMLAccess) and `themes/theme-<slug>-webdav.zip` (WebDAV folder). Since 0.12.0 (#49): `DXExport` with only `parts.themes` |
+| `app` | `<project>/apps/<origin>-<what>:<date>` | applications (#50): `scriptapps/<slug>.zip` (Script Applications, the format of `dxclient deploy-scriptapplication`), `portlets/<slug>.xml` (XMLAccess of the web module) and `portlets/<slug>.war` when it could be obtained. Written by DX Transfer Studio 0.2.5; the operator recognises it but does not import it yet |
 | `xmlaccess` | `<project>/xmlaccess/<resource>:<time>` | answers of `DXXMLAccess` |
 | `portal` | `<project>/portal/<origin>-<what>:<date>` | **reserved** for a whole portal (XMLAccess release export). Not produced yet. It must **never** carry credentials: the full `Export.xml` of XMLAccess holds administration settings and credential vault data |
 
@@ -29,7 +31,7 @@ read each other's artifacts. No artifact type is set: the folder of the reposito
 | `org.opencontainers.image.source` | Base URL of the DX | `https://dx.example.com` | standard key |
 | `org.opencontainers.image.vendor` | `EUROPESIP` | | |
 | `com.europesip.dx.schema` | `2` | | version of this convention |
-| `com.europesip.dx.kind` | `wcm`, `site`, `xmlaccess` (`portal` reserved) | `wcm` | human words, one per folder |
+| `com.europesip.dx.kind` | `wcm`, `site`, `theme`, `app`, `xmlaccess` (`portal` reserved) | `wcm` | human words, one per folder |
 | `com.europesip.dx.bundle.schema` | `dx-bundle/v1` | | sites |
 | `com.europesip.dx.bundle.parts` | `themes`, `pages`, `portal-site`, `libraries`, comma separated | `themes,pages` | sites: what is inside |
 | `com.europesip.dx.source.server` | **Short name** of the DX: `DXConnection.spec.sourceName` (DX Transfer Studio: the label of the server), default the connection name | `wps01` | a name people recognise, never an internal IP |
@@ -41,6 +43,11 @@ read each other's artifacts. No artifact type is set: the folder of the reposito
 | `com.europesip.dx.libraries` | Library titles, separated by ` \| ` | `AEAT_DS \| AEAT_Contenido` | titles may hold commas |
 | `com.europesip.dx.libraries.count` | How many | `2` | |
 | `com.europesip.dx.pages` | Unique names of the root pages, separated by ` \| ` | `EuropeSip_web` | sites |
+| `com.europesip.dx.themes` | Unique names of the themes, separated by ` \| ` | `custom.portal.theme.Orbita` | themes, and sites that include themes |
+| `com.europesip.dx.scriptapps` | Names of the Script Applications, separated by ` \| ` | `Hello DX \| Store Locator` | apps |
+| `com.europesip.dx.portlets` | Names of the portlets / web modules, separated by ` \| ` | `Order Status` | apps |
+| `com.europesip.dx.portlets.jsr` | `168`, `286` or `mixed` | `286` | apps: custom JSR 168/286 portlets need HCL's Java Transition Module on DX Compose |
+| `com.europesip.dx.portlets.war` | `included` or `missing` | `included` | apps: whether the WAR is in the artifact |
 | `com.europesip.dx.requested-by` | Who (`spec.destination.authors`, else the annotation `dx.europesip.com/changed-by`) | `andres` | |
 | `com.europesip.dx.reason` | Why (`spec.destination.reason`, else the annotation `dx.europesip.com/reason`, else the attribute `reason`) | `Migration CF230 → Compose` | |
 | `com.europesip.dx.attr.<key>` | Free attributes (`spec.destination.attributes`) | `com.europesip.dx.attr.customer: aeat` | search and filters |
@@ -53,11 +60,23 @@ most 32. Suggested keys: `customer`, `environment`, `project`, `ticket`, `releas
 
 The same data is in `EXPORT-INFO.txt`. Never passwords in any annotation or file.
 
+## Importing a `theme` or an `app` artifact
+
+- **`theme`** (0.12.0): the same as the themes of a site bundle. With the operator: a `DXTheme` with
+  `registration: FilesOnly` whose `source` holds the unzipped `themes/theme-<slug>-webdav.zip`, then a `DXXMLAccess`
+  with `themes/theme-<slug>.xml` (keeps its object IDs and skins). DX Transfer Studio imports it in one step.
+- **`app`** (#50): recognised (kind, folder, annotations), not imported by the operator yet. Script Applications:
+  `DXScriptApplication` with the zip as source; portlets: `DXXMLAccess` with `portlets/<slug>.xml` once the WAR is
+  deployed (DX Core). On DX Compose custom JSR 168/286 portlets need HCL's Java Transition Module: warn before
+  importing. DX Transfer Studio 0.2.5 imports both.
+
 ## Reading older artifacts
 
 Readers (the operator, DX Transfer Studio, Backstage) accept:
 
-- kinds of schema 1 and of the guide v1: `wcm-export` → `wcm`; `dx-bundle`, `pages`, `theme` → `site`;
+- kinds of schema 1 and of the guide v1: `wcm-export` → `wcm`; `dx-bundle`, `pages` → `site`; `theme`, `themes` →
+  `theme` and `app`, `apps` → `app` (0.12.0; theme-only bundles pushed before keep `kind: site` with
+  `bundle.parts: themes` and are read as sites);
   `xmlaccess-output` → `xmlaccess`;
 - lists separated by ` | ` or, when there is no `|`, by commas (guide v1);
 - the virtual portal from `source.virtual-portal`, else `source.portal`;

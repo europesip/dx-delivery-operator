@@ -17,8 +17,10 @@ wcm/wcm-export-<nombre>.zip  las bibliotecas WCM y Portal Site: la exportación 
 ```
 
 Las anotaciones del manifiesto siguen los [atributos de los artefactos](artifact-annotations.es.md), con
-`com.europesip.dx.kind: dx-bundle`, `com.europesip.dx.bundle.schema`, `com.europesip.dx.bundle.parts` y
-`com.europesip.dx.pages`.
+`com.europesip.dx.kind` (`site`; `theme` si el paquete lleva solo temas, desde 0.12.0, #49),
+`com.europesip.dx.bundle.schema`, `com.europesip.dx.bundle.parts` (`themes` primero si hay temas),
+`com.europesip.dx.pages` y `com.europesip.dx.themes`. Un paquete de solo temas se sube a
+`<proyecto>/themes/<origen>-<tema>`; el resto a `<proyecto>/sites/…`.
 
 ## Cómo se hace cada parte
 
