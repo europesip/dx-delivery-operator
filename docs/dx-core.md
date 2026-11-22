@@ -31,7 +31,7 @@ spec:
   credentialsSecret: {name: dx-core-wps}            # wpsadmin
   dxConnect:                                         # optional: defaults below
     url: https://dx-core.example.com                 # default spec.url (HAProxy routes /hcl/dxconnect)
-    credentialsSecret: {name: dx-core-configwizard}  # Config Wizard administrator (default: credentialsSecret)
+    cwCredentialsSecret: {name: dx-core-configwizard} # Config Wizard administrator (default: credentialsSecret)
     wasCredentialsSecret: {name: dx-core-was}        # WebSphere administrator (default: credentialsSecret)
     profileName: wp_profile
 ```

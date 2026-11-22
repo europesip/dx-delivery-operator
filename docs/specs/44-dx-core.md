@@ -12,7 +12,7 @@ Oracle 21c XE, Sergio's CF230 VM read-only).
 (404 on Core); no theme export; cloned portlets break page imports into another portal.
 
 ## Specification
-1. `DXConnection.spec.runtime` compose|core (default compose); `spec.dxConnect` {url, credentialsSecret,
+1. `DXConnection.spec.runtime` compose|core (default compose); `spec.dxConnect` {url, cwCredentialsSecret,
    wasCredentialsSecret, profileName} with defaults (url, credentials of the connection, wp_profile).
 2. Context root = `contentHandlerPath` without `/mycontenthandler` for XMLAccess, form login, page URLs.
 3. On core, `DXWCMLibraryExport`/`DXExport` libraries and `DXWCMLibraryImport` use DXConnect

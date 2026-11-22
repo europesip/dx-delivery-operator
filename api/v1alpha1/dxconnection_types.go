@@ -72,10 +72,10 @@ type DXConnectSpec struct {
 	// +kubebuilder:validation:Pattern=`^https?://[^/]+/?$`
 	// +optional
 	URL string `json:"url,omitempty"`
-	// CredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"). Default: the
-	// credentials of the connection.
+	// CWCredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"), named like
+	// wasCredentialsSecret so that each Secret says whose it is. Default: the credentials of the connection.
 	// +optional
-	CredentialsSecret *LocalObjectReference `json:"credentialsSecret,omitempty"`
+	CWCredentialsSecret *LocalObjectReference `json:"cwCredentialsSecret,omitempty"`
 	// WASCredentialsSecret of the WebSphere administrator ("username", "password"). Default: the credentials of the
 	// connection.
 	// +optional

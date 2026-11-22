@@ -101,7 +101,7 @@ func ConnectionConfig(ctx context.Context, c client.Client, conn *dxv1.DXConnect
 			for _, ref := range []struct {
 				sec        *dxv1.LocalObjectReference
 				user, pass *string
-			}{{s.CredentialsSecret, &d.Username, &d.Password}, {s.WASCredentialsSecret, &d.WASUsername, &d.WASPassword}} {
+			}{{s.CWCredentialsSecret, &d.Username, &d.Password}, {s.WASCredentialsSecret, &d.WASUsername, &d.WASPassword}} {
 				if ref.sec == nil {
 					continue
 				}

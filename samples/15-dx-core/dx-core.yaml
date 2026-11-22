@@ -12,7 +12,7 @@ spec:
   runtime: core
   credentialsSecret: {name: dx-core-wps}
   dxConnect:
-    credentialsSecret: {name: dx-core-configwizard}
+    cwCredentialsSecret: {name: dx-core-configwizard}
     wasCredentialsSecret: {name: dx-core-was}
 ---
 # 2. A traditional DX on a VM with an empty context root (read-only source)

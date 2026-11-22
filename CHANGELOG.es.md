@@ -13,8 +13,8 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
   conexión) y la URL va en el nuevo `source.url`; se escribe `source.virtual-portal` junto a `source.portal`;
   `org.opencontainers.image.authors` y `com.europesip.dx.reason` salen de los nuevos `spec.destination.authors` y
   `spec.destination.reason` (si no, de las anotaciones del recurso). Los lectores aceptan el esquema 1 y la guía v1.
-- **DX Core** (#44): `DXConnection.spec.runtime` (`compose` por defecto, `core`) y `spec.dxConnect` (URL, credenciales
-  del Config Wizard y de WebSphere, perfil). Con `core`, las exportaciones e importaciones de librerías WCM van por
+- **DX Core** (#44): `DXConnection.spec.runtime` (`compose` por defecto, `core`) y `spec.dxConnect` (URL, `cwCredentialsSecret` del
+  Config Wizard y `wasCredentialsSecret` de WebSphere, perfil). Con `core`, las exportaciones e importaciones de librerías WCM van por
   **DXConnect** (las llamadas de DXClient `wcm-library-export` / `wcm-library-import`), porque DX Core no tiene
   `dxFileTransfer`; el operador convierte el tar de DXConnect (una carpeta por librería) en su zip habitual y al revés,
   así lo exportado pasa entre DX Core y DX Compose. `mode: ImportCopy` se rechaza en Core (import-wcm-data conserva IDs).

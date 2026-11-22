@@ -18,8 +18,8 @@ Short names: `dxconn`
 | `credentialsSecret` | object (required) |  | CredentialsSecret: Secret with the keys "username" and "password" of a DX user. Script Applications need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator. |
 | `credentialsSecret.name` | string (required) |  | Name of the object. |
 | `dxConnect` | object |  | DXConnect of DX Core (runtime core): the servlet of the Config Wizard profile that DXClient uses, for the WCM library exports and imports. Default: url, the credentials of credentialsSecret and profile wp_profile. |
-| `dxConnect.credentialsSecret` | object |  | CredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"). Default: the credentials of the connection. |
-| `dxConnect.credentialsSecret.name` | string (required) |  | Name of the object. |
+| `dxConnect.cwCredentialsSecret` | object |  | CWCredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"), named like wasCredentialsSecret so that each Secret says whose it is. Default: the credentials of the connection. |
+| `dxConnect.cwCredentialsSecret.name` | string (required) |  | Name of the object. |
 | `dxConnect.profileName` | string | `wp_profile` | ProfileName of the DX profile on the server (default wp_profile). |
 | `dxConnect.url` | string |  | URL of DXConnect: https://<host> in Kubernetes (HAProxy routes /hcl/dxconnect to the core pod) or https://<host>:10202 on a VM. Default: spec.url. |
 | `dxConnect.wasCredentialsSecret` | object |  | WASCredentialsSecret of the WebSphere administrator ("username", "password"). Default: the credentials of the connection. |
