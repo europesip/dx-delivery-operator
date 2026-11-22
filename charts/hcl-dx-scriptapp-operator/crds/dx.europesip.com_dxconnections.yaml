@@ -157,6 +157,14 @@ spec:
                 - compose
                 - core
                 type: string
+              sourceName:
+                description: |-
+                  SourceName: short name of this DX in the artifacts it exports (annotation com.europesip.dx.source.server and
+                  EXPORT-INFO.txt), for example wps01 or cf230; the URL goes to com.europesip.dx.source.url. Default: the name of
+                  the DXConnection. A name, not a host: internal IPs and host names are not published as the "server".
+                maxLength: 63
+                pattern: ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$
+                type: string
               url:
                 description: URL of DX as the operator reaches it, for example https://dx.example.com
                   (normally the public host).

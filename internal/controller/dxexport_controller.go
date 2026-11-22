@@ -470,6 +470,7 @@ func firstN(s []string, n int) []string {
 
 type bundleSource struct {
 	Server        string `json:"server"`
+	URL           string `json:"url,omitempty"`
 	Version       string `json:"version,omitempty"`
 	Connection    string `json:"connection"`
 	VirtualPortal string `json:"virtualPortal"`
@@ -554,10 +555,10 @@ func bundleOf(conn *Connection, o *dxv1.DXExport) bundleManifest {
 		parts = append(parts, "libraries")
 	}
 	return bundleManifest{
-		Schema: BundleSchema, Kind: "dx-bundle", Resource: o.Namespace + "/" + o.Name,
-		Source:      bundleSource{Server: conn.Config.BaseURL, Connection: o.Namespace + "/" + o.Spec.ConnectionRef.Name, VirtualPortal: o.Spec.VirtualPortal},
-		RequestedBy: strings.TrimPrefix(strings.TrimPrefix(ann[source.ResChangedBy], "user:"), "default/"),
-		Reason:      strings.TrimSpace(ann[source.ResReason]), Tools: tools, Attributes: o.Spec.Destination.Attributes, Parts: parts,
+		Schema: BundleSchema, Kind: source.KindSite, Resource: o.Namespace + "/" + o.Name,
+		Source:      bundleSource{Server: sourceNameOf(conn), URL: conn.Config.BaseURL, Connection: o.Namespace + "/" + o.Spec.ConnectionRef.Name, VirtualPortal: o.Spec.VirtualPortal},
+		RequestedBy: firstNonEmpty(o.Spec.Destination.Authors, strings.TrimPrefix(strings.TrimPrefix(ann[source.ResChangedBy], "user:"), "default/")),
+		Reason:      firstNonEmpty(o.Spec.Destination.Reason, strings.TrimSpace(ann[source.ResReason]), o.Spec.Destination.Attributes["reason"]), Tools: tools, Attributes: o.Spec.Destination.Attributes, Parts: parts,
 		ObjectIDs: objectIDsOf(),
 	}
 }
@@ -648,9 +649,10 @@ func bundleMeta(o *dxv1.DXExport, b bundleManifest, when time.Time) source.Artif
 		pages = append(pages, p.UniqueName)
 	}
 	return source.ArtifactMeta{
-		Kind: "dx-bundle", Title: "DX bundle " + o.Name,
+		Kind: source.KindSite, Title: "DX bundle " + o.Name,
 		Description: fmt.Sprintf("DX bundle (%s) from %s", strings.Join(b.Parts, ", "), b.Source.Server),
-		Resource:    o.Namespace + "/" + o.Name, SourceServer: b.Source.Server, SourceVersion: b.Source.Version,
+		Resource:    o.Namespace + "/" + o.Name, SourceServer: b.Source.Server, SourceURL: b.Source.URL, SourceVersion: b.Source.Version,
+		Authors: o.Spec.Destination.Authors, Reason: o.Spec.Destination.Reason,
 		SourceConnection: b.Source.Connection, SourcePortal: o.Spec.VirtualPortal, Libraries: titles,
 		ResourceAnnotations: o.Annotations, Attributes: o.Spec.Destination.Attributes, Created: when,
 		Extra: map[string]string{source.AnnBundleSchema: BundleSchema, source.AnnBundleParts: strings.Join(b.Parts, ","), source.AnnPages: strings.Join(pages, " | ")},
@@ -672,7 +674,7 @@ func bundleInfo(o *dxv1.DXExport, b bundleManifest) string {
 		return s
 	}
 	fmt.Fprintf(&w, "DX bundle (%s)\n\n", BundleSchema)
-	fmt.Fprintf(&w, "Source server:   %s\n", b.Source.Server)
+	fmt.Fprintf(&w, "Source server:   %s (%s)\n", b.Source.Server, b.Source.URL)
 	fmt.Fprintf(&w, "Source DX:       %s\n", val(b.Source.Version, "(not read)"))
 	fmt.Fprintf(&w, "Connection:      %s\n", b.Source.Connection)
 	fmt.Fprintf(&w, "Virtual portal:  %s\n", vp)

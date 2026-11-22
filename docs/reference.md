@@ -28,6 +28,7 @@ Short names: `dxconn`
 | `internalURL` | string |  | InternalURL: in-cluster URL of the Web Engine, without Traefik or HAProxy in between, for example http://dx-deployment-web-engine.<namespace>.svc:9080 when the operator runs in the same cluster. The long requests (WCM data module import and export, dxFileTransfer uploads and downloads) go there, so no proxy timeout cuts them (a cut import goes on inside DX and the next one would run at the same time); everything else uses url. |
 | `resyncInterval` | string | `10m` | ResyncInterval: how often every resource that uses this connection is checked against DX, to detect and correct drift (default 10m, minimum 1m). |
 | `runtime` | compose \| core | `compose` | Runtime of the DX server: compose (the Web Engine of DX Compose, default) or core (DX Core, the traditional DX 9.5 on WebSphere Application Server). On core the WCM libraries go through DXConnect (spec.dxConnect), because DX Core has no dxFileTransfer. |
+| `sourceName` | string |  | SourceName: short name of this DX in the artifacts it exports (annotation com.europesip.dx.source.server and EXPORT-INFO.txt), for example wps01 or cf230; the URL goes to com.europesip.dx.source.url. Default: the name of the DXConnection. A name, not a host: internal IPs and host names are not published as the "server". |
 | `url` | string (required) |  | URL of DX as the operator reaches it, for example https://dx.example.com (normally the public host). |
 | `virtualPortalContext` | string |  | VirtualPortalContext: push Script Applications into this virtual portal. |
 
@@ -459,9 +460,11 @@ Short names: `dxwcmexport`
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `destination` | object (required) |  | Destination of the export. |
 | `destination.attributes` | object |  | Attributes: free key/value labels of the artifact, written as manifest annotations com.europesip.dx.attr.<key> next to the standard ones (docs/artifact-annotations.md), so artifacts can be listed and filtered by them later. Keys: lowercase letters, digits, dots and dashes (at most 63); values at most 256 characters. |
+| `destination.authors` | string |  | Authors: who exports it (annotations org.opencontainers.image.authors and com.europesip.dx.requested-by). Default: the annotation dx.europesip.com/changed-by of the resource. |
 | `destination.image` | string (required) |  | Image: reference of the artifact, for example harbor.example.com/project/wcm/orbita-20261119:1. It holds the zip of the export (wcm-export-<name>.zip) and EXPORT-INFO.txt, and DXWCMLibraryImport reads it as an image source. |
 | `destination.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with push rights on the repository. |
 | `destination.pushSecrets[].name` | string (required) |  | Name of the object. |
+| `destination.reason` | string |  | Reason: why it is exported (annotation com.europesip.dx.reason and EXPORT-INFO.txt). Default: the annotation dx.europesip.com/reason of the resource (Backstage writes it), then the attribute reason. |
 | `libraries` | []string (required) |  | Libraries: titles of the libraries to export (each one must exist). |
 | `suspend` | boolean |  | Suspend stops the reconciliation. |
 | `timeout` | string |  | Timeout of the export request of each library. Default 1h. |
@@ -511,9 +514,11 @@ Short names: `dxexport`
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `destination` | object (required) |  | Destination: the OCI artifact (the "DX bundle"), its push secrets and attributes. |
 | `destination.attributes` | object |  | Attributes: free key/value labels of the artifact, written as manifest annotations com.europesip.dx.attr.<key> next to the standard ones (docs/artifact-annotations.md), so artifacts can be listed and filtered by them later. Keys: lowercase letters, digits, dots and dashes (at most 63); values at most 256 characters. |
+| `destination.authors` | string |  | Authors: who exports it (annotations org.opencontainers.image.authors and com.europesip.dx.requested-by). Default: the annotation dx.europesip.com/changed-by of the resource. |
 | `destination.image` | string (required) |  | Image: reference of the artifact, for example harbor.example.com/project/wcm/orbita-20261119:1. It holds the zip of the export (wcm-export-<name>.zip) and EXPORT-INFO.txt, and DXWCMLibraryImport reads it as an image source. |
 | `destination.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with push rights on the repository. |
 | `destination.pushSecrets[].name` | string (required) |  | Name of the object. |
+| `destination.reason` | string |  | Reason: why it is exported (annotation com.europesip.dx.reason and EXPORT-INFO.txt). Default: the annotation dx.europesip.com/reason of the resource (Backstage writes it), then the attribute reason. |
 | `parts` | object (required) |  | Parts of the bundle. |
 | `parts.libraries` | []string |  | Libraries: titles of WCM libraries to export with the WCM data module (wcm/wcm-export-<name>.zip, with Portal Site when portalSite is set). |
 | `parts.pages` | []object |  | Pages: XMLAccess export of these pages (layout, portlets, properties, access, friendly URLs, the WCM content mapping of managed pages), as one request importable into another portal (xmlaccess/01-pages.xml). |

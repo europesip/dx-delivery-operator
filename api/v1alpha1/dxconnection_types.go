@@ -16,6 +16,13 @@ type DXConnectionSpec struct {
 	// URL of DX as the operator reaches it, for example https://dx.example.com (normally the public host).
 	// +kubebuilder:validation:Pattern=`^https?://[^/]+/?$`
 	URL string `json:"url"`
+	// SourceName: short name of this DX in the artifacts it exports (annotation com.europesip.dx.source.server and
+	// EXPORT-INFO.txt), for example wps01 or cf230; the URL goes to com.europesip.dx.source.url. Default: the name of
+	// the DXConnection. A name, not a host: internal IPs and host names are not published as the "server".
+	// +optional
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`
+	SourceName string `json:"sourceName,omitempty"`
 	// InternalURL: in-cluster URL of the Web Engine, without Traefik or HAProxy in between, for example
 	// http://dx-deployment-web-engine.<namespace>.svc:9080 when the operator runs in the same cluster. The long requests
 	// (WCM data module import and export, dxFileTransfer uploads and downloads) go there, so no proxy timeout cuts them

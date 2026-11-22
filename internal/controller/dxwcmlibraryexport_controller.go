@@ -293,9 +293,10 @@ func uniqueTitles(in []string) ([]string, error) {
 // exportMeta: the attributes of the artifact (docs/artifact-annotations.md).
 func exportMeta(conn *Connection, o *dxv1.DXWCMLibraryExport, version string, titles []string, when time.Time) source.ArtifactMeta {
 	return source.ArtifactMeta{
-		Kind: "wcm-export", Title: "WCM export " + o.Name,
+		Kind: source.KindWCM, Title: "WCM export " + o.Name,
 		Description: fmt.Sprintf("WCM export of %d libraries from %s", len(titles), sourceName(conn, o.Spec.VirtualPortal)),
-		Resource:    o.Namespace + "/" + o.Name, SourceServer: conn.Config.BaseURL, SourceVersion: version,
+		Resource:    o.Namespace + "/" + o.Name, SourceServer: sourceNameOf(conn), SourceURL: conn.Config.BaseURL, SourceVersion: version,
+		Authors: o.Spec.Destination.Authors, Reason: o.Spec.Destination.Reason,
 		SourceConnection: o.Namespace + "/" + o.Spec.ConnectionRef.Name, SourcePortal: o.Spec.VirtualPortal,
 		Libraries: titles, ResourceAnnotations: o.Annotations, Attributes: o.Spec.Destination.Attributes, Created: when,
 	}
@@ -320,18 +321,27 @@ func exportInfo(conn *Connection, o *dxv1.DXWCMLibraryExport, version string, li
 		version = "(not read)"
 	}
 	fmt.Fprintf(&b, "WCM library export\n\n")
-	fmt.Fprintf(&b, "Source server:   %s\n", conn.Config.BaseURL)
+	fmt.Fprintf(&b, "Source server:   %s (%s)\n", sourceNameOf(conn), conn.Config.BaseURL)
 	fmt.Fprintf(&b, "Source DX:       %s\n", version)
 	fmt.Fprintf(&b, "Connection:      %s/%s\n", o.Namespace, o.Spec.ConnectionRef.Name)
 	fmt.Fprintf(&b, "Virtual portal:  %s\n", vp)
 	fmt.Fprintf(&b, "Exported at:     %s (UTC)\n", when.Format("2006-01-02 15:04:05"))
 	fmt.Fprintf(&b, "Exported by:     DXWCMLibraryExport %s/%s\n", o.Namespace, o.Name)
 	ann := o.Annotations
-	who := strings.TrimPrefix(strings.TrimPrefix(ann[source.ResChangedBy], "user:"), "default/")
+	who := strings.TrimSpace(o.Spec.Destination.Authors)
+	if who == "" {
+		who = strings.TrimPrefix(strings.TrimPrefix(ann[source.ResChangedBy], "user:"), "default/")
+	}
 	if who == "" {
 		who = "(not recorded)"
 	}
-	reason := strings.TrimSpace(ann[source.ResReason])
+	reason := strings.TrimSpace(o.Spec.Destination.Reason)
+	if reason == "" {
+		reason = strings.TrimSpace(ann[source.ResReason])
+	}
+	if reason == "" {
+		reason = o.Spec.Destination.Attributes["reason"]
+	}
 	if reason == "" {
 		reason = "(none given)"
 	}

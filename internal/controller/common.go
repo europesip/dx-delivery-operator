@@ -335,3 +335,24 @@ func mapReferrers[L client.ObjectList](c client.Client, newList func() L, refs f
 		return out
 	}
 }
+
+// sourceNameOf is the short name of a DX in its artifacts: spec.sourceName of the DXConnection, else its name.
+func sourceNameOf(conn *Connection) string {
+	if conn == nil || conn.Object == nil {
+		return ""
+	}
+	if n := strings.TrimSpace(conn.Object.Spec.SourceName); n != "" {
+		return n
+	}
+	return conn.Object.Name
+}
+
+// firstNonEmpty returns the first value that is not blank.
+func firstNonEmpty(v ...string) string {
+	for _, x := range v {
+		if x = strings.TrimSpace(x); x != "" {
+			return x
+		}
+	}
+	return ""
+}

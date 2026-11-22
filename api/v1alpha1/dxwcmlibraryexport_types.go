@@ -40,6 +40,16 @@ type WCMExportDestination struct {
 	// +optional
 	// +kubebuilder:validation:MaxProperties=32
 	Attributes map[string]string `json:"attributes,omitempty"`
+	// Reason: why it is exported (annotation com.europesip.dx.reason and EXPORT-INFO.txt). Default: the annotation
+	// dx.europesip.com/reason of the resource (Backstage writes it), then the attribute reason.
+	// +optional
+	// +kubebuilder:validation:MaxLength=512
+	Reason string `json:"reason,omitempty"`
+	// Authors: who exports it (annotations org.opencontainers.image.authors and com.europesip.dx.requested-by).
+	// Default: the annotation dx.europesip.com/changed-by of the resource.
+	// +optional
+	// +kubebuilder:validation:MaxLength=256
+	Authors string `json:"authors,omitempty"`
 }
 
 // DXWCMLibraryExportSpec is what to export and where to.

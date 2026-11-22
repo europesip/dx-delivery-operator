@@ -2,36 +2,44 @@
 
 [English](artifact-annotations.md) · **Español**
 
-Cada artefacto que el operador sube a un registro (las exportaciones WCM de `DXWCMLibraryExport`, los paquetes de `DXExport` y las
-respuestas de `DXXMLAccess`) se describe a sí mismo con **anotaciones del manifiesto**: las estándar `org.opencontainers.image.*` y
-las nuestras, `com.europesip.dx.*`. Los registros las muestran (Harbor: *Annotations* del artefacto;
-`oras manifest fetch <ref>`), y una herramienta puede listar o filtrar artefactos por ellas sin descargar los ficheros.
-No se pone *artifact type*: las exportaciones WCM se reconocen por la carpeta `wcm/` de su repositorio y por
-`com.europesip.dx.kind`.
+Cada artefacto que sube el operador (exportaciones WCM de `DXWCMLibraryExport`, paquetes de `DXExport`, respuestas de
+`DXXMLAccess`) se describe con **anotaciones del manifiesto**: las estándar `org.opencontainers.image.*` y las nuestras
+`com.europesip.dx.*`. El mismo formato lo escribe **DX Transfer Studio** y lo lee Backstage.
 
-Versión del esquema: `com.europesip.dx.schema: "1"`. Se pueden añadir claves nuevas; las que hay mantienen su
-significado.
+**Esquema 2** (`com.europesip.dx.schema: "2"`). Los lectores aceptan también el esquema 1.
 
-| Anotación | Valor |
-|---|---|
-| `org.opencontainers.image.created` | Cuándo se subió (RFC 3339, UTC) |
-| `org.opencontainers.image.title` / `.description` | Nombre corto / una línea |
-| `org.opencontainers.image.source` | El DX de origen |
-| `org.opencontainers.image.vendor` | `EUROPESIP` |
-| `com.europesip.dx.schema` | Versión de esta convención (`1`) |
-| `com.europesip.dx.kind` | `wcm-export`, `dx-bundle` o `xmlaccess-output` |
-| `com.europesip.dx.resource` | El recurso que lo creó (namespace/nombre) |
-| `com.europesip.dx.source.server` / `.version` / `.connection` / `.portal` | Servidor DX, versión que da DX, DXConnection, portal virtual (vacío: el portal base) |
-| `com.europesip.dx.libraries` / `.libraries.count` | Exportaciones WCM: los títulos (separados por ` \| `) y cuántas |
-| `com.europesip.dx.bundle.schema` / `.bundle.parts` / `.pages` | Paquetes DX: formato (`dx-bundle/v1`), partes (`pages,portal-site,libraries`) y nombres únicos de las páginas |
-| `com.europesip.dx.requested-by` | Quién lo pidió (anotación `dx.europesip.com/changed-by` del recurso) |
-| `com.europesip.dx.reason` | Por qué (anotación `dx.europesip.com/reason`) |
-| `com.europesip.dx.tool.operator` | Este operador y su versión |
-| `com.europesip.dx.tool.created-with` | Con qué se creó el recurso (anotación `dx.europesip.com/created-with`: Backstage pone su versión y la del plugin) |
-| `com.europesip.dx.attr.<clave>` | Atributos libres: `spec.destination.attributes` de un `DXWCMLibraryExport` |
+## Tipos y carpetas
 
-Atributos libres: claves en minúsculas, dígitos, puntos y guiones (63 caracteres como mucho), valores de 256 caracteres
-como mucho, 32 por artefacto. Los vacíos no se escriben. Claves sugeridas: `environment`, `customer`, `project`,
-`ticket`, `release`.
+| `com.europesip.dx.kind` | Carpeta | Qué lleva |
+|---|---|---|
+| `wcm` | `<proyecto>/wcm/<origen>-<qué>:<fecha>` | solo librerías WCM: `wcm-export-<nombre>.zip` + `EXPORT-INFO.txt` |
+| `site` | `<proyecto>/sites/<origen>-<qué>:<fecha>` | un paquete (`dx-bundle/v1`): `EXPORT-INFO.txt`, `bundle.json`, `themes/`, `xmlaccess/01-pages.xml`, `wcm/`; qué lleva en `com.europesip.dx.bundle.parts` |
+| `xmlaccess` | `<proyecto>/xmlaccess/<recurso>:<hora>` | respuestas de `DXXMLAccess` |
+| `portal` | `<proyecto>/portal/<origen>-<qué>:<fecha>` | **reservado** para un portal completo (exportación release de XMLAccess). Aún no se genera. **Nunca** con credenciales: el `Export.xml` completo lleva configuración de administración y datos del almacén de credenciales |
 
-Lo mismo va en `EXPORT-INFO.txt` de una exportación WCM, para quien solo tenga los ficheros.
+## Anotaciones
+
+| Anotación | Valor | Ejemplo |
+|---|---|---|
+| `org.opencontainers.image.title` / `.description` / `.authors` / `.created` / `.source` / `.vendor` | título, descripción, quién, cuándo, URL del DX, `EUROPESIP` | |
+| `com.europesip.dx.schema` | `2` | |
+| `com.europesip.dx.kind` | `wcm`, `site`, `xmlaccess` (`portal` reservado) | `wcm` |
+| `com.europesip.dx.bundle.schema` / `.bundle.parts` | `dx-bundle/v1` / `themes,pages,portal-site,libraries` | |
+| `com.europesip.dx.source.server` | **Nombre corto** del DX (`DXConnection.spec.sourceName`; en DX Transfer Studio la etiqueta del servidor); por defecto el nombre de la conexión | `wps01` |
+| `com.europesip.dx.source.url` | URL del DX | `https://dx.example.com` |
+| `com.europesip.dx.source.version` | Versión que da DX | `HCL Digital Experience/8.5 build …` |
+| `com.europesip.dx.source.connection` | DXConnection o id del servidor | `dxop-core-sergio/sergio-cf230` |
+| `com.europesip.dx.source.virtual-portal` | Portal virtual; vacío = portal base | `aeat` |
+| `com.europesip.dx.source.portal` | Mismo valor (nombre del esquema 1, se mantiene una versión) | `aeat` |
+| `com.europesip.dx.libraries` / `.libraries.count` | Títulos separados por ` \| ` / cuántas | `AEAT_DS \| AEAT_Contenido` / `2` |
+| `com.europesip.dx.pages` | Unique names de las páginas raíz, separados por ` \| ` | `EuropeSip_web` |
+| `com.europesip.dx.requested-by` | Quién (`spec.destination.authors` o la anotación `dx.europesip.com/changed-by`) | `andres` |
+| `com.europesip.dx.reason` | Por qué (`spec.destination.reason`, la anotación `dx.europesip.com/reason` o el atributo `reason`) | `Migración CF230 → Compose` |
+| `com.europesip.dx.attr.<clave>` | Atributos libres | `attr.customer: aeat` |
+| `com.europesip.dx.tool.operator` / `com.europesip.dx.tool` | El operador / DX Transfer Studio y su versión | |
+
+## Artefactos antiguos
+
+Los lectores aceptan los tipos del esquema 1 y de la guía v1 (`wcm-export` → `wcm`; `dx-bundle`, `pages`, `theme` →
+`site`; `xmlaccess-output` → `xmlaccess`), listas separadas por ` | ` o por comas, el portal virtual en
+`source.virtual-portal` o `source.portal`, y `source.server` con una URL.

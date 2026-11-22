@@ -451,8 +451,8 @@ func (r *DXXMLAccessReconciler) pushOutput(ctx context.Context, o *dxv1.DXXMLAcc
 	}, "", "  ")
 	files["results.json"] = summary
 	ann := source.ArtifactMeta{
-		Kind: "xmlaccess-output", Title: "XMLAccess answers " + o.Name, Description: "Answers of DX to the XMLAccess requests of " + o.Namespace + "/" + o.Name,
-		Resource: o.Namespace + "/" + o.Name, SourceServer: server, SourceConnection: o.Namespace + "/" + o.Spec.ConnectionRef.Name,
+		Kind: source.KindXMLAccess, Title: "XMLAccess answers " + o.Name, Description: "Answers of DX to the XMLAccess requests of " + o.Namespace + "/" + o.Name,
+		Resource: o.Namespace + "/" + o.Name, SourceServer: o.Spec.ConnectionRef.Name, SourceURL: server, SourceConnection: o.Namespace + "/" + o.Spec.ConnectionRef.Name,
 		SourcePortal: vp, ResourceAnnotations: o.Annotations, Created: time.Now(),
 	}.Annotations()
 	// the names of 0.6 and earlier, kept for whoever reads them

@@ -90,7 +90,7 @@ func TestImportStepsAndInfo(t *testing.T) {
 		t.Errorf("objectIds %+v / steps %+v", b.ObjectIDs, b.Import)
 	}
 	ann := bundleMeta(o, b, time.Date(2026, 11, 19, 9, 0, 0, 0, time.UTC)).Annotations()
-	for k, v := range map[string]string{source.AnnKind: "dx-bundle", source.AnnBundleSchema: BundleSchema, source.AnnBundleParts: "pages,portal-site", source.AnnPages: "orbita-site", source.AnnSourcePortal: "europesip", source.AnnAttrPrefix + "customer": "europesip"} {
+	for k, v := range map[string]string{source.AnnKind: source.KindSite, source.AnnSourceVP: "europesip", source.AnnBundleSchema: BundleSchema, source.AnnBundleParts: "pages,portal-site", source.AnnPages: "orbita-site", source.AnnSourcePortal: "europesip", source.AnnAttrPrefix + "customer": "europesip"} {
 		if ann[k] != v {
 			t.Errorf("%s = %q, want %q", k, ann[k], v)
 		}

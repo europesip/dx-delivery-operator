@@ -7,6 +7,12 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
 
 ## Unreleased · DX Core (traditional DX 9.5 on WebSphere)
 
+- **Artifact format, schema 2** (shared with DX Transfer Studio and Backstage, `docs/artifact-annotations.md`):
+  `com.europesip.dx.kind` is `wcm`, `site` or `xmlaccess` (`portal` reserved for whole-portal exports, never with
+  credentials); `source.server` is a short name (`DXConnection.spec.sourceName`, default the connection name) and the
+  URL goes to the new `source.url`; `source.virtual-portal` is written next to `source.portal`; `org.opencontainers.image.authors`
+  and `com.europesip.dx.reason` come from the new `spec.destination.authors` and `spec.destination.reason` (else the
+  annotations of the resource). Readers accept schema 1 and the guide v1.
 - **DX Core** (#44): `DXConnection.spec.runtime` (`compose` default, `core`) and `spec.dxConnect` (URL, Config Wizard
   and WebSphere credentials, profile). On `core` the WCM library exports and imports go through **DXConnect** (the calls
   of DXClient `wcm-library-export` / `wcm-library-import`), because DX Core has no `dxFileTransfer`; the operator turns
