@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -129,7 +130,14 @@ func dxConnectToZip(ctx context.Context, tarPath, zipPath string) (int64, error)
 	merged := zipPath + ".merged"
 	defer os.RemoveAll(raw)    //nolint:errcheck
 	defer os.RemoveAll(merged) //nolint:errcheck
-	if _, err := source.ExtractArchiveProgressContext(ctx, tarPath, raw, nil); err != nil {
+	archive, err := sniffArchive(tarPath)
+	if err != nil {
+		return 0, err
+	}
+	if archive != tarPath {
+		defer os.Remove(archive) //nolint:errcheck
+	}
+	if _, err := source.ExtractArchiveProgressContext(ctx, archive, raw, nil); err != nil {
 		return 0, fatal(reasonExportFailed, "the archive of DXConnect cannot be read: %v", err)
 	}
 	tops, err := os.ReadDir(raw)
@@ -222,4 +230,36 @@ func exportWorkDir(root, kind, ns, name string) (string, error) {
 	work := filepath.Join(root, kind, ns+"-"+name)
 	_ = os.RemoveAll(work)
 	return work, os.MkdirAll(work, 0o700)
+}
+
+// sniffArchive gives the archive of DXConnect the extension of its real format. DXConnect names it .tar.gz, but the
+// container Core sends a plain tar and a traditional DX on a VM may send a gzip or a zip: the content decides, not the
+// name. It returns the path to extract (a hard link or copy with the right extension, or the same path for a tar).
+func sniffArchive(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	head := make([]byte, 512)
+	n, _ := io.ReadFull(f, head)
+	f.Close() //nolint:errcheck
+	head = head[:n]
+	ext := ""
+	switch {
+	case len(head) >= 4 && head[0] == 'P' && head[1] == 'K' && head[2] == 3 && head[3] == 4:
+		ext = ".zip"
+	case len(head) >= 2 && head[0] == 0x1f && head[1] == 0x8b:
+		ext = ".tar.gz"
+	case len(head) >= 3 && head[0] == 'B' && head[1] == 'Z' && head[2] == 'h':
+		ext = ".tar.bz2"
+	case len(head) >= 262 && string(head[257:262]) == "ustar":
+		return path, nil
+	default:
+		return "", fatal(reasonExportFailed, "the archive of DXConnect is not a tar, tar.gz, tar.bz2 or zip (first bytes %x)", head[:min(len(head), 8)])
+	}
+	out := path + ext
+	if err := os.Rename(path, out); err != nil {
+		return "", err
+	}
+	return out, nil
 }
