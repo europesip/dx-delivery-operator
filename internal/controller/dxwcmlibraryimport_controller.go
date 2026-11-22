@@ -374,7 +374,8 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 			plans[l.Title] = dxv1.WCMExportLibrary{Plan: dxv1.WCMPlanSkip, Reason: why}
 			continue
 		}
-		if len(l.UnsafePaths) > 0 {
+		// dxFileTransfer (DX Compose) rejects names with spaces; DXConnect (DX Core) uploads a tar and has no such limit
+		if len(l.UnsafePaths) > 0 && !c.UsesDXConnect() {
 			ex := l.UnsafePaths
 			if len(ex) > 3 {
 				ex = append(ex[:3:3], fmt.Sprintf("and %d more", len(l.UnsafePaths)-3))
@@ -520,6 +521,43 @@ func (r *DXWCMLibraryImportReconciler) importAll(ctx context.Context, o *dxv1.DX
 				failed[t] = fmt.Sprintf("its zip is %d MB: DX accepts at most 500 MB per upload", zr.Bytes>>20)
 			}
 			_ = os.Remove(zipPath)
+			return nil
+		}
+		if c.UsesDXConnect() { // DX Core: no dxFileTransfer; DXConnect uploads the zip and runs import-wcm-data
+			if o.Spec.Mode == dxv1.WCMImportCopy {
+				_ = os.Remove(zipPath)
+				for _, t := range titles {
+					failed[t] = "mode copy is not available on DX Core: DXConnect runs ConfigEngine import-wcm-data, which keeps the IDs"
+				}
+				return nil
+			}
+			started := now()
+			res.ChunkStartedAt = started
+			r.progress(ctx, o, dxv1.WCMImportImporting, fmt.Sprintf("chunk %d/%d%s: uploading and importing %s into %s through DXConnect (DX Core)", i+1, len(chunks), note, strings.Join(titles, ", "), where))
+			_ = os.Remove(zipPath)
+			tarPath, err := dxConnectTar(exp, chunk, work)
+			if err != nil {
+				return err
+			}
+			_, err = c.DXConnectImportLibraries(ctx, vp, tarPath, timeout)
+			_ = os.Remove(tarPath)
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if err != nil {
+				if i == 0 && !strings.Contains(err.Error(), "HTTP") {
+					return fmt.Errorf("chunk 1: %w", err) // DXConnect not reachable, nothing imported: retry later
+				}
+				for _, t := range titles {
+					failed[t] = err.Error()
+				}
+				r.Recorder.Eventf(o, nil, corev1.EventTypeWarning, reasonImportFailed, chunkAction(i), "chunk %d/%d: %v", i+1, len(chunks), err)
+				return nil
+			}
+			if d := int64(time.Since(started.Time).Seconds()); d > res.LongestChunkSeconds {
+				res.LongestChunkSeconds = d
+			}
+			r.Recorder.Eventf(o, nil, corev1.EventTypeNormal, "ChunkImported", chunkAction(i), "chunk %d/%d imported through DXConnect: %s", i+1, len(chunks), strings.Join(titles, ", "))
 			return nil
 		}
 		if err := c.FileTransferCreateDir(ctx, subOf(i)); err != nil {

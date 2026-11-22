@@ -47,6 +47,10 @@ type SQLServerOptions struct {
 // DXDatabaseSpec is a database (and the user that owns it) in an existing database server, for the backend of an
 // application. The operator creates them and writes a Secret with the connection details; the password is generated
 // once and kept.
+// +kubebuilder:validation:XValidation:rule="has(self.dbAdminCredentialsSecret) || has(self.adminSecret)",message="set dbAdminCredentialsSecret (adminSecret is its deprecated name)"
+// +kubebuilder:validation:XValidation:rule="!has(self.dbAdminCredentialsSecret) || !has(self.adminSecret) || self.dbAdminCredentialsSecret.name == self.adminSecret.name",message="dbAdminCredentialsSecret and the deprecated adminSecret name different Secrets: set only dbAdminCredentialsSecret"
+// +kubebuilder:validation:XValidation:rule="!has(self.dbAdminCredentialsSecretNamespace) || !has(self.adminSecretNamespace) || self.dbAdminCredentialsSecretNamespace == self.adminSecretNamespace",message="dbAdminCredentialsSecretNamespace and the deprecated adminSecretNamespace differ: set only dbAdminCredentialsSecretNamespace"
+// +kubebuilder:validation:XValidation:rule="!has(self.outputSecretName) || !has(self.secretName) || self.outputSecretName == self.secretName",message="outputSecretName and the deprecated secretName differ: set only outputSecretName"
 type DXDatabaseSpec struct {
 	// Engine of the server: PostgreSQL (default), Oracle or SQLServer.
 	// +kubebuilder:default=PostgreSQL
@@ -58,11 +62,19 @@ type DXDatabaseSpec struct {
 	// Port (default: 5432 PostgreSQL, 1521 Oracle, 1433 SQL Server).
 	// +optional
 	Port int32 `json:"port,omitempty"`
-	// AdminSecret: Secret with "username" and "password" of an administrator that can create users and databases
-	// (PostgreSQL: a superuser or CREATEROLE + CREATEDB; Oracle: CREATE USER and GRANT; SQL Server: sysadmin or
-	// dbcreator + securityadmin). In another namespace only if the operator may read it there (adminSecretNamespace).
-	AdminSecret LocalObjectReference `json:"adminSecret"`
-	// AdminSecretNamespace: namespace of the admin Secret (default: the namespace of the resource).
+	// DBAdminCredentialsSecret: Secret with "username" and "password" of an administrator of the database server that
+	// can create users and databases (PostgreSQL: a superuser or CREATEROLE + CREATEDB; Oracle: CREATE USER and GRANT;
+	// SQL Server: sysadmin or dbcreator + securityadmin). In another namespace only if the operator may read it there
+	// (dbAdminCredentialsSecretNamespace). Required (or the deprecated adminSecret).
+	// +optional
+	DBAdminCredentialsSecret *LocalObjectReference `json:"dbAdminCredentialsSecret,omitempty"`
+	// DBAdminCredentialsSecretNamespace: namespace of that Secret (default: the namespace of the resource).
+	// +optional
+	DBAdminCredentialsSecretNamespace string `json:"dbAdminCredentialsSecretNamespace,omitempty"`
+	// AdminSecret: deprecated, use dbAdminCredentialsSecret (same meaning; still accepted, with a warning).
+	// +optional
+	AdminSecret *LocalObjectReference `json:"adminSecret,omitempty"`
+	// AdminSecretNamespace: deprecated, use dbAdminCredentialsSecretNamespace.
 	// +optional
 	AdminSecretNamespace string `json:"adminSecretNamespace,omitempty"`
 	// Database name (default: the name of the resource, with "-" replaced by "_"). With Oracle it is the schema: a
@@ -86,8 +98,11 @@ type DXDatabaseSpec struct {
 	// SQLServer settings (engine SQLServer).
 	// +optional
 	SQLServer *SQLServerOptions `json:"sqlServer,omitempty"`
-	// SecretName: Secret the operator writes for the backend, with engine, username, password, host, port, database,
-	// uri and jdbcUrl. Default: <name>-db.
+	// OutputSecretName: the Secret the operator creates for the backend, with engine, username, password, host, port,
+	// database, uri and jdbcUrl. Default: <name>-db.
+	// +optional
+	OutputSecretName string `json:"outputSecretName,omitempty"`
+	// SecretName: deprecated, use outputSecretName (same meaning; still accepted, with a warning).
 	// +optional
 	SecretName string `json:"secretName,omitempty"`
 	// DeletionPolicy: Retain (default) keeps the database and the user when the resource is deleted; Delete drops
@@ -144,4 +159,41 @@ func init() {
 		s.AddKnownTypes(SchemeGroupVersion, &DXDatabase{}, &DXDatabaseList{})
 		return nil
 	})
+}
+
+// DBAdminSecret is the admin Secret and its namespace (new fields first, then the deprecated ones); ns may be empty.
+func (s *DXDatabaseSpec) DBAdminSecret() (name, ns string) {
+	if s.DBAdminCredentialsSecret != nil && s.DBAdminCredentialsSecret.Name != "" {
+		name = s.DBAdminCredentialsSecret.Name
+	} else if s.AdminSecret != nil {
+		name = s.AdminSecret.Name
+	}
+	ns = s.DBAdminCredentialsSecretNamespace
+	if ns == "" {
+		ns = s.AdminSecretNamespace
+	}
+	return name, ns
+}
+
+// Output is the Secret the operator writes: outputSecretName, or the deprecated secretName; "" means the default.
+func (s *DXDatabaseSpec) Output() string {
+	if s.OutputSecretName != "" {
+		return s.OutputSecretName
+	}
+	return s.SecretName
+}
+
+// DeprecatedFields lists the deprecated fields in use, as "old → new".
+func (s *DXDatabaseSpec) DeprecatedFields() []string {
+	var d []string
+	if s.AdminSecret != nil {
+		d = append(d, "adminSecret → dbAdminCredentialsSecret")
+	}
+	if s.AdminSecretNamespace != "" {
+		d = append(d, "adminSecretNamespace → dbAdminCredentialsSecretNamespace")
+	}
+	if s.SecretName != "" {
+		d = append(d, "secretName → outputSecretName")
+	}
+	return d
 }

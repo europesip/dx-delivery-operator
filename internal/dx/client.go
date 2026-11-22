@@ -47,6 +47,10 @@ type Config struct {
 	// the REST login is used, as up to 0.1.1. Set from the environment variable DX_FORM_LOGIN=false (chart value
 	// dx.oidcCompatibility=false).
 	NoFormLogin bool
+	// Runtime of the server: "compose" (the Web Engine of DX Compose, default) or "core" (DX Core on WebSphere).
+	Runtime string
+	// DXConnect of DX Core, for the WCM libraries (empty URL: the WCM data module and dxFileTransfer, as on DX Compose).
+	DXConnect DXConnectConfig
 }
 
 // Host and port of the base URL, for DXClient.
@@ -356,7 +360,12 @@ func (c *Client) XMLAccess(ctx context.Context, request string) (string, error) 
 
 // XMLAccessAt sends the request to a virtual portal (/wps/config/<context>); an empty context is the base portal.
 func (c *Client) XMLAccessAt(ctx context.Context, vpContext, request string) (string, error) {
-	path := "/wps/config"
+	if c.long != nil { // in-cluster URL: no proxy timeout for a long import
+		if out, err := c.long.XMLAccessAt(ctx, vpContext, request); !unreachable(err) {
+			return out, err
+		}
+	}
+	path := c.wpsRoot() + "/config"
 	if vpContext != "" {
 		path += "/" + url.PathEscape(vpContext)
 	}
@@ -387,6 +396,9 @@ func (c *Client) xmlAccessOnce(ctx context.Context, path, request string) (strin
 	req.Header.Set("Content-Type", "text/xml; charset=UTF-8")
 	hc := *c.http
 	hc.Jar = nil // basic authentication only: with the session cookie as well, DX answers 403
+	if _, ok := ctx.Deadline(); ok {
+		hc.Timeout = 0 // the caller's deadline rules: importing a site of hundreds of pages takes minutes, not 90 s
+	}
 	resp, err := hc.Do(req)
 	if err != nil {
 		return "", false, fmt.Errorf("XMLAccess: %w", err)

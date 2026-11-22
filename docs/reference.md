@@ -12,14 +12,27 @@ Short names: `dxconn`
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `caSecret` | object |  | CASecret: Secret with the key "ca.crt", for a self-signed certificate or a private CA. |
+| `caSecret` | object |  | CASecret: deprecated, use tlsCASecret (same meaning; still accepted, with a warning). |
 | `caSecret.name` | string (required) |  | Name of the object. |
-| `contentHandlerPath` | string | `/wps/mycontenthandler` | ContentHandlerPath of DX (default /wps/mycontenthandler). |
-| `credentialsSecret` | object (required) |  | CredentialsSecret: Secret with the keys "username" and "password" of a DX user. Script Applications need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator. |
+| `contentHandlerPath` | string | `/wps/mycontenthandler` | ContentHandlerPath of DX (default /wps/mycontenthandler). It also sets the context root: /mycontenthandler for a traditional DX installed with an empty context root (XMLAccess at /config, the login at /j_security_check). |
+| `credentialsSecret` | object |  | CredentialsSecret: deprecated, use portalCredentialsSecret (same meaning; still accepted, with a warning). |
 | `credentialsSecret.name` | string (required) |  | Name of the object. |
+| `dxConnect` | object |  | DXConnect of DX Core (runtime core): the servlet of the Config Wizard profile that DXClient uses, for the WCM library exports and imports. Default: url, the credentials of credentialsSecret and profile wp_profile. |
+| `dxConnect.cwCredentialsSecret` | object |  | CWCredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"), named like wasCredentialsSecret so that each Secret says whose it is. Default: the credentials of the connection. |
+| `dxConnect.cwCredentialsSecret.name` | string (required) |  | Name of the object. |
+| `dxConnect.profileName` | string | `wp_profile` | ProfileName of the DX profile on the server (default wp_profile). |
+| `dxConnect.url` | string |  | URL of DXConnect: https://<host> in Kubernetes (HAProxy routes /hcl/dxconnect to the core pod) or https://<host>:10202 on a VM. Default: spec.url. |
+| `dxConnect.wasCredentialsSecret` | object |  | WASCredentialsSecret of the WebSphere administrator ("username", "password"). Default: the credentials of the connection. |
+| `dxConnect.wasCredentialsSecret.name` | string (required) |  | Name of the object. |
 | `insecureSkipTLSVerify` | boolean |  | InsecureSkipTLSVerify: do not verify the certificate at all (labs only). |
 | `internalURL` | string |  | InternalURL: in-cluster URL of the Web Engine, without Traefik or HAProxy in between, for example http://dx-deployment-web-engine.<namespace>.svc:9080 when the operator runs in the same cluster. The long requests (WCM data module import and export, dxFileTransfer uploads and downloads) go there, so no proxy timeout cuts them (a cut import goes on inside DX and the next one would run at the same time); everything else uses url. |
+| `portalCredentialsSecret` | object |  | PortalCredentialsSecret: Secret with the keys "username" and "password" of the DX portal user the operator signs in with (XMLAccess, WCM, DAM, DXClient). Script Applications need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator. Required (or the deprecated credentialsSecret). |
+| `portalCredentialsSecret.name` | string (required) |  | Name of the object. |
 | `resyncInterval` | string | `10m` | ResyncInterval: how often every resource that uses this connection is checked against DX, to detect and correct drift (default 10m, minimum 1m). |
+| `runtime` | compose \| core | `compose` | Runtime of the DX server: compose (the Web Engine of DX Compose, default) or core (DX Core, the traditional DX 9.5 on WebSphere Application Server). On core the WCM libraries go through DXConnect (spec.dxConnect), because DX Core has no dxFileTransfer. |
+| `sourceName` | string |  | SourceName: short name of this DX in the artifacts it exports (annotation com.europesip.dx.source.server and EXPORT-INFO.txt), for example wps01 or cf230; the URL goes to com.europesip.dx.source.url. Default: the name of the DXConnection. A name, not a host: internal IPs and host names are not published as the "server". |
+| `tlsCASecret` | object |  | TLSCASecret: Secret with the key "ca.crt" to verify the TLS certificate of DX (a self-signed certificate or a private CA). |
+| `tlsCASecret.name` | string (required) |  | Name of the object. |
 | `url` | string (required) |  | URL of DX as the operator reaches it, for example https://dx.example.com (normally the public host). |
 | `virtualPortalContext` | string |  | VirtualPortalContext: push Script Applications into this virtual portal. |
 
@@ -193,6 +206,7 @@ Short names: `dxtheme`
 | `headHTML` | string |  | HeadHTML: HTML inserted before </head> in every theme template (theme.html, theme_sidenav.html and their language versions): a <style>, a <link> to a file of the source (/wps/mycontenthandler/dav/fs-type1/themes/<folder>/...), a <script>... |
 | `layout` | string |  | Layout: default layout template of the theme, relative to its folder (for example layout-templates/1Column). Default: the one of the base theme, in the new folder. |
 | `profile` | string |  | Profile: resource aggregation profile of the theme, relative to its folder (for example profiles/profile_europesip.json). Default: the one of the base theme. |
+| `registration` | Base \| FilesOnly | `Base` | Registration: Base (default) registers the theme with XMLAccess as a copy of the base theme registration (with titles, profile, layout of this resource). FilesOnly uploads only the files to the WebDAV folder and leaves the registration to someone else: for a theme exported from another portal (DXExport parts.themes), whose own registration and skins go in with a DXXMLAccess of themes/theme-<name>.xml (keeping its object IDs and skins). |
 | `source` | object |  | Source: files added to (or replacing in) the copy of the base theme, at the same paths (for example css/my.css or images/logo.png). Optional. |
 | `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
 | `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
@@ -296,10 +310,13 @@ Short names: `dxdb`
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `adminSecret` | object (required) |  | AdminSecret: Secret with "username" and "password" of an administrator that can create users and databases (PostgreSQL: a superuser or CREATEROLE + CREATEDB; Oracle: CREATE USER and GRANT; SQL Server: sysadmin or dbcreator + securityadmin). In another namespace only if the operator may read it there (adminSecretNamespace). |
+| `adminSecret` | object |  | AdminSecret: deprecated, use dbAdminCredentialsSecret (same meaning; still accepted, with a warning). |
 | `adminSecret.name` | string (required) |  | Name of the object. |
-| `adminSecretNamespace` | string |  | AdminSecretNamespace: namespace of the admin Secret (default: the namespace of the resource). |
+| `adminSecretNamespace` | string |  | AdminSecretNamespace: deprecated, use dbAdminCredentialsSecretNamespace. |
 | `database` | string |  | Database name (default: the name of the resource, with "-" replaced by "_"). With Oracle it is the schema: a user with that name. |
+| `dbAdminCredentialsSecret` | object |  | DBAdminCredentialsSecret: Secret with "username" and "password" of an administrator of the database server that can create users and databases (PostgreSQL: a superuser or CREATEROLE + CREATEDB; Oracle: CREATE USER and GRANT; SQL Server: sysadmin or dbcreator + securityadmin). In another namespace only if the operator may read it there (dbAdminCredentialsSecretNamespace). Required (or the deprecated adminSecret). |
+| `dbAdminCredentialsSecret.name` | string (required) |  | Name of the object. |
+| `dbAdminCredentialsSecretNamespace` | string |  | DBAdminCredentialsSecretNamespace: namespace of that Secret (default: the namespace of the resource). |
 | `deletionPolicy` | Retain \| Delete | `Retain` | DeletionPolicy: Retain (default) keeps the database and the user when the resource is deleted; Delete drops them (the data is lost). |
 | `engine` | PostgreSQL \| Oracle \| SQLServer | `PostgreSQL` | Engine of the server: PostgreSQL (default), Oracle or SQLServer. |
 | `extensions` | []string |  | Extensions (PostgreSQL only) to create in the database, for example [pgcrypto, vector]. |
@@ -307,9 +324,10 @@ Short names: `dxdb`
 | `oracle` | object |  | Oracle settings (required with engine Oracle). |
 | `oracle.service` | string (required) |  | Service name of the pluggable database to connect to, for example FREEPDB1 or ORCLPDB1. |
 | `oracle.tablespace` | string | `USERS` | Tablespace for the quota of the user (default USERS). |
+| `outputSecretName` | string |  | OutputSecretName: the Secret the operator creates for the backend, with engine, username, password, host, port, database, uri and jdbcUrl. Default: <name>-db. |
 | `owner` | string |  | Owner: the user that owns the database and that the backend signs in with (default: the database name). With Oracle it is always the database (schema) name. |
 | `port` | integer |  | Port (default: 5432 PostgreSQL, 1521 Oracle, 1433 SQL Server). |
-| `secretName` | string |  | SecretName: Secret the operator writes for the backend, with engine, username, password, host, port, database, uri and jdbcUrl. Default: <name>-db. |
+| `secretName` | string |  | SecretName: deprecated, use outputSecretName (same meaning; still accepted, with a warning). |
 | `sqlServer` | object |  | SQLServer settings (engine SQLServer). |
 | `sqlServer.encrypt` | disable \| optional \| mandatory \| strict | `mandatory` | Encrypt (TLS of the connection): disable, optional, mandatory (default) or strict (TDS 8). |
 | `sqlServer.trustServerCertificate` | boolean |  | TrustServerCertificate: accept the certificate of the server without checking it (self-signed servers in labs). |
@@ -450,9 +468,11 @@ Short names: `dxwcmexport`
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `destination` | object (required) |  | Destination of the export. |
 | `destination.attributes` | object |  | Attributes: free key/value labels of the artifact, written as manifest annotations com.europesip.dx.attr.<key> next to the standard ones (docs/artifact-annotations.md), so artifacts can be listed and filtered by them later. Keys: lowercase letters, digits, dots and dashes (at most 63); values at most 256 characters. |
+| `destination.authors` | string |  | Authors: who exports it (annotations org.opencontainers.image.authors and com.europesip.dx.requested-by). Default: the annotation dx.europesip.com/changed-by of the resource. |
 | `destination.image` | string (required) |  | Image: reference of the artifact, for example harbor.example.com/project/wcm/orbita-20261119:1. It holds the zip of the export (wcm-export-<name>.zip) and EXPORT-INFO.txt, and DXWCMLibraryImport reads it as an image source. |
 | `destination.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with push rights on the repository. |
 | `destination.pushSecrets[].name` | string (required) |  | Name of the object. |
+| `destination.reason` | string |  | Reason: why it is exported (annotation com.europesip.dx.reason and EXPORT-INFO.txt). Default: the annotation dx.europesip.com/reason of the resource (Backstage writes it), then the attribute reason. |
 | `libraries` | []string (required) |  | Libraries: titles of the libraries to export (each one must exist). |
 | `suspend` | boolean |  | Suspend stops the reconciliation. |
 | `timeout` | string |  | Timeout of the export request of each library. Default 1h. |
@@ -502,15 +522,18 @@ Short names: `dxexport`
 | `dependsOn[].name` | string (required) |  | Name of the object, in the same namespace. |
 | `destination` | object (required) |  | Destination: the OCI artifact (the "DX bundle"), its push secrets and attributes. |
 | `destination.attributes` | object |  | Attributes: free key/value labels of the artifact, written as manifest annotations com.europesip.dx.attr.<key> next to the standard ones (docs/artifact-annotations.md), so artifacts can be listed and filtered by them later. Keys: lowercase letters, digits, dots and dashes (at most 63); values at most 256 characters. |
+| `destination.authors` | string |  | Authors: who exports it (annotations org.opencontainers.image.authors and com.europesip.dx.requested-by). Default: the annotation dx.europesip.com/changed-by of the resource. |
 | `destination.image` | string (required) |  | Image: reference of the artifact, for example harbor.example.com/project/wcm/orbita-20261119:1. It holds the zip of the export (wcm-export-<name>.zip) and EXPORT-INFO.txt, and DXWCMLibraryImport reads it as an image source. |
 | `destination.pushSecrets` | []object |  | PushSecrets: Secrets of type kubernetes.io/dockerconfigjson with push rights on the repository. |
 | `destination.pushSecrets[].name` | string (required) |  | Name of the object. |
+| `destination.reason` | string |  | Reason: why it is exported (annotation com.europesip.dx.reason and EXPORT-INFO.txt). Default: the annotation dx.europesip.com/reason of the resource (Backstage writes it), then the attribute reason. |
 | `parts` | object (required) |  | Parts of the bundle. |
 | `parts.libraries` | []string |  | Libraries: titles of WCM libraries to export with the WCM data module (wcm/wcm-export-<name>.zip, with Portal Site when portalSite is set). |
 | `parts.pages` | []object |  | Pages: XMLAccess export of these pages (layout, portlets, properties, access, friendly URLs, the WCM content mapping of managed pages), as one request importable into another portal (xmlaccess/01-pages.xml). |
 | `parts.pages[].descendants` | boolean | `True` | Descendants: also every page under it (export-descendants). Default true. |
 | `parts.pages[].uniqueName` | string (required) |  | UniqueName of the page in DX (for example orbita-site). |
 | `parts.portalSite` | boolean |  | PortalSite: also export the Portal Site library (the content of the managed pages), with the WCM data module. Imported after the pages. |
+| `parts.themes` | []string |  | Themes: unique names of themes to export: for each one its registration with its skins (XMLAccess, an update request: themes/theme-<name>.xml) and its WebDAV folder (themes/theme-<name>-webdav.zip). Imported first: the pages refer to their themes and skins. |
 | `suspend` | boolean |  | Suspend stops the reconciliation. |
 | `timeout` | string |  | Timeout of each export request to DX. Default 1h. |
 | `virtualPortal` | string |  | VirtualPortal: URL context of a virtual portal; empty for the base portal. |
@@ -547,6 +570,11 @@ Short names: `dxexport`
 | `pagesExported` | integer |  | PagesExported: content nodes in xmlaccess/01-pages.xml. |
 | `phase` | string |  | Phase: Pending, Exporting, Downloading, Pushing, Succeeded or Failed. |
 | `startTime` | string |  |  |
+| `themes` | []object |  | Themes exported: unique name, WebDAV folder, skins and number of files. |
+| `themes[].files` | integer |  | Files of the WebDAV folder. |
+| `themes[].folder` | string |  | Folder of the theme in the WebDAV store fs-type1/themes (empty: no static files there). |
+| `themes[].skins` | []string |  |  |
+| `themes[].uniqueName` | string (required) |  |  |
 | `totalBytes` | integer |  | TotalBytes: size of all the files of the bundle. |
 | `warnings` | []string |  | Warnings: what the target must already have (themes, skins, portlets) or may not import (see EXPORT-INFO.txt). |
 

@@ -5,6 +5,36 @@
 To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
 (0.3.0 renamed the resources: see its notes).
 
+## 0.11.0 · 2026-11-22 · DX Core (traditional DX 9.5 on WebSphere)
+
+- **Secret fields that say whose credentials they hold** (#45, docs/secret-fields.md): new `DXConnection.spec.portalCredentialsSecret`
+  and `tlsCASecret`, `DXDatabase.spec.dbAdminCredentialsSecret` (+ `dbAdminCredentialsSecretNamespace`) and `outputSecretName`.
+- **Deprecated** (still accepted, with a `DeprecatedField` warning event and a note in the `Ready` condition; removal
+  announced later): `credentialsSecret` → `portalCredentialsSecret`, `caSecret` → `tlsCASecret`, `adminSecret` →
+  `dbAdminCredentialsSecret`, `adminSecretNamespace` → `dbAdminCredentialsSecretNamespace`, `secretName` → `outputSecretName`.
+  Setting the new and the old name with different values is rejected by the API server.
+- **Artifact format, schema 2** (shared with DX Transfer Studio and Backstage, `docs/artifact-annotations.md`):
+  `com.europesip.dx.kind` is `wcm`, `site` or `xmlaccess` (`portal` reserved for whole-portal exports, never with
+  credentials); `source.server` is a short name (`DXConnection.spec.sourceName`, default the connection name) and the
+  URL goes to the new `source.url`; `source.virtual-portal` is written next to `source.portal`; `org.opencontainers.image.authors`
+  and `com.europesip.dx.reason` come from the new `spec.destination.authors` and `spec.destination.reason` (else the
+  annotations of the resource). Readers accept schema 1 and the guide v1.
+- **DX Core** (#44): `DXConnection.spec.runtime` (`compose` default, `core`) and `spec.dxConnect` (URL, `cwCredentialsSecret` for the Config Wizard
+  and `wasCredentialsSecret` for WebSphere, profile). On `core` the WCM library exports and imports go through **DXConnect** (the calls
+  of DXClient `wcm-library-export` / `wcm-library-import`), because DX Core has no `dxFileTransfer`; the operator turns
+  DXConnect's tar (one folder per library) into its usual zip and back, so exports move between DX Core and DX Compose.
+  `mode: ImportCopy` is refused on Core (import-wcm-data keeps the IDs).
+- **Context root** taken from `contentHandlerPath` everywhere (XMLAccess, page URLs): a traditional DX with an empty
+  context root works with `contentHandlerPath: /mycontenthandler`.
+- **`DXExport` `parts.themes`**: the registration of each theme with its own skins (`themes/theme-<name>.xml`, cleaned for
+  the import: empty-locale data and repeated skin locates removed) and its WebDAV folder (`themes/theme-<name>-webdav.zip`).
+  **Cloned portlets** (`$cloned`) used by the exported pages are defined in `xmlaccess/01-pages.xml`.
+- **`DXTheme` `registration: FilesOnly`**: upload only the WebDAV files (from the `-webdav.zip` of a bundle) and leave the
+  registration to a `DXXMLAccess` of the theme XML; files the target rejects with HTTP 400 are reported as an event.
+- **XMLAccess** honours the timeout of the resource (it was cut at 90 s, too short for a site import) and goes through
+  `internalURL` when set.
+- Docs *DX Core*, sample 15.
+
 ## 0.10.1 · 2026-11-19 · Imports of folders pushed with oras; virtual portals with LDAP
 
 - **Folders pushed with `oras push <ref> <folder>`** (#41) are unpacked as `oras pull` does (they were one level too

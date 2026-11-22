@@ -22,6 +22,19 @@ type DXExportPage struct {
 	Descendants *bool `json:"descendants,omitempty"`
 }
 
+// DXExportedTheme is a theme in the bundle.
+type DXExportedTheme struct {
+	UniqueName string `json:"uniqueName"`
+	// Folder of the theme in the WebDAV store fs-type1/themes (empty: no static files there).
+	// +optional
+	Folder string `json:"folder,omitempty"`
+	// +optional
+	Skins []string `json:"skins,omitempty"`
+	// Files of the WebDAV folder.
+	// +optional
+	Files int `json:"files,omitempty"`
+}
+
 // DXExportParts is what goes into the bundle. At least one part.
 type DXExportParts struct {
 	// Pages: XMLAccess export of these pages (layout, portlets, properties, access, friendly URLs, the WCM content
@@ -36,7 +49,11 @@ type DXExportParts struct {
 	// Site when portalSite is set).
 	// +optional
 	Libraries []string `json:"libraries,omitempty"`
-	// Theme: reserved for a later version (registration and WebDAV files of a theme).
+	// Themes: unique names of themes to export: for each one its registration with its skins (XMLAccess, an update
+	// request: themes/theme-<name>.xml) and its WebDAV folder (themes/theme-<name>-webdav.zip). Imported first: the
+	// pages refer to their themes and skins.
+	// +optional
+	Themes []string `json:"themes,omitempty"`
 }
 
 // DXExportSpec is what to export and where to.
@@ -99,6 +116,9 @@ type DXExportStatus struct {
 	// PagesExported: content nodes in xmlaccess/01-pages.xml.
 	// +optional
 	PagesExported int `json:"pagesExported,omitempty"`
+	// Themes exported: unique name, WebDAV folder, skins and number of files.
+	// +optional
+	Themes []DXExportedTheme `json:"themes,omitempty"`
 	// ExportedLibraries: the WCM libraries in the bundle (Portal Site included), with their size.
 	// +optional
 	ExportedLibraries []WCMExportedLibrary `json:"exportedLibraries,omitempty"`

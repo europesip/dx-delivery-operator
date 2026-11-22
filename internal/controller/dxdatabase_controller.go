@@ -44,7 +44,7 @@ func target(d *dxv1.DXDatabase) (db.Target, string, error) {
 	if d.Spec.SQLServer != nil {
 		t.Encrypt, t.TrustCert = d.Spec.SQLServer.Encrypt, d.Spec.SQLServer.TrustServerCertificate
 	}
-	secret := d.Spec.SecretName
+	secret := d.Spec.Output()
 	if secret == "" {
 		secret = d.Name + "-db"
 	}
@@ -53,13 +53,16 @@ func target(d *dxv1.DXDatabase) (db.Target, string, error) {
 }
 
 func (r *DXDatabaseReconciler) admin(ctx context.Context, d *dxv1.DXDatabase) (db.Admin, error) {
-	ns := d.Spec.AdminSecretNamespace
+	name, ns := d.Spec.DBAdminSecret()
 	if ns == "" {
 		ns = d.Namespace
 	}
+	if name == "" {
+		return db.Admin{}, notReady("spec.dbAdminCredentialsSecret is not set")
+	}
 	var s corev1.Secret
-	if err := r.Get(ctx, client.ObjectKey{Namespace: ns, Name: d.Spec.AdminSecret.Name}, &s); err != nil {
-		return db.Admin{}, notReady("admin secret %s/%s: %v", ns, d.Spec.AdminSecret.Name, err)
+	if err := r.Get(ctx, client.ObjectKey{Namespace: ns, Name: name}, &s); err != nil {
+		return db.Admin{}, notReady("database admin secret %s/%s: %v", ns, name, err)
 	}
 	return db.Admin{Username: string(s.Data["username"]), Password: string(s.Data["password"])}, nil
 }
@@ -96,7 +99,17 @@ func (r *DXDatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	orig := d.DeepCopy()
 	gen := d.Generation
+	var depNote string
+	if dep := d.Spec.DeprecatedFields(); len(dep) > 0 {
+		depNote = "deprecated fields in use (still accepted, rename them): " + strings.Join(dep, ", ")
+		if was := findCond(d.Status.Conditions); d.Status.ObservedGeneration != gen || was == nil || !strings.Contains(was.Message, "deprecated fields") {
+			r.Recorder.Eventf(&d, nil, corev1.EventTypeWarning, "DeprecatedField", "Reconcile", "%s", depNote)
+		}
+	}
 	result := func(ok bool, reason, msg string, after time.Duration) (ctrl.Result, error) {
+		if depNote != "" {
+			msg += "; " + depNote
+		}
 		setCondition(&d.Status.Conditions, gen, dxv1.ConditionReady, ok, reason, msg)
 		if !ok && reason != "Waiting" {
 			r.Recorder.Eventf(&d, nil, corev1.EventTypeWarning, reason, "Reconcile", "%s", msg)

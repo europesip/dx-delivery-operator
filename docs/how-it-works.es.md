@@ -103,7 +103,7 @@ Las escrituras en el status son merge patches, así que dos pasadas simultáneas
 
 ### DXDatabase
 
-- Un Secret `<nombre>-db` (o `secretName`) con los datos de conexión; la contraseña se genera una vez y se
+- Un Secret `<nombre>-db` (o `outputSecretName`) con los datos de conexión; la contraseña se genera una vez y se
   conserva, y el Secret pertenece al recurso.
 - Con el Secret del administrador, según el motor (se revisa cada 30 minutos):
   - **PostgreSQL**: crear o modificar el rol (login, contraseña), crear la base de datos con ese propietario si falta

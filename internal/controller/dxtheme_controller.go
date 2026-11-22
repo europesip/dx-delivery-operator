@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ import (
 
 	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
 	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
+	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
 )
 
 // DXThemeReconciler keeps DX themes: a copy of a base theme with the files of a source, uploaded over WebDAV and
@@ -158,7 +160,8 @@ func (r *DXThemeReconciler) reconcile(ctx context.Context, t *dxv1.DXTheme) (ctr
 		F, U, BF, BU, H, D, P, L string
 		C                        bool
 		T                        map[string]string
-	}{folder, un, baseFolder, baseUN, t.Spec.HeadHTML, t.Spec.Description, t.Spec.Profile, t.Spec.Layout, copyBase, t.Spec.Titles})
+		R                        string
+	}{folder, un, baseFolder, baseUN, t.Spec.HeadHTML, t.Spec.Description, t.Spec.Profile, t.Spec.Layout, copyBase, t.Spec.Titles, t.Spec.Registration})
 	hash := hashOf(string(spec), rev, forceToken(t))
 
 	// What is in DX: the registration (and its dxop.hash) and the WebDAV folder
@@ -176,7 +179,11 @@ func (r *DXThemeReconciler) reconcile(ctx context.Context, t *dxv1.DXTheme) (ctr
 	}
 	// The hash kept in DX is what counts: a reconcile that still sees the old object (empty status) after the theme was
 	// just registered must not upload it again.
+	filesOnly := t.Spec.Registration == "FilesOnly"
 	inSync := exp.Exists && hasFolder && exp.Hash == hash
+	if filesOnly { // no dxop.hash in DX: the registration is not ours; the files are checked by the folder and the status
+		inSync = hasFolder && t.Status.AppliedHash == hash
+	}
 	reason, drift := "Created", ""
 	switch {
 	case inSync:
@@ -184,6 +191,10 @@ func (r *DXThemeReconciler) reconcile(ctx context.Context, t *dxv1.DXTheme) (ctr
 		setCondition(&t.Status.Conditions, gen, dxv1.ConditionReady, true, "InSync", fmt.Sprintf("theme %s is in DX (dav:fs-type1/themes/%s/)", un, folder))
 		t.Status.UniqueName, t.Status.AppliedHash = un, hash
 		return ctrl.Result{RequeueAfter: conn.Resync()}, nil
+	case filesOnly && t.Status.AppliedHash != "" && !hasFolder:
+		drift, reason = "the WebDAV folder of the theme was deleted in DX", "Restored"
+	case filesOnly && t.Status.AppliedHash != "":
+		reason = "Updated"
 	case t.Status.AppliedHash != "" && (!exp.Exists || !hasFolder):
 		drift = "the theme was deleted in DX"
 		if exp.Exists {
@@ -216,7 +227,12 @@ func (r *DXThemeReconciler) reconcile(ctx context.Context, t *dxv1.DXTheme) (ctr
 		}
 	}
 	if srcDir != "" {
-		if err := copyTree(srcDir, work); err != nil {
+		// a bundle of DXExport (parts.themes) carries the WebDAV folder as themes/theme-<name>-webdav.zip: unpack it
+		if z := webdavZip(srcDir, un); z != "" {
+			if _, err := source.ExtractArchive(z, work); err != nil {
+				return fail("SourceError", fmt.Errorf("unpack %s: %w", filepath.Base(z), err), retryFailed)
+			}
+		} else if err := copyTree(srcDir, work); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -231,8 +247,25 @@ func (r *DXThemeReconciler) reconcile(ctx context.Context, t *dxv1.DXTheme) (ctr
 	}
 	// 2. Upload, then register (copy of the base registration)
 	files, err := conn.Client.UploadTheme(ctx, folder, work)
+	var rej *dx.RejectedFilesError
+	if errors.As(err, &rej) && filesOnly {
+		// a theme of another DX: the files this DX does not accept are reported, the theme goes on
+		r.Recorder.Eventf(t, nil, corev1.EventTypeWarning, "FilesRejected", "Apply", "theme %s: %v", un, err)
+		err = nil
+	}
 	if err != nil {
 		return fail("UploadFailed", err, retryFailed)
+	}
+	if filesOnly {
+		t.Status.UniqueName, t.Status.AppliedHash, t.Status.SourceRevision, t.Status.Files, t.Status.LastApplyTime = un, hash, rev, files, now()
+		r.Recorder.Eventf(t, nil, corev1.EventTypeNormal, reason, "Apply", "theme %s: %d files in dav:fs-type1/themes/%s/ (registration: FilesOnly)", un, files, folder)
+		msg := fmt.Sprintf("files of theme %s are in DX (dav:fs-type1/themes/%s/); registration FilesOnly", un, folder)
+		if !exp.Exists {
+			msg += ": the theme is not registered yet (run the DXXMLAccess of its registration)"
+		}
+		setCondition(&t.Status.Conditions, gen, dxv1.ConditionDrifted, false, "InSync", "DX matches the resource")
+		setCondition(&t.Status.Conditions, gen, dxv1.ConditionReady, true, reason, msg)
+		return ctrl.Result{RequeueAfter: conn.Resync()}, nil
 	}
 	baseOut, err := conn.Client.XMLAccess(ctx, dx.ThemeExportXML(baseUN))
 	if err != nil {
@@ -307,4 +340,26 @@ func (r *DXThemeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&dxv1.DXConnection{}, m("DXConnection")).
 		Named("dxtheme").
 		Complete(r)
+}
+
+// webdavZip finds the WebDAV folder of a theme in a DXExport bundle: themes/theme-<name>-webdav.zip. With several
+// themes in the bundle, the one of this unique name (custom.portal.theme.<name>); "" when the source is not a bundle.
+func webdavZip(dir, uniqueName string) string {
+	var found []string
+	_ = filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && strings.HasSuffix(d.Name(), "-webdav.zip") {
+			found = append(found, p)
+		}
+		return nil
+	})
+	if len(found) == 1 {
+		return found[0]
+	}
+	want := "theme-" + unsafeChars.ReplaceAllString(strings.ToLower(strings.TrimPrefix(uniqueName, "custom.portal.theme.")), "-") + "-webdav.zip"
+	for _, f := range found {
+		if filepath.Base(f) == want {
+			return f
+		}
+	}
+	return ""
 }

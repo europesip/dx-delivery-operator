@@ -74,8 +74,12 @@ func (c *Connection) Resync() time.Duration {
 // ConnectionConfig reads a DXConnection and its Secrets into a dx.Config.
 func ConnectionConfig(ctx context.Context, c client.Client, conn *dxv1.DXConnection) (dx.Config, string, error) {
 	var cred corev1.Secret
-	if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Spec.CredentialsSecret.Name}, &cred); err != nil {
-		return dx.Config{}, "", fmt.Errorf("credentials secret %s: %w", conn.Spec.CredentialsSecret.Name, err)
+	credName := conn.Spec.PortalCredentials()
+	if credName == "" {
+		return dx.Config{}, "", fmt.Errorf("spec.portalCredentialsSecret is not set")
+	}
+	if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: credName}, &cred); err != nil {
+		return dx.Config{}, "", fmt.Errorf("portal credentials secret %s: %w", credName, err)
 	}
 	user, pass := string(cred.Data["username"]), string(cred.Data["password"])
 	if user == "" || pass == "" {
@@ -85,10 +89,44 @@ func ConnectionConfig(ctx context.Context, c client.Client, conn *dxv1.DXConnect
 		Insecure: conn.Spec.InsecureSkipTLSVerify, ContentHandlerPath: conn.Spec.ContentHandlerPath,
 		VirtualPortalContext: conn.Spec.VirtualPortalContext}
 	fp := conn.Spec.URL + "|" + conn.Spec.InternalURL + "|" + cred.ResourceVersion + "|" + fmt.Sprint(conn.Spec.InsecureSkipTLSVerify) + "|" + conn.Spec.ContentHandlerPath
-	if conn.Spec.CASecret != nil {
+	cfg.Runtime = conn.Spec.Runtime
+	if cfg.Runtime == "" {
+		cfg.Runtime = "compose"
+	}
+	if cfg.Runtime == "core" {
+		d := dx.DXConnectConfig{URL: strings.TrimRight(conn.Spec.URL, "/"), Username: user, Password: pass, WASUsername: user, WASPassword: pass, ProfileName: "wp_profile"}
+		if s := conn.Spec.DXConnect; s != nil {
+			if s.URL != "" {
+				d.URL = strings.TrimRight(s.URL, "/")
+			}
+			if s.ProfileName != "" {
+				d.ProfileName = s.ProfileName
+			}
+			for _, ref := range []struct {
+				sec        *dxv1.LocalObjectReference
+				user, pass *string
+			}{{s.CWCredentialsSecret, &d.Username, &d.Password}, {s.WASCredentialsSecret, &d.WASUsername, &d.WASPassword}} {
+				if ref.sec == nil {
+					continue
+				}
+				var sc corev1.Secret
+				if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: ref.sec.Name}, &sc); err != nil {
+					return dx.Config{}, "", fmt.Errorf("DXConnect secret %s: %w", ref.sec.Name, err)
+				}
+				*ref.user, *ref.pass = string(sc.Data["username"]), string(sc.Data["password"])
+				if *ref.user == "" || *ref.pass == "" {
+					return dx.Config{}, "", fmt.Errorf("DXConnect secret %s needs the keys username and password", sc.Name)
+				}
+				fp += "|" + sc.ResourceVersion
+			}
+		}
+		cfg.DXConnect = d
+		fp += "|core|" + d.URL + "|" + d.ProfileName
+	}
+	if caRef := conn.Spec.TLSCA(); caRef != nil {
 		var ca corev1.Secret
-		if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Spec.CASecret.Name}, &ca); err != nil {
-			return dx.Config{}, "", fmt.Errorf("CA secret %s: %w", conn.Spec.CASecret.Name, err)
+		if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: caRef.Name}, &ca); err != nil {
+			return dx.Config{}, "", fmt.Errorf("TLS CA secret %s: %w", caRef.Name, err)
 		}
 		cfg.CAPEM = ca.Data["ca.crt"]
 		if len(cfg.CAPEM) == 0 {
@@ -300,4 +338,25 @@ func mapReferrers[L client.ObjectList](c client.Client, newList func() L, refs f
 		}
 		return out
 	}
+}
+
+// sourceNameOf is the short name of a DX in its artifacts: spec.sourceName of the DXConnection, else its name.
+func sourceNameOf(conn *Connection) string {
+	if conn == nil || conn.Object == nil {
+		return ""
+	}
+	if n := strings.TrimSpace(conn.Object.Spec.SourceName); n != "" {
+		return n
+	}
+	return conn.Object.Name
+}
+
+// firstNonEmpty returns the first value that is not blank.
+func firstNonEmpty(v ...string) string {
+	for _, x := range v {
+		if x = strings.TrimSpace(x); x != "" {
+			return x
+		}
+	}
+	return ""
 }

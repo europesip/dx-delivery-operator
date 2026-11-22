@@ -20,6 +20,9 @@ spec:
     - jsonPath: .spec.url
       name: URL
       type: string
+    - jsonPath: .spec.runtime
+      name: Runtime
+      type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
@@ -57,8 +60,8 @@ spec:
             description: DXConnectionSpec is how the operator reaches an HCL DX server.
             properties:
               caSecret:
-                description: 'CASecret: Secret with the key "ca.crt", for a self-signed
-                  certificate or a private CA.'
+                description: 'CASecret: deprecated, use tlsCASecret (same meaning;
+                  still accepted, with a warning).'
                 properties:
                   name:
                     description: Name of the object.
@@ -69,12 +72,13 @@ spec:
                 type: object
               contentHandlerPath:
                 default: /wps/mycontenthandler
-                description: ContentHandlerPath of DX (default /wps/mycontenthandler).
+                description: |-
+                  ContentHandlerPath of DX (default /wps/mycontenthandler). It also sets the context root: /mycontenthandler for a
+                  traditional DX installed with an empty context root (XMLAccess at /config, the login at /j_security_check).
                 type: string
               credentialsSecret:
-                description: |-
-                  CredentialsSecret: Secret with the keys "username" and "password" of a DX user. Script Applications
-                  need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator.
+                description: 'CredentialsSecret: deprecated, use portalCredentialsSecret
+                  (same meaning; still accepted, with a warning).'
                 properties:
                   name:
                     description: Name of the object.
@@ -82,6 +86,47 @@ spec:
                     type: string
                 required:
                 - name
+                type: object
+              dxConnect:
+                description: |-
+                  DXConnect of DX Core (runtime core): the servlet of the Config Wizard profile that DXClient uses, for the WCM
+                  library exports and imports. Default: url, the credentials of credentialsSecret and profile wp_profile.
+                properties:
+                  cwCredentialsSecret:
+                    description: |-
+                      CWCredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"), named like
+                      wasCredentialsSecret so that each Secret says whose it is. Default: the credentials of the connection.
+                    properties:
+                      name:
+                        description: Name of the object.
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  profileName:
+                    default: wp_profile
+                    description: ProfileName of the DX profile on the server (default
+                      wp_profile).
+                    type: string
+                  url:
+                    description: |-
+                      URL of DXConnect: https://<host> in Kubernetes (HAProxy routes /hcl/dxconnect to the core pod) or
+                      https://<host>:10202 on a VM. Default: spec.url.
+                    pattern: ^https?://[^/]+/?$
+                    type: string
+                  wasCredentialsSecret:
+                    description: |-
+                      WASCredentialsSecret of the WebSphere administrator ("username", "password"). Default: the credentials of the
+                      connection.
+                    properties:
+                      name:
+                        description: Name of the object.
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    type: object
                 type: object
               insecureSkipTLSVerify:
                 description: 'InsecureSkipTLSVerify: do not verify the certificate
@@ -95,12 +140,55 @@ spec:
                   (a cut import goes on inside DX and the next one would run at the same time); everything else uses url.
                 pattern: ^https?://[^/]+/?$
                 type: string
+              portalCredentialsSecret:
+                description: |-
+                  PortalCredentialsSecret: Secret with the keys "username" and "password" of the DX portal user the operator
+                  signs in with (XMLAccess, WCM, DAM, DXClient). Script Applications need Editor access to the Script Application
+                  Library; pages (XMLAccess) and DAM need a DX administrator. Required (or the deprecated credentialsSecret).
+                properties:
+                  name:
+                    description: Name of the object.
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
               resyncInterval:
                 default: 10m
                 description: |-
                   ResyncInterval: how often every resource that uses this connection is checked against DX, to detect
                   and correct drift (default 10m, minimum 1m).
                 type: string
+              runtime:
+                default: compose
+                description: |-
+                  Runtime of the DX server: compose (the Web Engine of DX Compose, default) or core (DX Core, the traditional
+                  DX 9.5 on WebSphere Application Server). On core the WCM libraries go through DXConnect (spec.dxConnect), because
+                  DX Core has no dxFileTransfer.
+                enum:
+                - compose
+                - core
+                type: string
+              sourceName:
+                description: |-
+                  SourceName: short name of this DX in the artifacts it exports (annotation com.europesip.dx.source.server and
+                  EXPORT-INFO.txt), for example wps01 or cf230; the URL goes to com.europesip.dx.source.url. Default: the name of
+                  the DXConnection. A name, not a host: internal IPs and host names are not published as the "server".
+                maxLength: 63
+                pattern: ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$
+                type: string
+              tlsCASecret:
+                description: |-
+                  TLSCASecret: Secret with the key "ca.crt" to verify the TLS certificate of DX (a self-signed certificate or a
+                  private CA).
+                properties:
+                  name:
+                    description: Name of the object.
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
               url:
                 description: URL of DX as the operator reaches it, for example https://dx.example.com
                   (normally the public host).
@@ -111,9 +199,20 @@ spec:
                   this virtual portal.'
                 type: string
             required:
-            - credentialsSecret
             - url
             type: object
+            x-kubernetes-validations:
+            - message: set portalCredentialsSecret (credentialsSecret is its deprecated
+                name)
+              rule: has(self.portalCredentialsSecret) || has(self.credentialsSecret)
+            - message: 'portalCredentialsSecret and the deprecated credentialsSecret
+                name different Secrets: set only portalCredentialsSecret'
+              rule: '!has(self.portalCredentialsSecret) || !has(self.credentialsSecret)
+                || self.portalCredentialsSecret.name == self.credentialsSecret.name'
+            - message: 'tlsCASecret and the deprecated caSecret name different Secrets:
+                set only tlsCASecret'
+              rule: '!has(self.tlsCASecret) || !has(self.caSecret) || self.tlsCASecret.name
+                == self.caSecret.name'
           status:
             description: DXConnectionStatus is the last check of the connection.
             properties:

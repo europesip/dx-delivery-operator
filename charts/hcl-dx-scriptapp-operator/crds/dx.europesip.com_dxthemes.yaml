@@ -164,6 +164,17 @@ spec:
                   Profile: resource aggregation profile of the theme, relative to its folder (for example
                   profiles/profile_europesip.json). Default: the one of the base theme.
                 type: string
+              registration:
+                default: Base
+                description: |-
+                  Registration: Base (default) registers the theme with XMLAccess as a copy of the base theme registration (with
+                  titles, profile, layout of this resource). FilesOnly uploads only the files to the WebDAV folder and leaves the
+                  registration to someone else: for a theme exported from another portal (DXExport parts.themes), whose own
+                  registration and skins go in with a DXXMLAccess of themes/theme-<name>.xml (keeping its object IDs and skins).
+                enum:
+                - Base
+                - FilesOnly
+                type: string
               source:
                 description: |-
                   Source: files added to (or replacing in) the copy of the base theme, at the same paths (for example
