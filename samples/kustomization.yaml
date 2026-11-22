@@ -14,6 +14,6 @@ resources:
   - 08-page/page.yaml
   - 09-theme/theme.yaml
   - 11-xmlaccess/xmlaccess.yaml
-  # 10-wcm-library-import, 12-wcm-library-export, 13-dx-export and 14-wcm-admin-task are not listed: they need a WCM library export or
+  # 10-wcm-library-import, 12-wcm-library-export, 13-dx-export, 14-wcm-admin-task and 15-dx-core are not listed: they need a WCM library export or
   # libraries, pages
   # and a registry of your own (see their comments)

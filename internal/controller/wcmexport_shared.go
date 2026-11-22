@@ -62,10 +62,37 @@ type wcmExportJob struct {
 
 // run exports, downloads and checks: the size of the zip and the libraries found in it (sorted by title).
 func (j wcmExportJob) run(ctx context.Context) (int64, []dxv1.WCMExportedLibrary, error) {
+	n, err := j.fetch(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
+	return j.check(ctx, n)
+}
+
+// fetch exports the libraries and downloads them into ZipPath: through DXConnect on DX Core (one request for every
+// library), with the WCM data module and dxFileTransfer on DX Compose.
+func (j wcmExportJob) fetch(ctx context.Context) (int64, error) {
 	c := j.Client
+	if c.UsesDXConnect() {
+		if j.OnLibrary != nil {
+			j.OnLibrary(1, 1, strings.Join(j.Titles, ", ")+" (DXConnect, DX Core)")
+		}
+		tarPath := j.ZipPath + ".dxconnect.tar"
+		defer os.Remove(tarPath) //nolint:errcheck
+		if _, err := c.DXConnectExportLibraries(ctx, j.VP, j.Titles, tarPath, j.Timeout); err != nil {
+			if strings.Contains(err.Error(), "HTTP 4") || strings.Contains(err.Error(), "HTTP 5") || strings.Contains(err.Error(), "without a path") || strings.Contains(err.Error(), "DXConnect did not answer") {
+				return 0, fatal(reasonExportFailed, "%v", err)
+			}
+			return 0, err
+		}
+		if j.OnDownload != nil {
+			j.OnDownload()
+		}
+		return dxConnectToZip(ctx, tarPath, j.ZipPath)
+	}
 	_ = c.FileTransferDeleteDir(ctx, j.Sub) // leftovers of a run that was cut
 	if err := c.FileTransferCreateDir(ctx, j.Sub); err != nil {
-		return 0, nil, fmt.Errorf("dxFileTransfer: %w", err)
+		return 0, fmt.Errorf("dxFileTransfer: %w", err)
 	}
 	defer func() {
 		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Minute)
@@ -76,25 +103,95 @@ func (j wcmExportJob) run(ctx context.Context) (int64, []dxv1.WCMExportedLibrary
 	}()
 	for i, t := range j.Titles {
 		if ctx.Err() != nil {
-			return 0, nil, ctx.Err()
+			return 0, ctx.Err()
 		}
 		if j.OnLibrary != nil {
 			j.OnLibrary(i+1, len(j.Titles), t)
 		}
 		if _, err := c.DataModuleExport(ctx, j.VP, t, dx.FileTransferRoot+"/"+j.Sub, j.Timeout); err != nil {
 			if errors.Is(err, dx.ErrCutByProxy) || strings.Contains(err.Error(), "DX export failed") {
-				return 0, nil, fatal(reasonExportFailed, "library %s: %v", t, err)
+				return 0, fatal(reasonExportFailed, "library %s: %v", t, err)
 			}
-			return 0, nil, fmt.Errorf("library %s: %w", t, err)
+			return 0, fmt.Errorf("library %s: %w", t, err)
 		}
 	}
 	if j.OnDownload != nil {
 		j.OnDownload()
 	}
-	n, err := c.FileTransferDownload(ctx, j.Sub, j.ZipPath)
-	if err != nil {
-		return 0, nil, err
+	return c.FileTransferDownload(ctx, j.Sub, j.ZipPath)
+}
+
+// dxConnectToZip turns the archive of DXConnect (a tar, WCM_Library-<time>/<library>/<JCR export>, one folder per
+// library) into the zip of the operator: one JCR export (554ee7f5/423dc4e4/<library>...) at the root of the zip, the
+// format of the WCM data module and of export-wcm-data with several libraries.
+func dxConnectToZip(ctx context.Context, tarPath, zipPath string) (int64, error) {
+	raw := zipPath + ".raw"
+	merged := zipPath + ".merged"
+	defer os.RemoveAll(raw)    //nolint:errcheck
+	defer os.RemoveAll(merged) //nolint:errcheck
+	if _, err := source.ExtractArchiveProgressContext(ctx, tarPath, raw, nil); err != nil {
+		return 0, fatal(reasonExportFailed, "the archive of DXConnect cannot be read: %v", err)
 	}
+	tops, err := os.ReadDir(raw)
+	if err != nil {
+		return 0, err
+	}
+	libs := 0
+	for _, t := range tops {
+		if !t.IsDir() {
+			continue
+		}
+		inner, err := os.ReadDir(filepath.Join(raw, t.Name()))
+		if err != nil {
+			return 0, err
+		}
+		for _, l := range inner {
+			if l.IsDir() {
+				if err := dx.MergeTree(filepath.Join(raw, t.Name(), l.Name()), merged); err != nil {
+					return 0, err
+				}
+				libs++
+			}
+		}
+	}
+	if libs == 0 {
+		return 0, fatal(reasonExportFailed, "the archive of DXConnect has no library folder")
+	}
+	if _, err := dx.ZipDir(merged, zipPath); err != nil {
+		return 0, err
+	}
+	fi, err := os.Stat(zipPath)
+	if err != nil {
+		return 0, err
+	}
+	return fi.Size(), nil
+}
+
+// dxConnectTar packs libraries of an export for DXConnect import-wcm-data: WCM_Library-<time>/<library>/<JCR export>,
+// one folder per library, as a plain tar named .tar.gz (the form DXConnect itself exports).
+func dxConnectTar(exp *wcmexport.Export, libs []wcmexport.Library, work string) (string, error) {
+	stamp := time.Now().UTC().Format("02012006150405")
+	stage := filepath.Join(work, "dxconnect-stage")
+	_ = os.RemoveAll(stage)
+	defer os.RemoveAll(stage) //nolint:errcheck
+	for i, l := range libs {
+		z := filepath.Join(work, fmt.Sprintf("dxconnect-lib-%02d.zip", i))
+		if _, err := exp.WriteZip([]wcmexport.Library{l}, z); err != nil {
+			return "", err
+		}
+		dir := filepath.Join(stage, "WCM_Library-"+stamp, strings.ToLower(unsafeChars.ReplaceAllString(l.Title, "-")))
+		_, err := source.ExtractArchive(z, dir)
+		_ = os.Remove(z)
+		if err != nil {
+			return "", err
+		}
+	}
+	out := filepath.Join(work, "WCM_Library-"+stamp+".tar.gz")
+	return out, dx.TarDir(stage, out)
+}
+
+// check reads the downloaded zip: the libraries found in it (sorted by title).
+func (j wcmExportJob) check(ctx context.Context, n int64) (int64, []dxv1.WCMExportedLibrary, error) {
 	unpacked := j.ZipPath + ".check"
 	defer os.RemoveAll(unpacked) //nolint:errcheck
 	if _, err := source.ExtractArchiveProgressContext(ctx, j.ZipPath, unpacked, nil); err != nil {

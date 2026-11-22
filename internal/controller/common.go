@@ -85,6 +85,40 @@ func ConnectionConfig(ctx context.Context, c client.Client, conn *dxv1.DXConnect
 		Insecure: conn.Spec.InsecureSkipTLSVerify, ContentHandlerPath: conn.Spec.ContentHandlerPath,
 		VirtualPortalContext: conn.Spec.VirtualPortalContext}
 	fp := conn.Spec.URL + "|" + conn.Spec.InternalURL + "|" + cred.ResourceVersion + "|" + fmt.Sprint(conn.Spec.InsecureSkipTLSVerify) + "|" + conn.Spec.ContentHandlerPath
+	cfg.Runtime = conn.Spec.Runtime
+	if cfg.Runtime == "" {
+		cfg.Runtime = "compose"
+	}
+	if cfg.Runtime == "core" {
+		d := dx.DXConnectConfig{URL: strings.TrimRight(conn.Spec.URL, "/"), Username: user, Password: pass, WASUsername: user, WASPassword: pass, ProfileName: "wp_profile"}
+		if s := conn.Spec.DXConnect; s != nil {
+			if s.URL != "" {
+				d.URL = strings.TrimRight(s.URL, "/")
+			}
+			if s.ProfileName != "" {
+				d.ProfileName = s.ProfileName
+			}
+			for _, ref := range []struct {
+				sec        *dxv1.LocalObjectReference
+				user, pass *string
+			}{{s.CredentialsSecret, &d.Username, &d.Password}, {s.WASCredentialsSecret, &d.WASUsername, &d.WASPassword}} {
+				if ref.sec == nil {
+					continue
+				}
+				var sc corev1.Secret
+				if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: ref.sec.Name}, &sc); err != nil {
+					return dx.Config{}, "", fmt.Errorf("DXConnect secret %s: %w", ref.sec.Name, err)
+				}
+				*ref.user, *ref.pass = string(sc.Data["username"]), string(sc.Data["password"])
+				if *ref.user == "" || *ref.pass == "" {
+					return dx.Config{}, "", fmt.Errorf("DXConnect secret %s needs the keys username and password", sc.Name)
+				}
+				fp += "|" + sc.ResourceVersion
+			}
+		}
+		cfg.DXConnect = d
+		fp += "|core|" + d.URL + "|" + d.ProfileName
+	}
 	if conn.Spec.CASecret != nil {
 		var ca corev1.Secret
 		if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Spec.CASecret.Name}, &ca); err != nil {

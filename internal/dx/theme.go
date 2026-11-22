@@ -179,6 +179,20 @@ func (c *Client) DownloadTheme(ctx context.Context, folder, dir string) (int, er
 	return len(files), firstErr
 }
 
+// RejectedFilesError: DX answered 400 to these files of a theme upload (the others were uploaded).
+type RejectedFilesError struct{ Files []string }
+
+func (e *RejectedFilesError) Error() string {
+	return fmt.Sprintf("DX rejected %d file(s) of the theme with HTTP 400: %s", len(e.Files), strings.Join(firstN(e.Files, 10), ", "))
+}
+
+func firstN(s []string, n int) []string {
+	if len(s) > n {
+		return append(append([]string{}, s[:n]...), "...")
+	}
+	return s
+}
+
 // UploadTheme uploads every file under dir to the WebDAV folder (creating the folders). It does not delete files that
 // are in DX and not in dir.
 func (c *Client) UploadTheme(ctx context.Context, folder, dir string) (int, error) {
@@ -223,6 +237,7 @@ func (c *Client) UploadTheme(ctx context.Context, folder, dir string) (int, erro
 	}
 	var mu sync.Mutex
 	var firstErr error
+	var rejected []string
 	work := make(chan string)
 	var wg sync.WaitGroup
 	for w := 0; w < 8; w++ {
@@ -234,6 +249,14 @@ func (c *Client) UploadTheme(ctx context.Context, folder, dir string) (int, erro
 				var st int
 				if err == nil {
 					st, _, err = c.dav(ctx, http.MethodPut, root+"/"+f, data, map[string]string{"Content-Type": "application/octet-stream"})
+				}
+				if err == nil && st == http.StatusBadRequest {
+					// DX rejects some files of a theme of another DX (for example a resource aggregation profile whose
+					// modules this DX lacks): the rest still goes in, and the caller gets the list
+					mu.Lock()
+					rejected = append(rejected, f)
+					mu.Unlock()
+					continue
 				}
 				if err == nil && st >= 300 {
 					err = fmt.Errorf("WebDAV PUT %s answered HTTP %d", f, st)
@@ -253,6 +276,10 @@ func (c *Client) UploadTheme(ctx context.Context, folder, dir string) (int, erro
 	}
 	close(work)
 	wg.Wait()
+	if firstErr == nil && len(rejected) > 0 {
+		sort.Strings(rejected)
+		return len(files) - len(rejected), &RejectedFilesError{Files: rejected}
+	}
 	return len(files), firstErr
 }
 

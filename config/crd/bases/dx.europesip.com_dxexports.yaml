@@ -185,6 +185,14 @@ spec:
                       PortalSite: also export the Portal Site library (the content of the managed pages), with the WCM data module.
                       Imported after the pages.
                     type: boolean
+                  themes:
+                    description: |-
+                      Themes: unique names of themes to export: for each one its registration with its skins (XMLAccess, an update
+                      request: themes/theme-<name>.xml) and its WebDAV folder (themes/theme-<name>-webdav.zip). Imported first: the
+                      pages refer to their themes and skins.
+                    items:
+                      type: string
+                    type: array
                 type: object
               suspend:
                 description: Suspend stops the reconciliation.
@@ -344,6 +352,29 @@ spec:
               startTime:
                 format: date-time
                 type: string
+              themes:
+                description: 'Themes exported: unique name, WebDAV folder, skins and
+                  number of files.'
+                items:
+                  description: DXExportedTheme is a theme in the bundle.
+                  properties:
+                    files:
+                      description: Files of the WebDAV folder.
+                      type: integer
+                    folder:
+                      description: 'Folder of the theme in the WebDAV store fs-type1/themes
+                        (empty: no static files there).'
+                      type: string
+                    skins:
+                      items:
+                        type: string
+                      type: array
+                    uniqueName:
+                      type: string
+                  required:
+                  - uniqueName
+                  type: object
+                type: array
               totalBytes:
                 description: 'TotalBytes: size of all the files of the bundle.'
                 format: int64

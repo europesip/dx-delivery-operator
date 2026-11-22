@@ -5,6 +5,25 @@
 Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <versión> --reuse-values`
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## Sin publicar · DX Core (DX 9.5 tradicional sobre WebSphere)
+
+- **DX Core** (#44): `DXConnection.spec.runtime` (`compose` por defecto, `core`) y `spec.dxConnect` (URL, credenciales
+  del Config Wizard y de WebSphere, perfil). Con `core`, las exportaciones e importaciones de librerías WCM van por
+  **DXConnect** (las llamadas de DXClient `wcm-library-export` / `wcm-library-import`), porque DX Core no tiene
+  `dxFileTransfer`; el operador convierte el tar de DXConnect (una carpeta por librería) en su zip habitual y al revés,
+  así lo exportado pasa entre DX Core y DX Compose. `mode: ImportCopy` se rechaza en Core (import-wcm-data conserva IDs).
+- **Raíz de contexto** sacada de `contentHandlerPath` en todo (XMLAccess, URL de páginas): un DX tradicional con la raíz
+  vacía funciona con `contentHandlerPath: /mycontenthandler`.
+- **`DXExport` `parts.themes`**: el registro de cada tema con sus propios skins (`themes/theme-<nombre>.xml`, limpio para
+  importar: sin datos de idioma vacío ni locates de skin repetidos) y su carpeta WebDAV
+  (`themes/theme-<nombre>-webdav.zip`). Los **portlets clonados** (`$cloned`) de las páginas exportadas se definen en
+  `xmlaccess/01-pages.xml`.
+- **`DXTheme` `registration: FilesOnly`**: sube solo los ficheros WebDAV (del `-webdav.zip` de un paquete) y deja el
+  registro a un `DXXMLAccess` con el XML del tema; los ficheros que el destino rechaza con HTTP 400 se avisan con un evento.
+- **XMLAccess** respeta el tiempo máximo del recurso (se cortaba a los 90 s, poco para importar un sitio) y va por
+  `internalURL` si está puesto.
+- Documentación *DX Core*, ejemplo 15.
+
 ## 0.10.1 · 2026-11-19 · Importar carpetas subidas con oras; portales virtuales con LDAP
 
 - **Carpetas subidas con `oras push <ref> <carpeta>`** (#41): se desempaquetan como hace `oras pull` (quedaban un

@@ -169,7 +169,7 @@ func (r *DXPageReconciler) reconcile(ctx context.Context, p *dxv1.DXPage) (ctrl.
 	p.Status.LastCheckTime = now()
 	p.Status.UniqueName = un
 	if parent == "ibm.portal.Home" {
-		p.Status.URL = conn.Config.BaseURL + "/wps/myportal/Home/" + friendly
+		p.Status.URL = conn.Config.BaseURL + conn.Client.ContextRoot() + "/myportal/Home/" + friendly
 	}
 
 	// 4. Decide: create, update (keeping the layout), rebuild the layout, restore, or nothing

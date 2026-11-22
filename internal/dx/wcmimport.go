@@ -41,6 +41,10 @@ func (c *Client) wpsRoot() string {
 	return strings.TrimSuffix(c.cfg.ContentHandlerPath, "/mycontenthandler")
 }
 
+// ContextRoot of the portal, taken from the content handler path: /wps on DX Compose and on the DX Core of the HCL chart,
+// empty on a traditional DX installed with an empty context root (contentHandlerPath /mycontenthandler).
+func (c *Client) ContextRoot() string { return c.wpsRoot() }
+
 // basicDo sends a request with basic authentication and no session cookie (like XMLAccess), following redirects.
 // timeout 0 = only the context limits it.
 func (c *Client) basicDo(ctx context.Context, method, path string, body io.Reader, contentType string, timeout time.Duration) (int, []byte, error) {

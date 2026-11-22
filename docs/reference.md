@@ -14,12 +14,20 @@ Short names: `dxconn`
 |---|---|---|---|
 | `caSecret` | object |  | CASecret: Secret with the key "ca.crt", for a self-signed certificate or a private CA. |
 | `caSecret.name` | string (required) |  | Name of the object. |
-| `contentHandlerPath` | string | `/wps/mycontenthandler` | ContentHandlerPath of DX (default /wps/mycontenthandler). |
+| `contentHandlerPath` | string | `/wps/mycontenthandler` | ContentHandlerPath of DX (default /wps/mycontenthandler). It also sets the context root: /mycontenthandler for a traditional DX installed with an empty context root (XMLAccess at /config, the login at /j_security_check). |
 | `credentialsSecret` | object (required) |  | CredentialsSecret: Secret with the keys "username" and "password" of a DX user. Script Applications need Editor access to the Script Application Library; pages (XMLAccess) and DAM need a DX administrator. |
 | `credentialsSecret.name` | string (required) |  | Name of the object. |
+| `dxConnect` | object |  | DXConnect of DX Core (runtime core): the servlet of the Config Wizard profile that DXClient uses, for the WCM library exports and imports. Default: url, the credentials of credentialsSecret and profile wp_profile. |
+| `dxConnect.credentialsSecret` | object |  | CredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"). Default: the credentials of the connection. |
+| `dxConnect.credentialsSecret.name` | string (required) |  | Name of the object. |
+| `dxConnect.profileName` | string | `wp_profile` | ProfileName of the DX profile on the server (default wp_profile). |
+| `dxConnect.url` | string |  | URL of DXConnect: https://<host> in Kubernetes (HAProxy routes /hcl/dxconnect to the core pod) or https://<host>:10202 on a VM. Default: spec.url. |
+| `dxConnect.wasCredentialsSecret` | object |  | WASCredentialsSecret of the WebSphere administrator ("username", "password"). Default: the credentials of the connection. |
+| `dxConnect.wasCredentialsSecret.name` | string (required) |  | Name of the object. |
 | `insecureSkipTLSVerify` | boolean |  | InsecureSkipTLSVerify: do not verify the certificate at all (labs only). |
 | `internalURL` | string |  | InternalURL: in-cluster URL of the Web Engine, without Traefik or HAProxy in between, for example http://dx-deployment-web-engine.<namespace>.svc:9080 when the operator runs in the same cluster. The long requests (WCM data module import and export, dxFileTransfer uploads and downloads) go there, so no proxy timeout cuts them (a cut import goes on inside DX and the next one would run at the same time); everything else uses url. |
 | `resyncInterval` | string | `10m` | ResyncInterval: how often every resource that uses this connection is checked against DX, to detect and correct drift (default 10m, minimum 1m). |
+| `runtime` | compose \| core | `compose` | Runtime of the DX server: compose (the Web Engine of DX Compose, default) or core (DX Core, the traditional DX 9.5 on WebSphere Application Server). On core the WCM libraries go through DXConnect (spec.dxConnect), because DX Core has no dxFileTransfer. |
 | `url` | string (required) |  | URL of DX as the operator reaches it, for example https://dx.example.com (normally the public host). |
 | `virtualPortalContext` | string |  | VirtualPortalContext: push Script Applications into this virtual portal. |
 
@@ -193,6 +201,7 @@ Short names: `dxtheme`
 | `headHTML` | string |  | HeadHTML: HTML inserted before </head> in every theme template (theme.html, theme_sidenav.html and their language versions): a <style>, a <link> to a file of the source (/wps/mycontenthandler/dav/fs-type1/themes/<folder>/...), a <script>... |
 | `layout` | string |  | Layout: default layout template of the theme, relative to its folder (for example layout-templates/1Column). Default: the one of the base theme, in the new folder. |
 | `profile` | string |  | Profile: resource aggregation profile of the theme, relative to its folder (for example profiles/profile_europesip.json). Default: the one of the base theme. |
+| `registration` | Base \| FilesOnly | `Base` | Registration: Base (default) registers the theme with XMLAccess as a copy of the base theme registration (with titles, profile, layout of this resource). FilesOnly uploads only the files to the WebDAV folder and leaves the registration to someone else: for a theme exported from another portal (DXExport parts.themes), whose own registration and skins go in with a DXXMLAccess of themes/theme-<name>.xml (keeping its object IDs and skins). |
 | `source` | object |  | Source: files added to (or replacing in) the copy of the base theme, at the same paths (for example css/my.css or images/logo.png). Optional. |
 | `source.configMap` | object |  | ConfigMap: every key of the ConfigMap is a file (data and binaryData). Handy for small applications: a ConfigMap and its Secret are limited to 1 MiB. Keys cannot contain "/", so a key "assets__app.js" becomes the file "assets/app.js". |
 | `source.configMap.name` | string (required) |  | Name of the ConfigMap. |
@@ -511,6 +520,7 @@ Short names: `dxexport`
 | `parts.pages[].descendants` | boolean | `True` | Descendants: also every page under it (export-descendants). Default true. |
 | `parts.pages[].uniqueName` | string (required) |  | UniqueName of the page in DX (for example orbita-site). |
 | `parts.portalSite` | boolean |  | PortalSite: also export the Portal Site library (the content of the managed pages), with the WCM data module. Imported after the pages. |
+| `parts.themes` | []string |  | Themes: unique names of themes to export: for each one its registration with its skins (XMLAccess, an update request: themes/theme-<name>.xml) and its WebDAV folder (themes/theme-<name>-webdav.zip). Imported first: the pages refer to their themes and skins. |
 | `suspend` | boolean |  | Suspend stops the reconciliation. |
 | `timeout` | string |  | Timeout of each export request to DX. Default 1h. |
 | `virtualPortal` | string |  | VirtualPortal: URL context of a virtual portal; empty for the base portal. |
@@ -547,6 +557,11 @@ Short names: `dxexport`
 | `pagesExported` | integer |  | PagesExported: content nodes in xmlaccess/01-pages.xml. |
 | `phase` | string |  | Phase: Pending, Exporting, Downloading, Pushing, Succeeded or Failed. |
 | `startTime` | string |  |  |
+| `themes` | []object |  | Themes exported: unique name, WebDAV folder, skins and number of files. |
+| `themes[].files` | integer |  | Files of the WebDAV folder. |
+| `themes[].folder` | string |  | Folder of the theme in the WebDAV store fs-type1/themes (empty: no static files there). |
+| `themes[].skins` | []string |  |  |
+| `themes[].uniqueName` | string (required) |  |  |
 | `totalBytes` | integer |  | TotalBytes: size of all the files of the bundle. |
 | `warnings` | []string |  | Warnings: what the target must already have (themes, skins, portlets) or may not import (see EXPORT-INFO.txt). |
 

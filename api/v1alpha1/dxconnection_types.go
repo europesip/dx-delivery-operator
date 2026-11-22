@@ -32,7 +32,19 @@ type DXConnectionSpec struct {
 	// InsecureSkipTLSVerify: do not verify the certificate at all (labs only).
 	// +optional
 	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify,omitempty"`
-	// ContentHandlerPath of DX (default /wps/mycontenthandler).
+	// Runtime of the DX server: compose (the Web Engine of DX Compose, default) or core (DX Core, the traditional
+	// DX 9.5 on WebSphere Application Server). On core the WCM libraries go through DXConnect (spec.dxConnect), because
+	// DX Core has no dxFileTransfer.
+	// +kubebuilder:validation:Enum=compose;core
+	// +kubebuilder:default=compose
+	// +optional
+	Runtime string `json:"runtime,omitempty"`
+	// DXConnect of DX Core (runtime core): the servlet of the Config Wizard profile that DXClient uses, for the WCM
+	// library exports and imports. Default: url, the credentials of credentialsSecret and profile wp_profile.
+	// +optional
+	DXConnect *DXConnectSpec `json:"dxConnect,omitempty"`
+	// ContentHandlerPath of DX (default /wps/mycontenthandler). It also sets the context root: /mycontenthandler for a
+	// traditional DX installed with an empty context root (XMLAccess at /config, the login at /j_security_check).
 	// +kubebuilder:default="/wps/mycontenthandler"
 	// +optional
 	ContentHandlerPath string `json:"contentHandlerPath,omitempty"`
@@ -44,6 +56,27 @@ type DXConnectionSpec struct {
 	// +kubebuilder:default="10m"
 	// +optional
 	ResyncInterval *metav1.Duration `json:"resyncInterval,omitempty"`
+}
+
+// DXConnectSpec is how the operator reaches DXConnect of a DX Core.
+type DXConnectSpec struct {
+	// URL of DXConnect: https://<host> in Kubernetes (HAProxy routes /hcl/dxconnect to the core pod) or
+	// https://<host>:10202 on a VM. Default: spec.url.
+	// +kubebuilder:validation:Pattern=`^https?://[^/]+/?$`
+	// +optional
+	URL string `json:"url,omitempty"`
+	// CredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"). Default: the
+	// credentials of the connection.
+	// +optional
+	CredentialsSecret *LocalObjectReference `json:"credentialsSecret,omitempty"`
+	// WASCredentialsSecret of the WebSphere administrator ("username", "password"). Default: the credentials of the
+	// connection.
+	// +optional
+	WASCredentialsSecret *LocalObjectReference `json:"wasCredentialsSecret,omitempty"`
+	// ProfileName of the DX profile on the server (default wp_profile).
+	// +kubebuilder:default=wp_profile
+	// +optional
+	ProfileName string `json:"profileName,omitempty"`
 }
 
 // DXConnectionStatus is the last check of the connection.
@@ -63,6 +96,7 @@ type DXConnectionStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=dxconn
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.spec.url`
+// +kubebuilder:printcolumn:name="Runtime",type=string,JSONPath=`.spec.runtime`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].message`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`

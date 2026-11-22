@@ -65,6 +65,14 @@ type DXThemeSpec struct {
 	// a <script>...
 	// +optional
 	HeadHTML string `json:"headHTML,omitempty"`
+	// Registration: Base (default) registers the theme with XMLAccess as a copy of the base theme registration (with
+	// titles, profile, layout of this resource). FilesOnly uploads only the files to the WebDAV folder and leaves the
+	// registration to someone else: for a theme exported from another portal (DXExport parts.themes), whose own
+	// registration and skins go in with a DXXMLAccess of themes/theme-<name>.xml (keeping its object IDs and skins).
+	// +kubebuilder:validation:Enum=Base;FilesOnly
+	// +kubebuilder:default=Base
+	// +optional
+	Registration string `json:"registration,omitempty"`
 	// DriftPolicy: Restore (default) uploads and registers it again if the theme or its folder was deleted in DX;
 	// Report only reports it.
 	// +kubebuilder:default=Restore

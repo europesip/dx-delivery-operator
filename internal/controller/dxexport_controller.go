@@ -190,8 +190,13 @@ func (r *DXExportReconciler) run(ctx context.Context, o *dxv1.DXExport, hash str
 // validateDXExport checks the spec: the pages (unique, not empty), the library titles and the attributes.
 func validateDXExport(s *dxv1.DXExportSpec) (pages []dx.PageSelection, titles []string, err error) {
 	p := s.Parts
-	if len(p.Pages) == 0 && len(p.Libraries) == 0 && !p.PortalSite {
-		return nil, nil, errors.New("parts: at least one of pages, portalSite and libraries")
+	if len(p.Pages) == 0 && len(p.Libraries) == 0 && !p.PortalSite && len(p.Themes) == 0 {
+		return nil, nil, errors.New("parts: at least one of themes, pages, portalSite and libraries")
+	}
+	for _, t := range p.Themes {
+		if strings.TrimSpace(t) == "" {
+			return nil, nil, errors.New("parts.themes: an empty unique name")
+		}
 	}
 	seen := map[string]bool{}
 	for _, pg := range p.Pages {
@@ -255,6 +260,47 @@ func (r *DXExportReconciler) export(ctx context.Context, o *dxv1.DXExport, conn 
 		}
 	}
 
+	// 1b. Themes: registration with skins (XMLAccess) and the WebDAV folder (static files), imported first
+	st.Themes = nil // a run that failed half-way must not leave its themes
+	for i, un := range o.Spec.Parts.Themes {
+		un = strings.TrimSpace(un)
+		r.progress(ctx, o, dxv1.WCMExportExporting, fmt.Sprintf("theme %d/%d: exporting %s from %s", i+1, len(o.Spec.Parts.Themes), un, where))
+		te, ok, err := c.ExportTheme(ctx, vp, un)
+		if err != nil {
+			return fmt.Errorf("theme %s: %w", un, err)
+		}
+		if !ok {
+			return fatal(reasonExportFailed, "the theme %s is not in %s; nothing was exported", un, where)
+		}
+		slug := unsafeChars.ReplaceAllString(strings.ToLower(strings.TrimPrefix(un, "custom.portal.theme.")), "-")
+		xmlTitle := "themes/theme-" + slug + ".xml"
+		xp := filepath.Join(work, filepath.FromSlash(xmlTitle))
+		if err := os.MkdirAll(filepath.Dir(xp), 0o700); err != nil {
+			return err
+		}
+		if err := os.WriteFile(xp, []byte(te.XML), 0o600); err != nil {
+			return err
+		}
+		files = append(files, source.ArtifactFile{Path: xp, Title: xmlTitle, MediaType: "application/xml"})
+		et := dxv1.DXExportedTheme{UniqueName: un, Folder: te.Folder, Skins: te.Skins}
+		if te.Folder != "" {
+			dir := filepath.Join(work, "theme-files", slug)
+			n, err := c.DownloadTheme(ctx, te.Folder, dir)
+			if err != nil {
+				return fmt.Errorf("theme %s: WebDAV download of %s: %w", un, te.Folder, err)
+			}
+			zipTitle := "themes/theme-" + slug + "-webdav.zip"
+			zp := filepath.Join(work, filepath.FromSlash(zipTitle))
+			if _, err := dx.ZipDir(dir, zp); err != nil {
+				return err
+			}
+			_ = os.RemoveAll(dir)
+			et.Files = n
+			files = append(files, source.ArtifactFile{Path: zp, Title: zipTitle, MediaType: exportZipMediaType})
+		}
+		st.Themes = append(st.Themes, et)
+	}
+
 	// 2. Pages: one XMLAccess export, turned into a request that imports them into another portal
 	var inv dx.PagesInventory
 	if len(pages) > 0 {
@@ -275,6 +321,15 @@ func (r *DXExportReconciler) export(ctx context.Context, o *dxv1.DXExport, conn 
 			return fatal(reasonExportFailed, "%v", err)
 		}
 		inv = iv
+		// cloned portlets do not exist in another portal: their definitions go into the request
+		req, clones, err := c.InlineClonedPortlets(ctx, vp, req)
+		if err != nil {
+			return fatal(reasonExportFailed, "%v", err)
+		}
+		var cloneWarn []string
+		if len(clones) > 0 {
+			cloneWarn = append(cloneWarn, fmt.Sprintf("%d cloned portlet(s) are defined in %s (created in the target with the same object ID): %s", len(clones), bundlePagesFile, strings.Join(clones, ", ")))
+		}
 		for _, n := range names {
 			if iv.PerPage[n] == 0 {
 				return fatal(reasonPageMissing, "%s is not in the XMLAccess answer of %s; nothing was exported", n, where)
@@ -282,7 +337,7 @@ func (r *DXExportReconciler) export(ctx context.Context, o *dxv1.DXExport, conn 
 			st.Pages = append(st.Pages, dxv1.DXExportedPage{UniqueName: n, Nodes: iv.PerPage[n]})
 		}
 		st.PagesExported = iv.Nodes
-		st.Warnings = pageWarnings(iv, o.Spec.Parts.PortalSite)
+		st.Warnings = append(pageWarnings(iv, o.Spec.Parts.PortalSite), cloneWarn...)
 		p := filepath.Join(work, filepath.FromSlash(bundlePagesFile))
 		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 			return err
@@ -334,7 +389,10 @@ func (r *DXExportReconciler) export(ctx context.Context, o *dxv1.DXExport, conn 
 	}
 	b.Pages, b.Libraries, b.Warnings = st.Pages, st.ExportedLibraries, st.Warnings
 	b.References = bundleRefs{Themes: inv.Themes, Skins: inv.Skins, Portlets: inv.Portlets}
-	b.Import = importSteps(o, len(pages) > 0, titles)
+	b.Import = append(themeSteps(st.Themes), importSteps(o, len(pages) > 0, titles)...)
+	for i := range b.Import {
+		b.Import[i].Step = i + 1
+	}
 	bj, _ := json.MarshalIndent(b, "", "  ")
 	bjPath := filepath.Join(work, bundleFile)
 	if err := os.WriteFile(bjPath, append(bj, '\n'), 0o600); err != nil {
@@ -367,6 +425,9 @@ func (r *DXExportReconciler) export(ctx context.Context, o *dxv1.DXExport, conn 
 		st.Image = ref + "@" + digest
 	}
 	var what []string
+	if len(st.Themes) > 0 {
+		what = append(what, fmt.Sprintf("%d theme(s)", len(st.Themes)))
+	}
 	if len(pages) > 0 {
 		what = append(what, fmt.Sprintf("%d page(s) (%d content nodes)", len(pages), st.PagesExported))
 	}
@@ -546,6 +607,26 @@ func importSteps(o *dxv1.DXExport, pages bool, titles []string) []bundleStep {
 			ComposeNewIDs:     "the same with mode: ImportCopy",
 			Traditional:       "unzip it into <folder> on the DX server, then <wp_profile>/ConfigEngine/ConfigEngine.sh import-wcm-data -Dimport.directory=<folder>" + vpProp + " -DWasPassword=<pwd> -DPortalAdminPwd=<pwd>",
 			TraditionalNewIDs: "unzip it into <folder> on the DX server and, signed in to the portal as an administrator, open /wps/wcm/myconnect" + vpPath + "?MOD=data&processLibraries=false&taskType=import-copy&input.dir=<folder> (import-wcm-data has no copy mode)",
+		})
+	}
+	return steps
+}
+
+// themeSteps: the themes go in first (the pages refer to them).
+func themeSteps(themes []dxv1.DXExportedTheme) []bundleStep {
+	var steps []bundleStep
+	for _, t := range themes {
+		slug := unsafeChars.ReplaceAllString(strings.ToLower(strings.TrimPrefix(t.UniqueName, "custom.portal.theme.")), "-")
+		files := ""
+		if t.Folder != "" {
+			files = "upload themes/theme-" + slug + "-webdav.zip, unzipped, to the WebDAV folder fs-type1/themes/" + t.Folder + "/, then "
+		}
+		steps = append(steps, bundleStep{
+			Part: "theme", File: "themes/theme-" + slug + ".xml",
+			Compose:           files + "DXXMLAccess with source.image.ref=<this artifact>, files=[themes/theme-" + slug + ".xml] and objectIDs: Keep; or DXTheme with source.image.ref=<this artifact>, source.image.path=themes/theme-" + slug + "-webdav.zip, copyFiles: false (new registration from a base theme)",
+			ComposeNewIDs:     "the same with objectIDs: New",
+			Traditional:       files + "<wp_profile>/PortalServer/bin/xmlaccess.sh -in themes/theme-" + slug + ".xml -user <admin> -password <pwd> -url https://<host>:<port>/wps/config -out result.xml (or dxclient deploy-theme with the WebDAV zip)",
+			TraditionalNewIDs: "the same, with create-oids=\"true\" in <request>",
 		})
 	}
 	return steps

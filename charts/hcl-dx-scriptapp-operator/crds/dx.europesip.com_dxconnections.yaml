@@ -20,6 +20,9 @@ spec:
     - jsonPath: .spec.url
       name: URL
       type: string
+    - jsonPath: .spec.runtime
+      name: Runtime
+      type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
@@ -69,7 +72,9 @@ spec:
                 type: object
               contentHandlerPath:
                 default: /wps/mycontenthandler
-                description: ContentHandlerPath of DX (default /wps/mycontenthandler).
+                description: |-
+                  ContentHandlerPath of DX (default /wps/mycontenthandler). It also sets the context root: /mycontenthandler for a
+                  traditional DX installed with an empty context root (XMLAccess at /config, the login at /j_security_check).
                 type: string
               credentialsSecret:
                 description: |-
@@ -82,6 +87,47 @@ spec:
                     type: string
                 required:
                 - name
+                type: object
+              dxConnect:
+                description: |-
+                  DXConnect of DX Core (runtime core): the servlet of the Config Wizard profile that DXClient uses, for the WCM
+                  library exports and imports. Default: url, the credentials of credentialsSecret and profile wp_profile.
+                properties:
+                  credentialsSecret:
+                    description: |-
+                      CredentialsSecret of the Config Wizard (cw_profile) administrator ("username", "password"). Default: the
+                      credentials of the connection.
+                    properties:
+                      name:
+                        description: Name of the object.
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  profileName:
+                    default: wp_profile
+                    description: ProfileName of the DX profile on the server (default
+                      wp_profile).
+                    type: string
+                  url:
+                    description: |-
+                      URL of DXConnect: https://<host> in Kubernetes (HAProxy routes /hcl/dxconnect to the core pod) or
+                      https://<host>:10202 on a VM. Default: spec.url.
+                    pattern: ^https?://[^/]+/?$
+                    type: string
+                  wasCredentialsSecret:
+                    description: |-
+                      WASCredentialsSecret of the WebSphere administrator ("username", "password"). Default: the credentials of the
+                      connection.
+                    properties:
+                      name:
+                        description: Name of the object.
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    type: object
                 type: object
               insecureSkipTLSVerify:
                 description: 'InsecureSkipTLSVerify: do not verify the certificate
@@ -100,6 +146,16 @@ spec:
                 description: |-
                   ResyncInterval: how often every resource that uses this connection is checked against DX, to detect
                   and correct drift (default 10m, minimum 1m).
+                type: string
+              runtime:
+                default: compose
+                description: |-
+                  Runtime of the DX server: compose (the Web Engine of DX Compose, default) or core (DX Core, the traditional
+                  DX 9.5 on WebSphere Application Server). On core the WCM libraries go through DXConnect (spec.dxConnect), because
+                  DX Core has no dxFileTransfer.
+                enum:
+                - compose
+                - core
                 type: string
               url:
                 description: URL of DX as the operator reaches it, for example https://dx.example.com
