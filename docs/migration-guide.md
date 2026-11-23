@@ -4,7 +4,7 @@
 
 How to use the import resources of the operator, step by step: WCM libraries (`DXWCMLibraryImport`), the content of
 the managed pages (Portal Site) and XMLAccess requests of your own (`DXXMLAccess`). Each step can be written as YAML
-(GitOps) or started from the **HCL DX plugin of Backstage**, which writes the same YAML for you.
+(GitOps) or started from **DX Backstage** (our Backstage plugin), which writes the same YAML for you.
 
 ## Before you start
 

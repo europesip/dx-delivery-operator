@@ -4,7 +4,7 @@
 
 Cómo usar los recursos de importación del operador, paso a paso: bibliotecas WCM (`DXWCMLibraryImport`), el contenido
 de las páginas gestionadas (Portal Site) y peticiones XMLAccess propias (`DXXMLAccess`). Cada paso se puede escribir
-como YAML (GitOps) o lanzar desde el **plugin HCL DX de Backstage**, que escribe ese mismo YAML por ti.
+como YAML (GitOps) o lanzar desde **DX Backstage** (nuestro plugin de Backstage), que escribe ese mismo YAML por ti.
 
 ## Antes de empezar
 
