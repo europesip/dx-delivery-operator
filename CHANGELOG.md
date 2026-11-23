@@ -6,6 +6,27 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
 for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` for 0.12.x and earlier
 (0.3.0 renamed the resources: see its notes).
 
+## 0.14.0 · unreleased · Java extensions (DXJavaExtension)
+
+New resource **`DXJavaExtension`** (#54): custom Java on DX Compose **without a custom image**. A JSR 168/286
+**portlet** (WAR) or **shared-library JARs** from an OCI artifact are loaded onto the **official** Web Engine image.
+See [Java extensions](docs/java-extensions.md).
+
+- **Admission webhook** (chart value `javaExtensions.enabled`, off by default; certificate by cert-manager): when a
+  Web Engine pod is created in a namespace labelled `dx.europesip.com/java-extensions=enabled`, it adds an init
+  container, `emptyDir` volumes and mounts on `resources/customApplications/`, `libraries/customSharedLib/` and
+  `configDropins/defaults/`. It never changes the HCL chart, the Helm release or the image.
+- **Init container image** `ghcr.io/europesip/dx-delivery-operator/dx-extensions-init`: pulls every extension by
+  digest, verifies it, unpacks WARs and JARs, writes the Liberty `<webApplication>`; fails clearly when a required
+  extension is missing (`optional: true` skips it).
+- **Controller**: resolves the tag to a digest **before** any restart (a missing tag never restarts the portal:
+  `ArtifactNotFound`), rolls the Web Engine out through its StatefulSet one pod at a time, waits for every pod Ready
+  with the new digest, registers the portlets in DX with XMLAccess `predeployed` **only when missing or changed**,
+  optional page, rollback to the previous digest when the rollout fails (`RolledBack`), unregisters on delete.
+- Chart values `enableControllers` and `leaderElectionID` (a second instance of the operator, for example a test one
+  limited to one namespace and one controller).
+- Sample [16-java-portlet](samples/16-java-portlet): the EUROPESIP Showcase portlet and its build script.
+
 ## 0.13.0 · 2026-11-23 · Renamed: DX Delivery Operator
 
 The product is now called **DX Delivery Operator** (by EUROPESIP), formerly *HCL DX Script Application operator*

@@ -6,6 +6,29 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
 desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para la 0.12.x y anteriores
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.14.0 · sin publicar · Extensiones Java (DXJavaExtension)
+
+Recurso nuevo **`DXJavaExtension`** (#54): Java propio en DX Compose **sin imagen propia**. Un **portlet** JSR 168/286
+(WAR) o **JAR de librería compartida** desde un artefacto OCI se cargan sobre la imagen **oficial** del Web Engine.
+Mira [Extensiones Java](docs/java-extensions.es.md).
+
+- **Webhook de admisión** (valor del chart `javaExtensions.enabled`, desactivado por defecto; certificado con
+  cert-manager): cuando se crea un pod del Web Engine en un namespace con la etiqueta
+  `dx.europesip.com/java-extensions=enabled`, le añade un init container, volúmenes `emptyDir` y montajes en
+  `resources/customApplications/`, `libraries/customSharedLib/` y `configDropins/defaults/`. Nunca cambia el chart de
+  HCL, la release de Helm ni la imagen.
+- **Imagen del init container** `ghcr.io/europesip/dx-delivery-operator/dx-extensions-init`: descarga cada extensión
+  por digest, la verifica, descomprime WAR y JAR y escribe el `<webApplication>` de Liberty; falla con un mensaje claro
+  si falta una extensión obligatoria (`optional: true` la salta).
+- **Controlador**: resuelve la etiqueta a un digest **antes** de reiniciar nada (una etiqueta que no existe nunca
+  reinicia el portal: `ArtifactNotFound`), reinicia el Web Engine pod a pod a través de su StatefulSet, espera a que
+  todos los pods estén Ready con el digest nuevo, registra los portlets en DX con XMLAccess `predeployed` **solo si
+  faltan o cambian**, página opcional, vuelta al digest anterior si el despliegue falla (`RolledBack`), y los da de
+  baja al borrar.
+- Valores del chart `enableControllers` y `leaderElectionID` (una segunda instancia del operador, por ejemplo una de
+  pruebas limitada a un namespace y un controlador).
+- Ejemplo [16-java-portlet](samples/16-java-portlet): el portlet EUROPESIP Showcase y su script de construcción.
+
 ## 0.13.0 · 2026-11-23 · Nuevo nombre: DX Delivery Operator
 
 El producto se llama ahora **DX Delivery Operator** (de EUROPESIP); antes, *HCL DX Script Application operator*

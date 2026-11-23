@@ -25,6 +25,7 @@ nav:
   - 'Secret fields: whose credentials': secret-fields.md
   - 'WCM maintenance modules': wcm-admin-tasks.md
   - 'DX Core (traditional DX on WebSphere)': dx-core.md
+  - 'Java extensions (DXJavaExtension)': java-extensions.md
   - API reference: reference.md
   - How we work: workflow.md
   - Español:
@@ -37,6 +38,7 @@ nav:
       - 'Campos de Secrets: de quién es cada credencial': secret-fields.es.md
       - 'Módulos de mantenimiento de WCM': wcm-admin-tasks.es.md
       - 'DX Core (DX tradicional sobre WebSphere)': dx-core.es.md
+      - 'Extensiones Java (DXJavaExtension)': java-extensions.es.md
       - Cómo trabajamos: workflow.es.md
 
 # Heading anchors as GitHub makes them (accents kept: #instalación), so the same links work on GitHub and here

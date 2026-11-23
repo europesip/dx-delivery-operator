@@ -1,0 +1,68 @@
+{{- if (.Values.javaExtensions).enabled }}
+{{- $fullname := include "dxop.fullname" . }}
+{{- $issuer := ternary (printf "%s-selfsigned" $fullname) .Values.javaExtensions.certManager.issuerName .Values.javaExtensions.certManager.createSelfSignedIssuer }}
+# DXJavaExtension (issue #54): the mutating admission webhook that adds the init container of the Java extensions
+# to the DX Compose Web Engine pods. The API server calls it (Service below → the operator pod, port 9443) before it
+# creates a Web Engine pod in a namespace with the label of namespaceSelector. Certificate: cert-manager.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-webhook
+  labels: {{- include "dxop.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "dxop.selector" . | nindent 4 }}
+  ports:
+    - { name: https, port: 443, targetPort: webhook }
+---
+{{- if .Values.javaExtensions.certManager.createSelfSignedIssuer }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ $fullname }}-selfsigned
+  labels: {{- include "dxop.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+{{- end }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $fullname }}-webhook
+  labels: {{- include "dxop.labels" . | nindent 4 }}
+spec:
+  secretName: {{ $fullname }}-webhook-cert
+  dnsNames:
+    - {{ $fullname }}-webhook.{{ .Release.Namespace }}.svc
+    - {{ $fullname }}-webhook.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    name: {{ $issuer }}
+    kind: {{ ternary "Issuer" .Values.javaExtensions.certManager.issuerKind .Values.javaExtensions.certManager.createSelfSignedIssuer }}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ $fullname }}-java-extensions
+  labels: {{- include "dxop.labels" . | nindent 4 }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ $fullname }}-webhook
+webhooks:
+  - name: java-extensions.dx.europesip.com
+    admissionReviewVersions: [v1]
+    sideEffects: None
+    failurePolicy: {{ .Values.javaExtensions.webhook.failurePolicy }}
+    timeoutSeconds: {{ .Values.javaExtensions.webhook.timeoutSeconds }}
+    reinvocationPolicy: Never
+    clientConfig:
+      service:
+        name: {{ $fullname }}-webhook
+        namespace: {{ .Release.Namespace }}
+        path: /mutate-web-engine-pod
+    rules:
+      - operations: [CREATE]
+        apiGroups: [""]
+        apiVersions: [v1]
+        resources: [pods]
+        scope: Namespaced
+    namespaceSelector: {{- toYaml .Values.javaExtensions.webhook.namespaceSelector | nindent 6 }}
+    objectSelector: {{- toYaml .Values.javaExtensions.webhook.objectSelector | nindent 6 }}
+{{- end }}

@@ -71,3 +71,41 @@ serviceAccount:
   create: true
   name: ""
   annotations: {}
+
+# Only these controllers run (empty: all), for example a second instance of the operator that only handles
+# dxjavaextension in a test namespace. Names: dxconnection, dxscriptapplication, dxpage, dxxmlaccess, dxtheme,
+# dxdamcollection, dxwcmlibraryimport, dxexport, dxwcmlibraryexport, dxwcmadmintask, dxdatabase, dxjavaextension.
+enableControllers: []
+# The leader-election lease (empty: the lease of every release so far). Give a second instance its own.
+leaderElectionID: ""
+
+# DXJavaExtension (0.14.0, issue #54): Java extensions (portlet WARs, shared-library JARs) loaded from a registry
+# onto the official DX Compose Web Engine image. Off by default. When on, the chart registers a mutating admission
+# webhook (served by the operator pod) that adds an init container to the Web Engine pods of the namespaces with
+# the label below. Needs cert-manager for the webhook certificate.
+javaExtensions:
+  enabled: false
+  initImage:
+    repository: ghcr.io/europesip/dx-delivery-operator/dx-extensions-init
+    tag: ""                    # default: the chart appVersion
+    pullPolicy: IfNotPresent
+    # A Secret (dockerconfigjson) in every portal namespace to pull the init image from a private registry; the
+    # webhook adds it to the Web Engine pod. Empty: the image is public (ghcr.io).
+    pullSecret: ""
+  webhook:
+    # Fail (default): a Web Engine pod is not created while the webhook does not answer (it is retried), so the
+    # Web Engine never starts without its extensions. Ignore: the pod starts without them.
+    failurePolicy: Fail
+    timeoutSeconds: 10
+    # The namespaces where the webhook acts (the DXJavaExtension controller also checks this label).
+    namespaceSelector:
+      matchLabels: { dx.europesip.com/java-extensions: enabled }
+    # The Web Engine pods (label app of the HCL chart: <release>-web-engine).
+    objectSelector:
+      matchExpressions:
+        - { key: app, operator: In, values: [dx-deployment-web-engine] }
+  certManager:
+    # An Issuer of this release (self-signed) or an existing issuer.
+    createSelfSignedIssuer: true
+    issuerName: ""             # with createSelfSignedIssuer false: an existing Issuer (or ClusterIssuer) name
+    issuerKind: Issuer

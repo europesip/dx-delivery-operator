@@ -40,6 +40,10 @@ spec:
             - --health-probe-bind-address=:8081
             - --metrics-bind-address=0
             - --zap-log-level={{ .Values.logLevel }}
+            {{- if (.Values.javaExtensions).enabled }}
+            - --webhook-cert-path=/tmp/k8s-webhook-server/serving-certs
+            - --webhook-port=9443
+            {{- end }}
             {{- if eq .Values.logFormat "json" }}
             - --zap-devel=false
             - --zap-encoder=json
@@ -51,8 +55,19 @@ spec:
             - { name: LOG_EVENTS, value: {{ .Values.logEvents | quote }} }
             - { name: WATCH_NAMESPACES, value: {{ join "," .Values.watchNamespaces | quote }} }
             - { name: DX_FORM_LOGIN, value: {{ ternary "false" "auto" (eq (toString (.Values.dx).oidcCompatibility) "false") | quote }} }
+            - { name: ENABLE_CONTROLLERS, value: {{ join "," (.Values.enableControllers | default list) | quote }} }
+            - { name: LEADER_ELECTION_ID, value: {{ .Values.leaderElectionID | default "" | quote }} }
+            {{- if (.Values.javaExtensions).enabled }}
+            - { name: JAVA_EXTENSIONS_WEBHOOK, value: "true" }
+            - { name: JAVA_EXTENSIONS_INIT_IMAGE, value: "{{ .Values.javaExtensions.initImage.repository }}:{{ .Values.javaExtensions.initImage.tag | default .Chart.AppVersion }}" }
+            - { name: JAVA_EXTENSIONS_INIT_PULL_POLICY, value: {{ .Values.javaExtensions.initImage.pullPolicy | quote }} }
+            - { name: JAVA_EXTENSIONS_INIT_PULL_SECRET, value: {{ .Values.javaExtensions.initImage.pullSecret | default "" | quote }} }
+            {{- end }}
           ports:
             - { name: health, containerPort: 8081 }
+            {{- if (.Values.javaExtensions).enabled }}
+            - { name: webhook, containerPort: 9443 }
+            {{- end }}
           livenessProbe:
             httpGet: { path: /healthz, port: health }
             initialDelaySeconds: 15
@@ -71,11 +86,18 @@ spec:
           volumeMounts:
             - { name: work, mountPath: /work }
             - { name: tmp, mountPath: /tmp }
+            {{- if (.Values.javaExtensions).enabled }}
+            - { name: webhook-cert, mountPath: /tmp/k8s-webhook-server/serving-certs, readOnly: true }
+            {{- end }}
       volumes:
         - name: work
           emptyDir: { sizeLimit: {{ .Values.workDir.sizeLimit }} }
         - name: tmp
           emptyDir: { sizeLimit: 256Mi }
+        {{- if (.Values.javaExtensions).enabled }}
+        - name: webhook-cert
+          secret: { secretName: {{ include "dxop.fullname" . }}-webhook-cert }
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- id: the uid of the portlet application in DX (the web module is <id>.webmod) -->
+<portlet-app xmlns="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd"
+             version="2.0" id="com.europesip.showcase.ShowcasePortlet">
+  <portlet>
+    <portlet-name>ShowcasePortlet</portlet-name>
+    <display-name>EUROPESIP Showcase</display-name>
+    <portlet-class>com.europesip.showcase.ShowcasePortlet</portlet-class>
+    <supports>
+      <mime-type>text/html</mime-type>
+      <portlet-mode>view</portlet-mode>
+      <portlet-mode>edit</portlet-mode>
+    </supports>
+    <supported-locale>en</supported-locale>
+    <supported-locale>es</supported-locale>
+    <portlet-info><title>EUROPESIP Showcase</title><short-title>Showcase</short-title><keywords>europesip,showcase,jsr286</keywords></portlet-info>
+    <portlet-preferences>
+      <preference><name>greeting</name><value>Hello</value></preference>
+      <preference><name>accent</name><value>#E6007E</value></preference>
+    </portlet-preferences>
+    <supported-public-render-parameter>topic</supported-public-render-parameter>
+  </portlet>
+  <public-render-parameter>
+    <identifier>topic</identifier>
+    <qname xmlns:e="http://europesip.com/showcase">e:topic</qname>
+  </public-render-parameter>
+</portlet-app>

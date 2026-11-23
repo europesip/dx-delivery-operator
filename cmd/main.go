@@ -17,6 +17,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -26,12 +27,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	dxv1alpha1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
 	"github.com/europesip/dx-delivery-operator/internal/controller"
 	"github.com/europesip/dx-delivery-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/javaext"
 	"github.com/europesip/dx-delivery-operator/internal/source"
+	dxwebhook "github.com/europesip/dx-delivery-operator/internal/webhook"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -102,7 +106,7 @@ func main() {
 
 	// Initial webhook TLS options
 	webhookTLSOpts := tlsOpts
-	webhookServerOptions := webhook.Options{
+	webhookServerOptions := ctrlwebhook.Options{
 		TLSOpts: webhookTLSOpts,
 		Port:    webhookPort,
 	}
@@ -116,7 +120,7 @@ func main() {
 		webhookServerOptions.KeyName = webhookCertKey
 	}
 
-	webhookServer := webhook.NewServer(webhookServerOptions)
+	webhookServer := ctrlwebhook.NewServer(webhookServerOptions)
 
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
 	// More info:
@@ -170,7 +174,7 @@ func main() {
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "hcl-dx-scriptapp-operator.europesip.com",
+		LeaderElectionID:       leaderElectionID(),
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
@@ -210,97 +214,150 @@ func main() {
 		setupLog.Error(err, "DXClient cannot run: Script Applications will not be pushed until this is fixed")
 	}
 
-	if err := (&controller.DXConnectionReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Shared: shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxconnection")
-		os.Exit(1)
+	// ENABLE_CONTROLLERS (comma separated, Helm value enableControllers): only these controllers run, for example a
+	// second instance of the operator that only handles dxjavaextension in a test namespace. Empty: all.
+	enabled := enabledControllers()
+
+	if enabled("dxconnection") {
+		if err := (&controller.DXConnectionReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Shared: shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxconnection")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXScriptApplicationReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Shared: shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxscriptapplication")
-		os.Exit(1)
+	if enabled("dxscriptapplication") {
+		if err := (&controller.DXScriptApplicationReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Shared: shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxscriptapplication")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXPageReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Shared: shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxpage")
-		os.Exit(1)
+	if enabled("dxpage") {
+		if err := (&controller.DXPageReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Shared: shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxpage")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXXMLAccessReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Shared: shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxxmlaccess")
-		os.Exit(1)
+	if enabled("dxxmlaccess") {
+		if err := (&controller.DXXMLAccessReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Shared: shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxxmlaccess")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXThemeReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Shared: shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxtheme")
-		os.Exit(1)
+	if enabled("dxtheme") {
+		if err := (&controller.DXThemeReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Shared: shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxtheme")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXDamCollectionReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Shared: shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxdamcollection")
-		os.Exit(1)
+	if enabled("dxdamcollection") {
+		if err := (&controller.DXDamCollectionReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Shared: shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxdamcollection")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXWCMLibraryImportReconciler{
-		Client:    mgr.GetClient(),
-		APIReader: mgr.GetAPIReader(),
-		Scheme:    mgr.GetScheme(),
-		Shared:    shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxwcmlibraryimport")
-		os.Exit(1)
+	if enabled("dxwcmlibraryimport") {
+		if err := (&controller.DXWCMLibraryImportReconciler{
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Scheme:    mgr.GetScheme(),
+			Shared:    shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxwcmlibraryimport")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXExportReconciler{
-		Client:    mgr.GetClient(),
-		APIReader: mgr.GetAPIReader(),
-		Scheme:    mgr.GetScheme(),
-		Shared:    shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxexport")
-		os.Exit(1)
+	if enabled("dxexport") {
+		if err := (&controller.DXExportReconciler{
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Scheme:    mgr.GetScheme(),
+			Shared:    shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxexport")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXWCMLibraryExportReconciler{
-		Client:    mgr.GetClient(),
-		APIReader: mgr.GetAPIReader(),
-		Scheme:    mgr.GetScheme(),
-		Shared:    shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxwcmlibraryexport")
-		os.Exit(1)
+	if enabled("dxwcmlibraryexport") {
+		if err := (&controller.DXWCMLibraryExportReconciler{
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Scheme:    mgr.GetScheme(),
+			Shared:    shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxwcmlibraryexport")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXWCMAdminTaskReconciler{
-		Client:    mgr.GetClient(),
-		APIReader: mgr.GetAPIReader(),
-		Scheme:    mgr.GetScheme(),
-		Shared:    shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxwcmadmintask")
-		os.Exit(1)
+	if enabled("dxwcmadmintask") {
+		if err := (&controller.DXWCMAdminTaskReconciler{
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Scheme:    mgr.GetScheme(),
+			Shared:    shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxwcmadmintask")
+			os.Exit(1)
+		}
 	}
-	if err := (&controller.DXDatabaseReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Shared: shared,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "Failed to create controller", "controller", "dxdatabase")
-		os.Exit(1)
+	if enabled("dxdatabase") {
+		if err := (&controller.DXDatabaseReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			Shared: shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxdatabase")
+			os.Exit(1)
+		}
+	}
+	if enabled("dxjavaextension") {
+		if err := (&controller.DXJavaExtensionReconciler{
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Scheme:    mgr.GetScheme(),
+			Shared:    shared,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Failed to create controller", "controller", "dxjavaextension")
+			os.Exit(1)
+		}
+	}
+	// The admission webhook of DXJavaExtension (chart value javaExtensions.enabled): injects the init container that
+	// pulls the Java extensions into the Web Engine pods (issue #54).
+	if v := strings.ToLower(strings.TrimSpace(os.Getenv("JAVA_EXTENSIONS_WEBHOOK"))); v == "true" || v == "1" {
+		img := os.Getenv("JAVA_EXTENSIONS_INIT_IMAGE")
+		if img == "" {
+			setupLog.Error(nil, "JAVA_EXTENSIONS_INIT_IMAGE is required with JAVA_EXTENSIONS_WEBHOOK=true")
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().Register(dxwebhook.JavaExtensionsPath, &ctrlwebhook.Admission{Handler: &dxwebhook.JavaExtensionInjector{
+			Client:  mgr.GetAPIReader(),
+			Decoder: admission.NewDecoder(mgr.GetScheme()),
+			Options: javaext.InjectOptions{InitImage: img, PullPolicy: corev1.PullPolicy(os.Getenv("JAVA_EXTENSIONS_INIT_PULL_POLICY")),
+				ImagePullSecret: os.Getenv("JAVA_EXTENSIONS_INIT_PULL_SECRET")},
+		}})
+		setupLog.Info("java extensions webhook enabled", "path", dxwebhook.JavaExtensionsPath, "initImage", img)
 	}
 	// +kubebuilder:scaffold:builder
 
@@ -318,4 +375,24 @@ func main() {
 		setupLog.Error(err, "Failed to run manager")
 		os.Exit(1)
 	}
+}
+
+// leaderElectionID: LEADER_ELECTION_ID (Helm value leaderElectionID) or the lease of every release so far (kept in
+// 0.13.0 so an old and a new pod never run at the same time).
+func leaderElectionID() string {
+	if v := strings.TrimSpace(os.Getenv("LEADER_ELECTION_ID")); v != "" {
+		return v
+	}
+	return "hcl-dx-scriptapp-operator.europesip.com"
+}
+
+// enabledControllers returns whether a controller runs (ENABLE_CONTROLLERS; empty: all).
+func enabledControllers() func(string) bool {
+	set := map[string]bool{}
+	for _, n := range strings.Split(os.Getenv("ENABLE_CONTROLLERS"), ",") {
+		if n = strings.TrimSpace(strings.ToLower(n)); n != "" {
+			set[n] = true
+		}
+	}
+	return func(name string) bool { return len(set) == 0 || set[name] }
 }
