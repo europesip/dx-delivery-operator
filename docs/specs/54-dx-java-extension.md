@@ -85,3 +85,12 @@ DXJavaExtensions of that StatefulSet), polls every 10 s while rolling out, bound
 call cannot block the worker, and the default rollout timeout is configurable (`javaExtensions.rolloutTimeout`).
 Tests: `TestRolloutFailure`, `TestRolloutTimeoutDefaults`, `TestRequestsFor`; lab check on `jtm-poc` (1.0.2 → 1.1.2
 → 1.0.2 must reach Ready by itself).
+
+## Follow-up: 0.14.2 (#61)
+Seen on prod 0.14.0/0.14.1 (23-nov-2026, `jtm-poc`, workers out of memory): `WebhookNotActive` during the pod
+replacement window and while the new pod was Pending, although the webhook had injected it. Fix: `jxRolloutState`
+classifies the pods from facts (terminating; created from the current template by the java-extensions hash or the
+update revision; injected; Unschedulable); `WebhookNotActive` only for a current pod without the injection, with
+`diagnoseWebhook` (configuration serving the path, namespaceSelector vs namespace labels, ready EndpointSlices); new
+reason `PodPending` with the scheduler message. Tests: `TestJXStateReplacementWindow`, `TestJXStatePodPending`,
+`TestJXStateNotInjected`, `TestDiagnoseWebhook`.
