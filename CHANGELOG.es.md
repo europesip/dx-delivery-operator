@@ -6,7 +6,7 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
 desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para la 0.12.x y anteriores
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## 0.14.0 · sin publicar · Extensiones Java (DXJavaExtension)
+## 0.14.0 · 2026-11-23 · Extensiones Java (DXJavaExtension)
 
 Recurso nuevo **`DXJavaExtension`** (#54): Java propio en DX Compose **sin imagen propia**. Un **portlet** JSR 168/286
 (WAR) o **JAR de librería compartida** desde un artefacto OCI se cargan sobre la imagen **oficial** del Web Engine.

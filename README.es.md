@@ -118,7 +118,7 @@ docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bi
 ```
 
 ```bash
-helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.13.0 \
+helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.14.0 \
   -n dxop-system --create-namespace --set dxclient.acceptLicense=true
 ```
 

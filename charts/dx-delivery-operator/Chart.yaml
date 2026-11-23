@@ -6,8 +6,8 @@ description: >-
   of their backend, moves WCM libraries, themes, pages and portal bundles between portals, and keeps everything
   as declared (drift correction). Not an HCL product.
 type: application
-version: 0.13.0
-appVersion: "0.13.0"
+version: 0.14.0
+appVersion: "0.14.0"
 home: https://github.com/europesip/dx-delivery-operator
 sources: [https://github.com/europesip/dx-delivery-operator]
 keywords: [hcl, dx, digital-experience, delivery, script-application, wcm, operator, gitops]
