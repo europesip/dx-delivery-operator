@@ -2,7 +2,7 @@
 
 <p><a href="workflow.md">English</a> · <b>Español</b></p>
 
-Cada cambio de HCL DX Script Application operator empieza como un **issue**, se sigue en el [tablero del proyecto](https://github.com/orgs/europesip/projects/3) y se cierra con un
+Cada cambio de DX Delivery Operator empieza como un **issue**, se sigue en el [tablero del proyecto](https://github.com/orgs/europesip/projects/3) y se cierra con un
 **pull request** que demuestra sus criterios de aceptación. Cada cambio se define antes de construirse, se documenta
 en un único sitio y es fácil de seguir: el primer paso hacia el **desarrollo guiado por especificaciones**.
 
@@ -51,7 +51,7 @@ para las mejoras y otra para los bugs. Gráficos: estado actual, evolución del 
 ## 5 · Hacia el desarrollo guiado por especificaciones
 
 Para los cambios con un esfuerzo de 5 o más, la especificación vive también en el repositorio:
-`docs/specs/<número>-<nombre-corto>.md`, a partir de [docs/specs/TEMPLATE.md](https://github.com/europesip/hcl-dx-scriptapp-operator/blob/main/docs/specs/TEMPLATE.md). Se revisa y se fusiona
+`docs/specs/<número>-<nombre-corto>.md`, a partir de [docs/specs/TEMPLATE.md](https://github.com/europesip/dx-delivery-operator/blob/main/docs/specs/TEMPLATE.md). Se revisa y se fusiona
 (*Approved*) **antes** de la implementación, y el pull request que cierra el issue la marca como *Implemented*. Una
 especificación versionada es la entrada de la implementación, la escriba una persona o un agente de IA, y la
 referencia de su revisión.

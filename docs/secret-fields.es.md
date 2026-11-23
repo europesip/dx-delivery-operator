@@ -3,7 +3,7 @@
 [English](secret-fields.md) · **Español**
 
 Cada campo que apunta a un Secret dice de quién son las credenciales que guarda (issue
-[#45](https://github.com/europesip/hcl-dx-scriptapp-operator/issues/45)). Se han renombrado cuatro campos; los
+[#45](https://github.com/europesip/dx-delivery-operator/issues/45)). Se han renombrado cuatro campos; los
 nombres antiguos quedan **obsoletos**, pero se siguen aceptando, así que los recursos que ya existen siguen
 funcionando.
 

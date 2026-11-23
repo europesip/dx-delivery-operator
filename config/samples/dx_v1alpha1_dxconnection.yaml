@@ -2,7 +2,7 @@ apiVersion: dx.europesip.com/v1alpha1
 kind: DXConnection
 metadata:
   labels:
-    app.kubernetes.io/name: hcl-dx-scriptapp-operator
+    app.kubernetes.io/name: dx-delivery-operator
     app.kubernetes.io/managed-by: kustomize
   name: dxconnection-sample
 spec:

@@ -28,10 +28,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	dxv1alpha1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/controller"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
+	dxv1alpha1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/controller"
+	"github.com/europesip/dx-delivery-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/source"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -195,7 +195,7 @@ func main() {
 	}
 	// Events are also written as log lines only when asked (LOG_EVENTS=true, chart value logEvents): clusters that ship
 	// Kubernetes events to their log stack would otherwise get every event twice.
-	var eventRecorder = mgr.GetEventRecorder("hcl-dx-scriptapp-operator")
+	var eventRecorder = mgr.GetEventRecorder("dx-delivery-operator")
 	if v := strings.ToLower(strings.TrimSpace(os.Getenv("LOG_EVENTS"))); v == "true" || v == "1" {
 		eventRecorder = controller.LoggingRecorder(eventRecorder, ctrl.Log.WithName("events"))
 		setupLog.Info("every Kubernetes event is also written as a log line (LOG_EVENTS=true)")

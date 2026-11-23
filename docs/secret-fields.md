@@ -3,7 +3,7 @@
 **English** · [Español](secret-fields.es.md)
 
 Every field that points to a Secret says whose credentials it holds (issue
-[#45](https://github.com/europesip/hcl-dx-scriptapp-operator/issues/45)). Four fields were renamed; the old names are
+[#45](https://github.com/europesip/dx-delivery-operator/issues/45)). Four fields were renamed; the old names are
 **deprecated** but still accepted, so existing resources keep working.
 
 | Resource | Field | Holds | Deprecated name |

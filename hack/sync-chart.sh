@@ -2,7 +2,7 @@
 # Copies the generated CRDs and RBAC rules into the Helm chart (run after "make manifests"; CI checks it).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-C=charts/hcl-dx-scriptapp-operator
+C=charts/dx-delivery-operator
 rm -f $C/crds/*.yaml
 cp config/crd/bases/*.yaml $C/crds/
 # The rules of the generated ClusterRole, as is

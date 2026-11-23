@@ -8,7 +8,7 @@ spec:
   connectionRef: { name: dx }
   source:
     image:
-      ref: ghcr.io/europesip/hcl-dx-scriptapp-operator/sample-clock:0.1.0
+      ref: ghcr.io/europesip/dx-delivery-operator/sample-clock:0.1.0
       path: /app
   wcm:
     title: "DXOP · Clock (bundle image)"

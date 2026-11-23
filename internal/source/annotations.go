@@ -27,7 +27,7 @@ const (
 	AnnLibrariesCount = AnnPrefix + "libraries.count"
 	AnnRequestedBy    = AnnPrefix + "requested-by"
 	AnnReason         = AnnPrefix + "reason"
-	AnnToolOperator   = AnnPrefix + "tool.operator" // hcl-dx-scriptapp-operator <version>
+	AnnToolOperator   = AnnPrefix + "tool.operator" // dx-delivery-operator <version>
 	AnnAuthors        = "org.opencontainers.image.authors"
 	AnnToolCreatedBy  = AnnPrefix + "tool.created-with" // what created the resource (Backstage, its plugin)
 	AnnAttrPrefix     = AnnPrefix + "attr."             // free attributes: com.europesip.dx.attr.<key>
@@ -92,7 +92,7 @@ func (m ArtifactMeta) Annotations() map[string]string {
 		"org.opencontainers.image.created": m.Created.UTC().Format(time.RFC3339),
 		"org.opencontainers.image.vendor":  "EUROPESIP",
 		AnnSchema:                          AnnSchemaVersion,
-		AnnToolOperator:                    "hcl-dx-scriptapp-operator " + OperatorVersion(),
+		AnnToolOperator:                    "dx-delivery-operator " + OperatorVersion(),
 	}
 	set := func(k, v string) {
 		if v = strings.TrimSpace(v); v != "" {

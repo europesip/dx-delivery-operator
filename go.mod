@@ -1,4 +1,4 @@
-module github.com/europesip/hcl-dx-scriptapp-operator
+module github.com/europesip/dx-delivery-operator
 
 go 1.26.0
 

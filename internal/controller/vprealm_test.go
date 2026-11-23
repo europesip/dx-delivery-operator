@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/dx"
 )
 
 // The realm of a new virtual portal (#42): the spec, else an existing virtual portal, else FederatedRealm (DX Compose

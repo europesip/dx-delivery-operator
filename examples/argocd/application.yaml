@@ -9,7 +9,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/europesip/hcl-dx-scriptapp-operator
+    repoURL: https://github.com/europesip/dx-delivery-operator
     targetRevision: main
     path: samples
   destination:

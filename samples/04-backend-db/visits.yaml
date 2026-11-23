@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/europesip/hcl-dx-scriptapp-operator/sample-visits-api:0.1.0
+          image: ghcr.io/europesip/dx-delivery-operator/sample-visits-api:0.1.0
           env:
             - name: DATABASE_URL
               valueFrom: { secretKeyRef: { name: dxop-visits-db, key: uri } }

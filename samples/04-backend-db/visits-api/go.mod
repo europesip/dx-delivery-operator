@@ -1,4 +1,4 @@
-module github.com/europesip/hcl-dx-scriptapp-operator/samples/04-backend-db/visits-api
+module github.com/europesip/dx-delivery-operator/samples/04-backend-db/visits-api
 
 go 1.26.0
 

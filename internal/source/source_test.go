@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
 )
 
 func fetchCM(t *testing.T, data map[string]string, bin map[string][]byte) *Tree {

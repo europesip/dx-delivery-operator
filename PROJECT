@@ -6,8 +6,8 @@ cliVersion: 4.16.0
 domain: europesip.com
 layout:
 - go.kubebuilder.io/v4
-projectName: hcl-dx-scriptapp-operator
-repo: github.com/europesip/hcl-dx-scriptapp-operator
+projectName: dx-delivery-operator
+repo: github.com/europesip/dx-delivery-operator
 resources:
 - api:
     crdVersion: v1
@@ -16,7 +16,7 @@ resources:
   domain: europesip.com
   group: dx
   kind: DXConnection
-  path: github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1
+  path: github.com/europesip/dx-delivery-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -25,7 +25,7 @@ resources:
   domain: europesip.com
   group: dx
   kind: DXScriptApplication
-  path: github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1
+  path: github.com/europesip/dx-delivery-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -34,7 +34,7 @@ resources:
   domain: europesip.com
   group: dx
   kind: DXPage
-  path: github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1
+  path: github.com/europesip/dx-delivery-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -43,7 +43,7 @@ resources:
   domain: europesip.com
   group: dx
   kind: DXDamCollection
-  path: github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1
+  path: github.com/europesip/dx-delivery-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -52,6 +52,6 @@ resources:
   domain: europesip.com
   group: dx
   kind: DXDatabase
-  path: github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1
+  path: github.com/europesip/dx-delivery-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

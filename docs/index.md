@@ -1,16 +1,18 @@
-# HCL DX Script Application operator
+# DX Delivery Operator
 
 **English** · [Español](index.es.md)
 
-A **Kubernetes operator** by EUROPESIP that deploys HCL DX Script Applications and keeps them in DX exactly as
-declared: the application in WCM, its pages, its DAM files and the database of its backend. Declare it in YAML (or in
+A **Kubernetes operator** by EUROPESIP that delivers HCL DX applications and content from Git, declaratively, and
+keeps them in DX exactly as declared: the application in WCM, its pages, its DAM files and the database of its
+backend, plus WCM libraries, themes, pages, XMLAccess and portal bundles moved between portals as OCI artifacts.
+Called *HCL DX Script Application operator* until 0.12.x (renamed in 0.13.0, same API). Declare it in YAML (or in
 Git, with ArgoCD); the operator does the rest, checks DX regularly and puts back what someone changed or deleted.
 It is not an HCL product. Tested on HCL DX Compose CF239 (Kubernetes 1.35, DXClient `v95_CF239_20261103-1404`).
 
 ![Samples 03, 05 and 01 on the page of sample 08](images/showcase.png)
 
 > This page is the summary for the developer portal. The full guide (install, use, samples, GitOps, security,
-> development) is the [README on GitHub](https://github.com/europesip/hcl-dx-scriptapp-operator#readme).
+> development) is the [README on GitHub](https://github.com/europesip/dx-delivery-operator#readme).
 
 ## Why it exists
 
@@ -52,7 +54,7 @@ spec:
 
 And for every resource: **dependencies** (`dependsOn`), **drift policy** (`Restore` or `Report`), **deletion policy**
 (`Retain` or `Delete`), `suspend`, a **status** with conditions and **Kubernetes events**. With the health checks of
-[examples/argocd](https://github.com/europesip/hcl-dx-scriptapp-operator/tree/main/examples/argocd), ArgoCD shows the
+[examples/argocd](https://github.com/europesip/dx-delivery-operator/tree/main/examples/argocd), ArgoCD shows the
 resources as Progressing, Healthy or Degraded. The Helm chart is still a good choice for a single application installed
 once; the operator pays off with several applications, several environments, GitOps, or when DX must be kept as
 declared.
@@ -62,21 +64,21 @@ declared.
 | | |
 |---|---|
 | **Kubernetes and Helm** | Kubernetes 1.28+ and Helm 3.8+ (or 4). No registry login: the chart and the image are public |
-| **HCL DXClient licence** | The operator image is built on top of HCL's public DXClient image, so it contains HCL DXClient, HCL software under its own licence ([LICENSE-DXClient.md](https://github.com/europesip/hcl-dx-scriptapp-operator/blob/main/LICENSE-DXClient.md)): read it and accept it, or the chart refuses to install |
+| **HCL DXClient licence** | The operator image is built on top of HCL's public DXClient image, so it contains HCL DXClient, HCL software under its own licence ([LICENSE-DXClient.md](https://github.com/europesip/dx-delivery-operator/blob/main/LICENSE-DXClient.md)): read it and accept it, or the chart refuses to install |
 | **A DX user** | Editor access to the Script Application Library; pages and DAM need a DX administrator (XMLAccess). Its CA only for a self-signed certificate or a private CA |
 
 ## Install, in short
 
 ```bash
-helm upgrade --install dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version 0.3.2 \
+helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.13.0 \
   -n dxop-system --create-namespace --set dxclient.acceptLicense=true
 ```
 
 Then, in the namespace of your applications, a Secret with the DX user, a `DXConnection` and your resources. Step by
-step: [Use it](https://github.com/europesip/hcl-dx-scriptapp-operator#use-it). Values:
-[values.yaml](https://github.com/europesip/hcl-dx-scriptapp-operator/blob/main/charts/hcl-dx-scriptapp-operator/values.yaml).
+step: [Use it](https://github.com/europesip/dx-delivery-operator#use-it). Values:
+[values.yaml](https://github.com/europesip/dx-delivery-operator/blob/main/charts/dx-delivery-operator/values.yaml).
 Samples, from one HTML file in a ConfigMap to a backend with its own database and a theme:
-[samples/](https://github.com/europesip/hcl-dx-scriptapp-operator/tree/main/samples).
+[samples/](https://github.com/europesip/dx-delivery-operator/tree/main/samples).
 
 ## More documentation
 
@@ -87,8 +89,8 @@ Samples, from one HTML file in a ConfigMap to a backend with its own database an
 | [Restrictions and limitations](limitations.md) | What DX allows and what the operator cannot do (complete HTML documents, 4.5 MB per file, anonymous pages...) |
 | [API reference](reference.md) | Every field of every resource, generated from the CRDs |
 | [How we work](workflow.md) | Issues, the project board and the specs |
-| Source, releases, roadmap | [GitHub](https://github.com/europesip/hcl-dx-scriptapp-operator) · [Release history](https://github.com/europesip/hcl-dx-scriptapp-operator/blob/main/CHANGELOG.md) · [Roadmap](https://github.com/orgs/europesip/projects/3) |
+| Source, releases, roadmap | [GitHub](https://github.com/europesip/dx-delivery-operator) · [Release history](https://github.com/europesip/dx-delivery-operator/blob/main/CHANGELOG.md) · [Roadmap](https://github.com/orgs/europesip/projects/3) |
 
-Licence: [MIT](https://github.com/europesip/hcl-dx-scriptapp-operator/blob/main/LICENSE) for this repository; the
+Licence: [MIT](https://github.com/europesip/dx-delivery-operator/blob/main/LICENSE) for this repository; the
 operator image contains HCL DXClient under HCL's licence. HCL, HCL Digital Experience and DXClient are trademarks of
 HCL Technologies Ltd. Made by [EUROPESIP](https://www.europesip.com).

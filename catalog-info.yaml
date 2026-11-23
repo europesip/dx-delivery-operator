@@ -17,21 +17,21 @@ apiVersion: backstage.io/v1alpha1
 kind: Component                       # a piece of software (a Kubernetes operator that runs in the cluster)
 metadata:
   name: dxop                        # unique id in the catalog (lower case, no spaces); other entities point to it
-  title: DX Script App Operator, by EUROPESIP
+  title: DX Delivery Operator, by EUROPESIP
   description: >-
-    Kubernetes operator by EuropeSIP that declares HCL DX Script Applications, pages, DAM assets, themes and databases as Kubernetes resources (GitOps with Argo CD).
+    DX Delivery Operator (formerly HCL DX Script Application operator): Kubernetes operator by EUROPESIP that delivers HCL DX applications and content from Git — Script Applications, pages, DAM assets, themes, WCM libraries, XMLAccess, portal bundles and databases as Kubernetes resources (GitOps with Argo CD).
   tags: [hcl-dx, dx-compose, dx-core, operator, kubernetes, gitops]    # free labels, used by the catalog search and filters
   annotations:
     # GitHub repository of this component: Backstage uses it for the links and the GitHub cards of the entity page
-    github.com/project-slug: europesip/hcl-dx-scriptapp-operator
+    github.com/project-slug: europesip/dx-delivery-operator
     backstage.io/kubernetes-namespace: dxop-system   # the Kubernetes tab shows the operator pods of this namespace
     # where the source lives (the "View source" button)
-    backstage.io/source-location: url:https://github.com/europesip/hcl-dx-scriptapp-operator/tree/main/
+    backstage.io/source-location: url:https://github.com/europesip/dx-delivery-operator/tree/main/
     # TechDocs: Backstage builds the docs with mkdocs.yml (this same repository) and shows them in the Docs tab
     backstage.io/techdocs-ref: dir:.
   links:                              # buttons in the "Links" card of the entity page
-    - { url: 'https://github.com/europesip/hcl-dx-scriptapp-operator#readme', title: README, icon: docs }
-    - { url: 'https://github.com/europesip/hcl-dx-scriptapp-operator/releases', title: Releases }
+    - { url: 'https://github.com/europesip/dx-delivery-operator#readme', title: README, icon: docs }
+    - { url: 'https://github.com/europesip/dx-delivery-operator/releases', title: Releases }
     - { url: 'https://github.com/orgs/europesip/projects/3', title: Roadmap (GitHub project) }
 spec:
   type: service                     # kind of component (service, library, website, documentation)

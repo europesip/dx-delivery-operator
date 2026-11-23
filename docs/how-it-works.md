@@ -1,6 +1,6 @@
 # How the operator works
 
-[Español](how-it-works.es.md) · [README](https://github.com/europesip/hcl-dx-scriptapp-operator#readme)
+[Español](how-it-works.es.md) · [README](https://github.com/europesip/dx-delivery-operator#readme)
 
 ## The pieces
 

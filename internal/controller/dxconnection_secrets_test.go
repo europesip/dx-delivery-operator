@@ -3,7 +3,7 @@ package controller
 import (
 	"testing"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
 )
 
 func TestUsesSecret(t *testing.T) {

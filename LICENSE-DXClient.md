@@ -2,7 +2,7 @@
 
 The source code of this repository is MIT licensed (see [LICENSE](LICENSE)).
 
-The **container image** of the operator (`ghcr.io/europesip/hcl-dx-scriptapp-operator`) is built on top of
+The **container image** of the operator (`ghcr.io/europesip/dx-delivery-operator`) is built on top of
 HCL's public DXClient image (`hclcr.io/dx-public/dxclient`), so it **contains HCL DXClient**, which is
 **HCL software under its own licence** (an HCL licence for non-warranted programs), not under MIT. The full
 text is in the image, in `/dxclient/LICENSE`, and DXClient prints it with:

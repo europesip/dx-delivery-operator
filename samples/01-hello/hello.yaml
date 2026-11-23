@@ -19,7 +19,7 @@ data:
       <body>
         <div class="dxop-hello">
           <h2>${GREETING}</h2>
-          <p>Deployed by the <b>HCL DX Script Application operator</b> from a ConfigMap · version ${VERSION}</p>
+          <p>Deployed by the <b>DX Delivery Operator</b> from a ConfigMap · version ${VERSION}</p>
         </div>
       </body>
     </html>

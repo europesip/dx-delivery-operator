@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/wcmexport"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/source"
+	"github.com/europesip/dx-delivery-operator/internal/wcmexport"
 )
 
 // The WCM part of DXWCMLibraryExport and DXExport: the libraries are checked, exported one by one with the WCM data
