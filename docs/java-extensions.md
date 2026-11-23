@@ -103,7 +103,7 @@ new version of the code with the same ids (1.0.0 → 1.1.0) needs nothing in DX.
 |---|---|
 | A tag that does not exist (e.g. a typo in a PR) | The controller resolves the tag **before** anything changes: **no restart**, the Web Engine keeps its version, `ArtifactResolved=False`, reason `ArtifactNotFound`, an event |
 | A pod restarts unexpectedly and the artifact is gone or the registry is down | The init container fails with a clear message, the pod stays in `Init:Error` and Kubernetes retries; the same as a custom image that disappeared (`ImagePullBackOff`). Protect what is in use: **immutable tags** and a retention rule that never deletes referenced versions; `optional: true` for extensions the portal can live without |
-| The new version breaks the start (init container fails, not Ready before `rolloutTimeout`) | The operator **rolls back** to the previous digest (`RolledBack`), and does not try that digest again until the spec changes |
+| The new version breaks the start (init container fails, not Ready before `rolloutTimeout`: spec field, default chart value `javaExtensions.rolloutTimeout`, 30m) | The operator **rolls back** to the previous digest (`RolledBack`), and does not try that digest again until the spec changes |
 | The webhook is down | `failurePolicy: Fail` (default): the Web Engine pod is not created until it answers (no Web Engine without its extensions). `Ignore`: it starts without them. Run the operator with 2 replicas if this matters |
 | The webhook is not enabled for the namespace | The controller does not roll out: `NamespaceNotEnabled` (missing label) or `WebhookNotActive` |
 

@@ -6,6 +6,20 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
 for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` for 0.12.x and earlier
 (0.3.0 renamed the resources: see its notes).
 
+## 0.14.1 · 2026-11-23 · DXJavaExtension: no longer stuck in RollingOut
+
+**Fixed** (#57): after a version change a `DXJavaExtension` could stay `RollingOut` although the Web Engine pod was
+already Ready and serving the new version, until something else reconciled it.
+- The controller now **watches the Web Engine pods and their StatefulSet** (only the ones the webhook changed), so a
+  pod that becomes Ready (or whose init container fails) reconciles its extensions at once.
+- While rolling out it still polls every **10 s** (was 15 s), and every reconcile is bounded (4 min), so a hung
+  registry or DX call can no longer block the controller.
+- New chart value **`javaExtensions.rolloutTimeout`** (Go duration, default 30m): the default time a rollout may take
+  before the operator rolls back; `spec.rolloutTimeout` still overrides it.
+
+Upgrading from 0.14.0: apply the CRDs (unchanged) and `helm upgrade` with your values file (`--reuse-values` does
+not pick up new chart values).
+
 ## 0.14.0 · 2026-11-23 · Java extensions (DXJavaExtension)
 
 New resource **`DXJavaExtension`** (#54): custom Java on DX Compose **without a custom image**. A JSR 168/286

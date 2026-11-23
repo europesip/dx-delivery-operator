@@ -7,6 +7,7 @@ Licensed under the MIT License (see LICENSE).
 package main
 
 import (
+	"time"
 	"crypto/tls"
 	"flag"
 	"os"
@@ -333,11 +334,22 @@ func main() {
 		}
 	}
 	if enabled("dxjavaextension") {
+		// The default rollout timeout of DXJavaExtension (chart javaExtensions.rolloutTimeout, e.g. 30m).
+		var jxTimeout time.Duration
+		if v := os.Getenv("JAVA_EXTENSIONS_ROLLOUT_TIMEOUT"); v != "" {
+			d, err := time.ParseDuration(v)
+			if err != nil {
+				setupLog.Error(err, "invalid JAVA_EXTENSIONS_ROLLOUT_TIMEOUT, using the default", "value", v)
+			} else {
+				jxTimeout = d
+			}
+		}
 		if err := (&controller.DXJavaExtensionReconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			Scheme:    mgr.GetScheme(),
-			Shared:    shared,
+			Client:         mgr.GetClient(),
+			APIReader:      mgr.GetAPIReader(),
+			Scheme:         mgr.GetScheme(),
+			Shared:         shared,
+			RolloutTimeout: jxTimeout,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Failed to create controller", "controller", "dxjavaextension")
 			os.Exit(1)

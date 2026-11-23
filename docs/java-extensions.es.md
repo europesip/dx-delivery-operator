@@ -104,7 +104,7 @@ Una versión nueva del código con los mismos identificadores (1.0.0 → 1.1.0) 
 |---|---|
 | Una etiqueta que no existe (p. ej. una errata en un PR) | El controlador resuelve la etiqueta **antes** de cambiar nada: **no se reinicia**, el Web Engine sigue con su versión, `ArtifactResolved=False`, motivo `ArtifactNotFound`, un evento |
 | Un pod se reinicia de forma inesperada y el artefacto ya no está o el registro está caído | El init container falla con un mensaje claro, el pod queda en `Init:Error` y Kubernetes reintenta; igual que una imagen propia que desaparece (`ImagePullBackOff`). Protege lo que está en uso: **etiquetas inmutables** y una regla de retención que no borre versiones en uso; `optional: true` para extensiones sin las que el portal puede vivir |
-| La versión nueva rompe el arranque (falla el init container, o no está Ready antes de `rolloutTimeout`) | El operador **vuelve** al digest anterior (`RolledBack`) y no reintenta ese digest hasta que cambie el spec |
+| La versión nueva rompe el arranque (falla el init container, o no está Ready antes de `rolloutTimeout`: campo del spec, por defecto el valor del chart `javaExtensions.rolloutTimeout`, 30m) | El operador **vuelve** al digest anterior (`RolledBack`) y no reintenta ese digest hasta que cambie el spec |
 | El webhook está caído | `failurePolicy: Fail` (por defecto): el pod del Web Engine no se crea hasta que responda (nunca un Web Engine sin sus extensiones). `Ignore`: arranca sin ellas. Si importa, el operador con 2 réplicas |
 | El webhook no está activo para el namespace | El controlador no despliega: `NamespaceNotEnabled` (falta la etiqueta) o `WebhookNotActive` |
 
