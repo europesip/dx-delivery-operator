@@ -71,9 +71,17 @@ Risk: the pod mutation is outside the HCL chart's supported values (documented; 
 - [x] Unit tests (javaext, webhook)
 - [x] Docs EN/ES, reference, mkdocs nav, README, CHANGELOG, sample
 - [x] Test instance on `jtm-poc` (not prod)
-- [ ] Release 0.14.0 and prod upgrade (Andrés)
+- [x] Release 0.14.0 and prod upgrade (Andrés, 23-nov-2026)
 
 ## Test plan
 `go test ./internal/...`, `helm lint` (on and off). Lab: a test instance of the operator (`dxop-jtm`, only namespace
 `jtm-poc`, only the `dxjavaextension` controller, own lease and webhook) with the showcase portlet 1.0.0 → 1.1.0 and a
 missing tag.
+
+## Follow-up: 0.14.1 (#57)
+Found while recording the demo video on prod 0.14.0: after a version bump the CR stayed `RollingOut` although the
+pod was Ready. Fix: the controller watches the Web Engine pods and StatefulSet touched by the webhook (map to the
+DXJavaExtensions of that StatefulSet), polls every 10 s while rolling out, bounds every reconcile (4 min) so a hung
+call cannot block the worker, and the default rollout timeout is configurable (`javaExtensions.rolloutTimeout`).
+Tests: `TestRolloutFailure`, `TestRolloutTimeoutDefaults`, `TestRequestsFor`; lab check on `jtm-poc` (1.0.2 → 1.1.2
+→ 1.0.2 must reach Ready by itself).

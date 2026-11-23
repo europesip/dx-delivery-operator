@@ -27,8 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
 	"github.com/europesip/dx-delivery-operator/internal/javaext"
@@ -46,6 +48,10 @@ type DXJavaExtensionReconciler struct {
 	APIReader client.Reader
 	Scheme    *runtime.Scheme
 	*Shared
+
+	// RolloutTimeout is the default time a rollout may take before it is rolled back (spec.rolloutTimeout
+	// overrides it); 0 = 30 minutes. Env JAVA_EXTENSIONS_ROLLOUT_TIMEOUT (chart javaExtensions.rolloutTimeout).
+	RolloutTimeout time.Duration
 
 	mu   sync.Mutex
 	apps map[string]*javaext.PortletApp // digest -> portlet.xml (artifacts are immutable by digest)
@@ -69,11 +75,16 @@ const (
 	reasonJXRegisterFailed = "RegisterFailed"
 	reasonJXInvalid        = "InvalidArtifact"
 	jxDefaultTimeout       = 30 * time.Minute
-	jxPoll                 = 15 * time.Second
+	jxPoll                 = 10 * time.Second
+	// jxReconcileTimeout bounds one reconcile (registry calls, XMLAccess): a hung call must never block the
+	// controller worker, or the extensions stop being reconciled (#57).
+	jxReconcileTimeout = 4 * time.Minute
 )
 
 // Reconcile implements reconcile.Reconciler.
 func (r *DXJavaExtensionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx, cancel := context.WithTimeout(ctx, jxReconcileTimeout)
+	defer cancel()
 	log := logf.FromContext(ctx)
 	var e dxv1.DXJavaExtension
 	if err := r.Get(ctx, req.NamespacedName, &e); err != nil {
@@ -199,16 +210,11 @@ func (r *DXJavaExtensionReconciler) reconcile(ctx context.Context, e *dxv1.DXJav
 		return ctrl.Result{}, err
 	}
 	if !done {
-		timeout := jxDefaultTimeout
-		if e.Spec.RolloutTimeout != nil {
-			timeout = e.Spec.RolloutTimeout.Duration
-		}
-		if failure == "" && e.Status.RolloutStarted != nil && time.Since(e.Status.RolloutStarted.Time) > timeout {
-			failure = fmt.Sprintf("not finished after %s", timeout)
-		}
-		if failure != "" {
+		if failure = rolloutFailure(failure, e.Status.RolloutStarted, r.rolloutTimeout(e), time.Now()); failure != "" {
 			return r.rollback(ctx, e, failure)
 		}
+		// Keep polling until the pods are Ready (#57: the controller also watches the Web Engine pods, but a
+		// poll never lets a rollout stay RollingOut once it has finished).
 		return ctrl.Result{RequeueAfter: jxPoll}, nil
 	}
 	if e.Status.RolledOutRef != e.Status.DesiredRef {
@@ -375,6 +381,63 @@ func podReady(p *corev1.Pod) bool {
 	return false
 }
 
+// rolloutTimeout: spec.rolloutTimeout, else the operator default, else 30 minutes.
+func (r *DXJavaExtensionReconciler) rolloutTimeout(e *dxv1.DXJavaExtension) time.Duration {
+	if e.Spec.RolloutTimeout != nil && e.Spec.RolloutTimeout.Duration > 0 {
+		return e.Spec.RolloutTimeout.Duration
+	}
+	if r.RolloutTimeout > 0 {
+		return r.RolloutTimeout
+	}
+	return jxDefaultTimeout
+}
+
+// rolloutFailure returns why an unfinished rollout must be rolled back ("" = keep waiting): the failure found in
+// the pods, or the timeout since the rollout started.
+func rolloutFailure(failure string, started *metav1.Time, timeout time.Duration, now time.Time) string {
+	if failure != "" {
+		return failure
+	}
+	if started != nil && now.Sub(started.Time) > timeout {
+		return fmt.Sprintf("not finished after %s", timeout)
+	}
+	return ""
+}
+
+// extensionsOfPod maps a Web Engine pod (or its StatefulSet) to the DXJavaExtensions that target it, so a pod that
+// becomes Ready (or fails) reconciles them at once instead of waiting for the next poll (#57).
+func (r *DXJavaExtensionReconciler) extensionsOfPod(ctx context.Context, o client.Object) []reconcile.Request {
+	sts := ""
+	switch obj := o.(type) {
+	case *appsv1.StatefulSet:
+		sts = obj.Name
+	case *corev1.Pod:
+		for _, ow := range obj.OwnerReferences {
+			if ow.Kind == "StatefulSet" {
+				sts = ow.Name
+			}
+		}
+	}
+	if sts == "" {
+		return nil
+	}
+	var list dxv1.DXJavaExtensionList
+	if err := r.List(ctx, &list, client.InNamespace(o.GetNamespace())); err != nil {
+		return nil
+	}
+	return requestsFor(list.Items, sts)
+}
+
+func requestsFor(items []dxv1.DXJavaExtension, sts string) []reconcile.Request {
+	var out []reconcile.Request
+	for i := range items {
+		if items[i].StatefulSetName() == sts {
+			out = append(out, reconcile.Request{NamespacedName: types.NamespacedName{Namespace: items[i].Namespace, Name: items[i].Name}})
+		}
+	}
+	return out
+}
+
 // rollback goes back to the previous digest (or, on the first rollout, removes the extension from the pods).
 func (r *DXJavaExtensionReconciler) rollback(ctx context.Context, e *dxv1.DXJavaExtension, why string) (ctrl.Result, error) {
 	failed := e.Status.DesiredRef
@@ -495,8 +558,23 @@ func (r *DXJavaExtensionReconciler) finalize(ctx context.Context, e *dxv1.DXJava
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *DXJavaExtensionReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Only pods that the webhook touched (annotation) and StatefulSets with the extensions hash: the rest of the
+	// cluster never reaches the map function.
+	injected := predicate.NewPredicateFuncs(func(o client.Object) bool {
+		a := o.GetAnnotations()
+		if _, ok := a[dxv1.AnnotationJavaExtensions]; ok {
+			return true
+		}
+		if sts, ok := o.(*appsv1.StatefulSet); ok {
+			_, ok := sts.Spec.Template.Annotations[dxv1.AnnotationJavaExtensionsHash]
+			return ok
+		}
+		return false
+	})
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&dxv1.DXJavaExtension{}, builder.WithPredicates(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.AnnotationChangedPredicate{}))).
+		Watches(&corev1.Pod{}, handler.EnqueueRequestsFromMapFunc(r.extensionsOfPod), builder.WithPredicates(injected)).
+		Watches(&appsv1.StatefulSet{}, handler.EnqueueRequestsFromMapFunc(r.extensionsOfPod), builder.WithPredicates(injected)).
 		Named("dxjavaextension").
 		Complete(r)
 }

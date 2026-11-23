@@ -57,6 +57,7 @@ spec:
             - { name: DX_FORM_LOGIN, value: {{ ternary "false" "auto" (eq (toString (.Values.dx).oidcCompatibility) "false") | quote }} }
             - { name: ENABLE_CONTROLLERS, value: {{ join "," (.Values.enableControllers | default list) | quote }} }
             - { name: LEADER_ELECTION_ID, value: {{ .Values.leaderElectionID | default "" | quote }} }
+            - { name: JAVA_EXTENSIONS_ROLLOUT_TIMEOUT, value: {{ (.Values.javaExtensions).rolloutTimeout | default "" | quote }} }
             {{- if (.Values.javaExtensions).enabled }}
             - { name: JAVA_EXTENSIONS_WEBHOOK, value: "true" }
             - { name: JAVA_EXTENSIONS_INIT_IMAGE, value: "{{ .Values.javaExtensions.initImage.repository }}:{{ .Values.javaExtensions.initImage.tag | default .Chart.AppVersion }}" }

@@ -85,6 +85,9 @@ leaderElectionID: ""
 # the label below. Needs cert-manager for the webhook certificate.
 javaExtensions:
   enabled: false
+  # How long a rollout may take before the operator rolls back to the previous version (Go duration; empty = 30m).
+  # spec.rolloutTimeout of a DXJavaExtension overrides it.
+  rolloutTimeout: ""
   initImage:
     repository: ghcr.io/europesip/dx-delivery-operator/dx-extensions-init
     tag: ""                    # default: the chart appVersion
