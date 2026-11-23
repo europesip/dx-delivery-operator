@@ -106,7 +106,8 @@ Una versión nueva del código con los mismos identificadores (1.0.0 → 1.1.0) 
 | Un pod se reinicia de forma inesperada y el artefacto ya no está o el registro está caído | El init container falla con un mensaje claro, el pod queda en `Init:Error` y Kubernetes reintenta; igual que una imagen propia que desaparece (`ImagePullBackOff`). Protege lo que está en uso: **etiquetas inmutables** y una regla de retención que no borre versiones en uso; `optional: true` para extensiones sin las que el portal puede vivir |
 | La versión nueva rompe el arranque (falla el init container, o no está Ready antes de `rolloutTimeout`: campo del spec, por defecto el valor del chart `javaExtensions.rolloutTimeout`, 30m) | El operador **vuelve** al digest anterior (`RolledBack`) y no reintenta ese digest hasta que cambie el spec |
 | El webhook está caído | `failurePolicy: Fail` (por defecto): el pod del Web Engine no se crea hasta que responda (nunca un Web Engine sin sus extensiones). `Ignore`: arranca sin ellas. Si importa, el operador con 2 réplicas |
-| El webhook no está activo para el namespace | El controlador no despliega: `NamespaceNotEnabled` (falta la etiqueta) o `WebhookNotActive` |
+| El webhook no está activo para el namespace | El controlador no despliega: `NamespaceNotEnabled` (falta la etiqueta) o `WebhookNotActive` — solo cuando un pod creado con la plantilla actual no lleva la inyección; el mensaje dice por qué (sin configuración, `namespaceSelector` que no coincide, sin endpoints listos) |
+| El pod nuevo del Web Engine no se puede programar (p. ej. sin memoria) | `PodPending` con el mensaje del scheduler; el despliegue sigue esperando hasta que se programe o `rolloutTimeout` lo devuelva atrás |
 
 ## Desplegar una extensión
 

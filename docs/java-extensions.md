@@ -105,7 +105,8 @@ new version of the code with the same ids (1.0.0 → 1.1.0) needs nothing in DX.
 | A pod restarts unexpectedly and the artifact is gone or the registry is down | The init container fails with a clear message, the pod stays in `Init:Error` and Kubernetes retries; the same as a custom image that disappeared (`ImagePullBackOff`). Protect what is in use: **immutable tags** and a retention rule that never deletes referenced versions; `optional: true` for extensions the portal can live without |
 | The new version breaks the start (init container fails, not Ready before `rolloutTimeout`: spec field, default chart value `javaExtensions.rolloutTimeout`, 30m) | The operator **rolls back** to the previous digest (`RolledBack`), and does not try that digest again until the spec changes |
 | The webhook is down | `failurePolicy: Fail` (default): the Web Engine pod is not created until it answers (no Web Engine without its extensions). `Ignore`: it starts without them. Run the operator with 2 replicas if this matters |
-| The webhook is not enabled for the namespace | The controller does not roll out: `NamespaceNotEnabled` (missing label) or `WebhookNotActive` |
+| The webhook is not enabled for the namespace | The controller does not roll out: `NamespaceNotEnabled` (missing label) or `WebhookNotActive` — only when a pod created from the current template has no injection; the message says why (no configuration, `namespaceSelector` not matching, no ready endpoints) |
+| The new Web Engine pod cannot be scheduled (e.g. not enough memory) | `PodPending` with the scheduler message; the rollout keeps waiting until it is scheduled or `rolloutTimeout` rolls it back |
 
 ## Deploy an extension
 

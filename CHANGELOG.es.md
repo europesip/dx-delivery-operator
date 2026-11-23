@@ -6,6 +6,21 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
 desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para la 0.12.x y anteriores
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.14.2 · 2026-11-24 · DXJavaExtension: sin falsos WebhookNotActive
+
+**Corregido** (#61): un `DXJavaExtension` decía `WebhookNotActive` aunque el webhook funcionaba, en el momento en que
+el pod viejo del Web Engine se para y el nuevo aún no existe, y mientras el pod nuevo seguía Pending (por ejemplo,
+sin memoria en los workers).
+- El controlador decide ahora con los hechos de cada pod: `WebhookNotActive` solo cuando un pod creado con la
+  plantilla **actual** no lleva la inyección, y el mensaje incluye un **diagnóstico** del webhook (la
+  MutatingWebhookConfiguration que sirve la ruta de las extensiones, su `namespaceSelector` frente a las etiquetas del
+  namespace y endpoints listos de su Service).
+- Motivo nuevo **`PodPending`** con el mensaje del scheduler (p. ej. `Insufficient memory`) cuando el pod nuevo no se
+  puede programar; `RollingOut` dice si espera a que pare el pod viejo o al pod nuevo.
+- RBAC: el operador también lee (`get`, `list`) `mutatingwebhookconfigurations` y `endpointslices`.
+
+Para actualizar desde la 0.14.1: aplica los CRDs (sin cambios) y `helm upgrade` con tu fichero de valores.
+
 ## 0.14.1 · 2026-11-23 · DXJavaExtension: ya no se queda en RollingOut
 
 **Corregido** (#57): tras un cambio de versión, un `DXJavaExtension` podía quedarse en `RollingOut` aunque el pod

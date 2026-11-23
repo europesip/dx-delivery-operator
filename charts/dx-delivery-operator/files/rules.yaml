@@ -21,6 +21,13 @@ rules:
   - list
   - watch
 - apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+- apiGroups:
   - apps
   resources:
   - deployments
@@ -45,6 +52,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
 - apiGroups:
   - dx.europesip.com
   resources:

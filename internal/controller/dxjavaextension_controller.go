@@ -16,11 +16,14 @@ import (
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -63,6 +66,8 @@ type DXJavaExtensionReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list
+// +kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list
 
 const (
 	reasonJXNotFound       = "ArtifactNotFound"
@@ -72,6 +77,7 @@ const (
 	reasonJXRolledBack     = "RolledBack"
 	reasonJXRolloutFailed  = "RolloutFailed"
 	reasonJXNotInjected    = "WebhookNotActive"
+	reasonJXPodPending     = "PodPending"
 	reasonJXRegisterFailed = "RegisterFailed"
 	reasonJXInvalid        = "InvalidArtifact"
 	jxDefaultTimeout       = 30 * time.Minute
@@ -315,25 +321,63 @@ func (r *DXJavaExtensionReconciler) syncHash(ctx context.Context, e *dxv1.DXJava
 }
 
 // rolledOut says whether every pod of the StatefulSet is Ready with the desired digest of this extension. failure
-// is not empty when the rollout cannot finish (the init container failed).
+// is not empty when the rollout cannot finish (the init container failed). While it is not done, the RolledOut and
+// Ready conditions say why from the facts of the pods (#61): RollingOut, PodPending (scheduler message) or
+// WebhookNotActive (only for a pod created from the current template without the injection, with a diagnosis).
 func (r *DXJavaExtensionReconciler) rolledOut(ctx context.Context, e *dxv1.DXJavaExtension) (bool, string, error) {
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKey{Namespace: e.Namespace, Name: e.StatefulSetName()}, &sts); err != nil {
 		return false, "", err
-	}
-	replicas := int32(1)
-	if sts.Spec.Replicas != nil {
-		replicas = *sts.Spec.Replicas
 	}
 	var pods corev1.PodList
 	if err := r.List(ctx, &pods, client.InNamespace(e.Namespace)); err != nil {
 		return false, "", err
 	}
 	want := e.Name + "@" + e.Status.DesiredRef[strings.LastIndex(e.Status.DesiredRef, "@")+1:]
+	st := jxRolloutState(&sts, pods.Items, want)
+	if st.failure != "" || st.done {
+		return st.done, st.failure, nil
+	}
+	msg := st.msg
+	if st.reason == reasonJXNotInjected {
+		if why := r.webhookDiagnosis(ctx, e.Namespace); why != "" {
+			msg += ": " + why
+		} else {
+			msg += " although the webhook configuration, the namespace label and the webhook endpoints look right; check the operator log"
+		}
+	}
+	r.fail(e, dxv1.ConditionRolledOut, st.reason, msg)
+	return false, "", nil
+}
+
+// jxState is what the pods of a Web Engine StatefulSet say about a rollout.
+type jxState struct {
+	done    bool
+	failure string // the rollout cannot finish: roll back
+	reason  string // while not done: RollingOut, PodPending or WebhookNotActive
+	msg     string
+}
+
+// jxRolloutState classifies the pods of the StatefulSet from facts only (#61). A pod is "current" when it was
+// created from the current pod template (same java-extensions hash annotation, or the update revision). Only a
+// current pod without the injection means the webhook did not act; a terminating old pod or a new pod that is not
+// created or not scheduled yet is part of a normal rollout.
+func jxRolloutState(sts *appsv1.StatefulSet, pods []corev1.Pod, want string) jxState {
+	replicas := int32(1)
+	if sts.Spec.Replicas != nil {
+		replicas = *sts.Spec.Replicas
+	}
+	wantHash := sts.Spec.Template.Annotations[dxv1.AnnotationJavaExtensionsHash]
+	var notInjected, unschedulable []string
+	terminating, current := 0, 0
 	ready, injected := int32(0), int32(0)
-	for i := range pods.Items {
-		p := &pods.Items[i]
-		if !ownedBy(p, sts.Name) || !p.DeletionTimestamp.IsZero() {
+	for i := range pods {
+		p := &pods[i]
+		if !ownedBy(p, sts.Name) {
+			continue
+		}
+		if !p.DeletionTimestamp.IsZero() {
+			terminating++
 			continue
 		}
 		for _, cs := range p.Status.InitContainerStatuses {
@@ -341,26 +385,119 @@ func (r *DXJavaExtensionReconciler) rolledOut(ctx context.Context, e *dxv1.DXJav
 				continue
 			}
 			if t := cs.State.Terminated; t != nil && t.ExitCode != 0 {
-				return false, fmt.Sprintf("pod %s: the init container failed (%s); see its log", p.Name, t.Reason), nil
+				return jxState{failure: fmt.Sprintf("pod %s: the init container failed (%s); see its log", p.Name, t.Reason)}
 			}
 			if w := cs.State.Waiting; w != nil && w.Reason == "CrashLoopBackOff" && cs.RestartCount >= 2 {
-				return false, fmt.Sprintf("pod %s: the init container keeps failing; see its log", p.Name), nil
+				return jxState{failure: fmt.Sprintf("pod %s: the init container keeps failing; see its log", p.Name)}
 			}
 		}
-		if !strings.Contains(","+p.Annotations[dxv1.AnnotationJavaExtensions]+",", ","+want+",") {
-			continue
+		isCurrent := false
+		if wantHash != "" {
+			isCurrent = p.Annotations[dxv1.AnnotationJavaExtensionsHash] == wantHash
+		} else if rev := sts.Status.UpdateRevision; rev != "" {
+			isCurrent = p.Labels[appsv1.StatefulSetRevisionLabel] == rev
 		}
-		injected++
-		if podReady(p) {
-			ready++
+		hasIt := strings.Contains(","+p.Annotations[dxv1.AnnotationJavaExtensions]+",", ","+want+",")
+		if isCurrent {
+			current++
+			if !hasIt {
+				notInjected = append(notInjected, p.Name)
+			}
+		}
+		for _, c := range p.Status.Conditions {
+			if c.Type == corev1.PodScheduled && c.Status == corev1.ConditionFalse && c.Reason == corev1.PodReasonUnschedulable {
+				unschedulable = append(unschedulable, p.Name+": "+c.Message)
+			}
+		}
+		if hasIt {
+			injected++
+			if podReady(p) {
+				ready++
+			}
 		}
 	}
 	stsDone := sts.Status.ObservedGeneration >= sts.Generation && sts.Status.UpdatedReplicas == replicas &&
 		sts.Status.ReadyReplicas == replicas && (sts.Status.UpdateRevision == "" || sts.Status.CurrentRevision == sts.Status.UpdateRevision)
-	if stsDone && injected < replicas {
-		r.fail(e, dxv1.ConditionRolledOut, reasonJXNotInjected, "the Web Engine pods were restarted but none has the extension: is the operator webhook enabled (chart value javaExtensions.enabled) and is its namespaceSelector matching?")
+	if stsDone && ready == replicas && injected == replicas {
+		return jxState{done: true}
 	}
-	return stsDone && ready == replicas && injected == replicas, "", nil
+	switch {
+	case len(notInjected) > 0:
+		return jxState{reason: reasonJXNotInjected, msg: "pod " + strings.Join(notInjected, ", ") + " was created from the current template without the extension (the operator webhook did not inject it)"}
+	case len(unschedulable) > 0:
+		return jxState{reason: reasonJXPodPending, msg: "the new Web Engine pod cannot be scheduled: " + strings.Join(unschedulable, "; ")}
+	case terminating > 0:
+		return jxState{reason: reasonJXRollingOut, msg: "waiting for the old Web Engine pod to stop"}
+	case current < int(replicas):
+		return jxState{reason: reasonJXRollingOut, msg: "waiting for the new Web Engine pod"}
+	default:
+		return jxState{reason: reasonJXRollingOut, msg: "waiting for the Web Engine pod to be Ready"}
+	}
+}
+
+// webhookDiagnosis says why the webhook may not act in the namespace ("" = everything looks right): the
+// MutatingWebhookConfiguration that serves the java-extensions path, its namespaceSelector against the namespace
+// labels, and ready endpoints of its Service. Read without the cache (get/list only).
+func (r *DXJavaExtensionReconciler) webhookDiagnosis(ctx context.Context, ns string) string {
+	rd := r.APIReader
+	if rd == nil {
+		rd = r.Client
+	}
+	var cfgs admissionv1.MutatingWebhookConfigurationList
+	if err := rd.List(ctx, &cfgs); err != nil {
+		return "cannot read the MutatingWebhookConfigurations: " + err.Error()
+	}
+	var nsObj corev1.Namespace
+	if err := rd.Get(ctx, client.ObjectKey{Name: ns}, &nsObj); err != nil {
+		return "cannot read the namespace: " + err.Error()
+	}
+	return diagnoseWebhook(cfgs.Items, nsObj.Labels, func(svcNS, svc string) (bool, error) {
+		var slices discoveryv1.EndpointSliceList
+		if err := rd.List(ctx, &slices, client.InNamespace(svcNS), client.MatchingLabels{discoveryv1.LabelServiceName: svc}); err != nil {
+			return false, err
+		}
+		for _, s := range slices.Items {
+			for _, ep := range s.Endpoints {
+				if ep.Conditions.Ready == nil || *ep.Conditions.Ready {
+					return true, nil
+				}
+			}
+		}
+		return false, nil
+	})
+}
+
+// diagnoseWebhook checks the configurations (pure, for the tests): one webhook serving the java-extensions path,
+// whose namespaceSelector matches nsLabels and whose Service has ready endpoints.
+func diagnoseWebhook(cfgs []admissionv1.MutatingWebhookConfiguration, nsLabels map[string]string, ready func(ns, svc string) (bool, error)) string {
+	found := false
+	for _, c := range cfgs {
+		for _, w := range c.Webhooks {
+			svc := w.ClientConfig.Service
+			if svc == nil || svc.Path == nil || *svc.Path != webhook.JavaExtensionsPath {
+				continue
+			}
+			found = true
+			if w.NamespaceSelector != nil {
+				sel, err := metav1.LabelSelectorAsSelector(w.NamespaceSelector)
+				if err != nil || !sel.Matches(labels.Set(nsLabels)) {
+					return fmt.Sprintf("the namespaceSelector of %s does not match the namespace labels (it needs %s=enabled)", c.Name, dxv1.LabelJavaExtensionsNamespace)
+				}
+			}
+			ok, err := ready(svc.Namespace, svc.Name)
+			if err != nil {
+				return "cannot read the endpoints of the webhook Service " + svc.Namespace + "/" + svc.Name + ": " + err.Error()
+			}
+			if !ok {
+				return "the webhook Service " + svc.Namespace + "/" + svc.Name + " has no ready endpoints (is the operator pod running?)"
+			}
+			return ""
+		}
+	}
+	if !found {
+		return "no MutatingWebhookConfiguration serves " + webhook.JavaExtensionsPath + " (chart value javaExtensions.enabled)"
+	}
+	return ""
 }
 
 func ownedBy(p *corev1.Pod, sts string) bool {
