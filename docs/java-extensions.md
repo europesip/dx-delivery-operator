@@ -2,6 +2,9 @@
 
 **English** · [Español](java-extensions.es.md)
 
+> **Video (7 min):** [Java portlets on HCL DX Compose without a custom image](https://youtu.be/ncVQlSORBOg) —
+> the HCL Java Transition Module, the Java code it covers, and a live DXJavaExtension demo (English, subtitles EN/ES).
+
 `DXJavaExtension` (0.14.0, issue [#54](https://github.com/europesip/dx-delivery-operator/issues/54)) deploys **custom
 Java code** to the DX Compose Web Engine **without a custom image**: JSR 168/286 **portlets** (WARs) and
 **shared-library JARs**. The code is an OCI artifact in your registry (Harbor, GHCR…); the operator loads it onto the
