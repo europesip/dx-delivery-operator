@@ -1,0 +1,20 @@
+# DXJavaExtension (0.14.0, issue #54): the EUROPESIP Showcase portlet (JSR 286) loaded from the registry onto the
+# official DX Compose Web Engine image. Prerequisites: the operator chart with javaExtensions.enabled=true and the
+# portal namespace labelled dx.europesip.com/java-extensions=enabled. Change the tag to 1.1.0 to see a rollout.
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXJavaExtension
+metadata:
+  name: europesip-showcase
+spec:
+  connectionRef: { name: dx }                     # the DXConnection of the portal, in this namespace
+  type: portlet
+  artifact:
+    ref: harbor.example.com/dx-artifacts/java-extensions/portlets/europesip-showcase-portlet:1.0.0
+    pullSecrets: [ { name: registry-pull } ]      # dockerconfigjson, read-only is enough
+  contextRoot: /europesip-showcase
+  page:
+    uniqueName: com.europesip.showcase.page
+    title: EUROPESIP Showcase
+    titles: { es: Escaparate EUROPESIP }
+    friendlyName: showcase                        # https://<portal>/wps/portal/Home/showcase
+    anonymous: true

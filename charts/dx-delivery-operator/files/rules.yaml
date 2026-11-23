@@ -12,13 +12,30 @@ rules:
   - update
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - apps
   resources:
   - deployments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
   - statefulsets
   verbs:
   - get
   - list
+  - patch
   - watch
 - apiGroups:
   - batch
@@ -43,6 +60,7 @@ rules:
   - dxdamcollections/status
   - dxdatabases/status
   - dxexports/status
+  - dxjavaextensions/status
   - dxpages/status
   - dxscriptapplications/status
   - dxthemes/status
@@ -60,6 +78,7 @@ rules:
   - dxdamcollections
   - dxdatabases
   - dxexports
+  - dxjavaextensions
   - dxpages
   - dxscriptapplications
   - dxthemes
@@ -78,6 +97,7 @@ rules:
   resources:
   - dxdamcollections/finalizers
   - dxdatabases/finalizers
+  - dxjavaextensions/finalizers
   - dxpages/finalizers
   - dxscriptapplications/finalizers
   - dxthemes/finalizers

@@ -51,6 +51,7 @@ jobs:
       matrix:
         include:
           - { name: "", context: ".", file: Dockerfile }
+          - { name: "/dx-extensions-init", context: ".", file: Dockerfile.extensions-init }   # DXJavaExtension (#54)
           - { name: "/sample-visits-api", context: samples/04-backend-db/visits-api, file: samples/04-backend-db/visits-api/Dockerfile }
           - { name: "/sample-clock", context: samples/05-bundle-image, file: samples/05-bundle-image/Dockerfile }
     steps:

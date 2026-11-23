@@ -729,3 +729,59 @@ Short names: `dxwcmadmin`
 | `reportConfigMap` | string |  | ReportConfigMap: the ConfigMap with DX's answer for every library (the per item detail is only in the log of the Web Engine). |
 | `startTime` | string |  |  |
 
+## DXJavaExtension
+
+DXJavaExtension is a Java extension (a portlet WAR or shared-library JARs) loaded from a registry onto the official DX Compose Web Engine image: no custom image (issue #54).
+
+Short names: `dxjx`, `dxjavaext`
+
+### spec
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `artifact` | object (required) |  | Artifact: the OCI artifact with the WAR or the JARs. |
+| `artifact.pullSecrets` | []object |  | PullSecrets: Secrets of type kubernetes.io/dockerconfigjson in this namespace for a private registry (read-only access is enough). The init container of the Web Engine uses them too. |
+| `artifact.pullSecrets[].name` | string (required) |  | Name of the object. |
+| `artifact.ref` | string (required) |  | Ref of the artifact, for example harbor.example.com/dx-artifacts/java-extensions/portlets/my-portlet:1.0.0 or ...@sha256:... The artifact has one file: a WAR (or a tar/tar.gz of the expanded WAR) for a portlet, a JAR (or a tar/tar.gz of JARs) for a shared library. A tag is resolved to its digest before any rollout, and the Web Engine always loads that digest. |
+| `connectionRef` | object (required) |  | ConnectionRef: the DXConnection of the portal (used to register the portlets with XMLAccess). |
+| `connectionRef.name` | string (required) |  | Name of the object. |
+| `contextRoot` | string |  | ContextRoot of the web application (portlets; default /<metadata.name>). Must start with a slash. |
+| `fileName` | string |  | FileName of the WAR in customApplications (default <metadata.name>.war) or of the JAR in customSharedLib (default <metadata.name>.jar). |
+| `optional` | boolean |  | Optional: when the artifact cannot be pulled while a Web Engine pod starts, start without it (a warning in the init container log) instead of failing the pod. |
+| `page` | object |  | Page: optional page where the first portlet is placed. |
+| `page.anonymous` | boolean | `True` | Anonymous: anonymous users can see the page and the portlet (default true). |
+| `page.friendlyName` | string |  | FriendlyName: the URL segment of the page (…/wps/portal/<parent>/<friendlyName>). |
+| `page.parentUniqueName` | string | `ibm.portal.Home` | ParentUniqueName: the parent page (default ibm.portal.Home, the Home label). |
+| `page.title` | string (required) |  | Title of the page (every locale in titles takes precedence). |
+| `page.titles` | object |  | Titles per locale, for example {"es": "Escaparate"}. |
+| `page.uniqueName` | string (required) |  | UniqueName of the page. |
+| `portletAppUID` | string |  | PortletAppUID: uid of the portlet application in DX (default: the id attribute of <portlet-app> in portlet.xml, or the annotation com.europesip.dx.java.webapp-uid of the artifact without ".webmod"). |
+| `register` | boolean | `True` | Register the portlets in DX with XMLAccess predeployed (default true; portlets only). Only done when they are not registered yet or when the portlets of portlet.xml change. |
+| `rolloutTimeout` | string |  | RolloutTimeout: how long a rollout may take before the operator goes back to the previous digest (default 30m). |
+| `target` | object |  | Target: the Web Engine (defaults of the HCL chart: StatefulSet dx-deployment-web-engine, container web-engine). |
+| `target.container` | string | `web-engine` | Container of the Web Engine in that StatefulSet. |
+| `target.statefulSet` | string | `dx-deployment-web-engine` | StatefulSet of the Web Engine in this namespace (the HCL chart names it <release>-web-engine). |
+| `type` | portlet \| sharedLibrary | `portlet` | Type: portlet (a WAR with portlet.xml: loaded by Liberty and registered in DX) or sharedLibrary (JARs on the global classpath of the Web Engine, libraries/customSharedLib). |
+
+### status
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `conditions` | []object |  | Conditions: Ready, ArtifactResolved, RolledOut, Registered. |
+| `conditions[].lastTransitionTime` | string (required) |  | lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable. |
+| `conditions[].message` | string (required) |  | message is a human readable message indicating details about the transition. This may be an empty string. |
+| `conditions[].observedGeneration` | integer |  | observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance. |
+| `conditions[].reason` | string (required) |  | reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty. |
+| `conditions[].status` | True \| False \| Unknown (required) |  | status of the condition, one of True, False, Unknown. |
+| `conditions[].type` | string (required) |  | type of condition in CamelCase or in foo.example.com/CamelCase. |
+| `desiredRef` | string |  | DesiredRef: repository@digest that the Web Engine pods must load (the webhook injects this one). |
+| `failedRef` | string |  | FailedRef: repository@digest whose rollout failed and was rolled back; it is not rolled out again until the spec changes. |
+| `observedGeneration` | integer |  | ObservedGeneration: the generation of the spec that the status describes. |
+| `portletAppUID` | string |  | PortletAppUID registered in DX. |
+| `portlets` | []string |  | Portlets registered in DX (names from portlet.xml). |
+| `previousRef` | string |  | PreviousRef: repository@digest before the last change (the rollback target). |
+| `registeredHash` | string |  | RegisteredHash: hash of what was registered (uid, portlets, context root, page); registration runs again only when it changes. |
+| `resolvedDigest` | string |  | ResolvedDigest: the digest of artifact.ref the last time it was resolved. |
+| `rolledOutRef` | string |  | RolledOutRef: repository@digest every Web Engine pod runs with after the last finished rollout. |
+| `rolloutStarted` | string |  | RolloutStarted: when the current rollout started. |
+

@@ -1,0 +1,23 @@
+# dx-extensions-init: the init container that the DX Delivery Operator injects into the DX Compose Web Engine pod
+# (DXJavaExtension, issue #54). It pulls the Java extensions from the registry by digest before the Web Engine
+# starts. Small static binary on distroless; runs with the uid of the pod (the Web Engine runs as 1000).
+FROM golang:1.26 AS builder
+ARG TARGETOS
+ARG TARGETARCH
+WORKDIR /workspace
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd/ cmd/
+COPY api/ api/
+COPY internal/ internal/
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -trimpath -ldflags="-s -w" -o dx-extensions-init ./cmd/dx-extensions-init
+
+FROM gcr.io/distroless/static:nonroot
+LABEL org.opencontainers.image.title="DX Delivery Operator - Java extensions init container" \
+      org.opencontainers.image.source="https://github.com/europesip/dx-delivery-operator" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.vendor="EUROPESIP" \
+      org.opencontainers.image.description="Pulls DX Java extensions (portlet WARs, shared-library JARs) from a registry into the DX Compose Web Engine pod"
+COPY --from=builder /workspace/dx-extensions-init /dx-extensions-init
+COPY LICENSE /licenses/
+ENTRYPOINT ["/dx-extensions-init"]
