@@ -22,10 +22,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/wcmexport"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/source"
+	"github.com/europesip/dx-delivery-operator/internal/wcmexport"
 )
 
 // DXWCMLibraryImportReconciler imports WCM libraries from a JCR export into DX, once per spec.

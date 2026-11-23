@@ -2,7 +2,7 @@
 
 **English** · [Español](dx-core.es.md)
 
-Since issue [#44](https://github.com/europesip/hcl-dx-scriptapp-operator/issues/44) the operator also works with
+Since issue [#44](https://github.com/europesip/dx-delivery-operator/issues/44) the operator also works with
 **DX Core**, the traditional HCL DX 9.5 server on WebSphere Application Server: the `core` pod of the HCL chart
 (`applications.core`) and a traditional DX installed on a VM. DX Compose (the Web Engine) stays the default.
 

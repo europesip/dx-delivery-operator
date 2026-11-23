@@ -1,6 +1,6 @@
 # Restrictions and limitations
 
-[Español](limitations.es.md) · [README](https://github.com/europesip/hcl-dx-scriptapp-operator#readme)
+[Español](limitations.es.md) · [README](https://github.com/europesip/dx-delivery-operator#readme)
 
 ## Script Applications
 
@@ -43,7 +43,7 @@
   again, force a reconciliation:
   `kubectl -n <namespace> annotate dxpage <name> dx.europesip.com/reconcile="$(date +%s)" --overwrite`.
   Fixing it (comparing the real state of the page) is
-  [issue #2](https://github.com/europesip/hcl-dx-scriptapp-operator/issues/2).
+  [issue #2](https://github.com/europesip/dx-delivery-operator/issues/2).
 - **Changing the list of applications recreates the page** (XMLAccess cannot replace the components of a page
   in place): settings made on the viewers and changes to the layout are lost. Titles, access, theme, parent and
   position are updated in place.

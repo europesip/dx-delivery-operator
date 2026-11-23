@@ -2,7 +2,7 @@
 
 <p><b>English</b> · <a href="workflow.es.md">Español</a></p>
 
-Every change to HCL DX Script Application operator starts as an **issue**, is tracked on the [project board](https://github.com/orgs/europesip/projects/3), and is closed by a
+Every change to DX Delivery Operator starts as an **issue**, is tracked on the [project board](https://github.com/orgs/europesip/projects/3), and is closed by a
 **pull request** that proves its acceptance criteria. Each change is defined before it is built, documented in one
 place, and easy to follow: the first step towards **spec-driven development**.
 
@@ -50,6 +50,6 @@ debt, enhancements and bugs. Insights: current status, work over time and load p
 ## 5 · Towards spec-driven development
 
 For changes with an effort of 5 or more, the spec also lives in the repository: `docs/specs/<number>-<short-name>.md`,
-from [docs/specs/TEMPLATE.md](https://github.com/europesip/hcl-dx-scriptapp-operator/blob/main/docs/specs/TEMPLATE.md). It is reviewed and merged (*Approved*) **before** the
+from [docs/specs/TEMPLATE.md](https://github.com/europesip/dx-delivery-operator/blob/main/docs/specs/TEMPLATE.md). It is reviewed and merged (*Approved*) **before** the
 implementation, and the pull request that closes the issue marks it *Implemented*. A versioned spec is the input of
 the implementation, whether a person or an AI coding agent writes the code, and the reference for its review.

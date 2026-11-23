@@ -1,12 +1,12 @@
 # Adds namespace to all resources.
-namespace: hcl-dx-scriptapp-operator-system
+namespace: dx-delivery-operator-system
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
 # "wordpress" becomes "alices-wordpress".
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
-namePrefix: hcl-dx-scriptapp-operator-
+namePrefix: dx-delivery-operator-
 
 # Labels to add to all resources and selectors.
 #labels:

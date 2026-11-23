@@ -28,7 +28,7 @@ The wizard asks the source (the list of the Harbor project, newest first), the o
 libraries, skip those that exist, Portal Site untouched, dxadmins Administrator), runs a **dry run** and shows the
 inventory; **Import** runs it for real. Progress and history stay on the tab.
 
-**As YAML:** see [sample 10](https://github.com/europesip/hcl-dx-scriptapp-operator/tree/main/samples/10-wcm-library-import).
+**As YAML:** see [sample 10](https://github.com/europesip/dx-delivery-operator/tree/main/samples/10-wcm-library-import).
 
 ```bash
 kubectl get dxwcmimport -n <ns>                         # Phase, Ready, Reason

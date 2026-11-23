@@ -16,10 +16,10 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/wcmexport"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/source"
+	"github.com/europesip/dx-delivery-operator/internal/wcmexport"
 )
 
 func libraryNode(n int, title string) string {
@@ -72,7 +72,7 @@ func TestExportArtifactIsImportable(t *testing.T) {
 	libs := []dxv1.WCMExportedLibrary{{Title: "orbita", Files: 2}, {Title: "Social Lists 1.0", Files: 1}}
 	text := exportInfo(conn, o, "HCL Digital Experience Compose/9.5 build 20261103-170843", libs, 123, time.Date(2026, 11, 19, 7, 0, 0, 0, time.UTC))
 	for _, want := range []string{"https://dx.example.com", "2026-11-19 07:00:00", "Libraries:       2", "- orbita", "import-wcm-data", "build 20261103-170843", ref,
-		"Requested by:    andres", "Reason:          copy to prod", "Operator:        hcl-dx-scriptapp-operator", "@europesip/backstage-plugin-hcl-dx 0.6.0", "Attributes:      customer=europesip"} {
+		"Requested by:    andres", "Reason:          copy to prod", "Operator:        dx-delivery-operator", "@europesip/backstage-plugin-hcl-dx 0.6.0", "Attributes:      customer=europesip"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("EXPORT-INFO.txt lacks %q:\n%s", want, text)
 		}

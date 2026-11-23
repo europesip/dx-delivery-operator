@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/registry"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
 )
 
 // An artifact pushed by the operator is read back as files by the operator itself (as "oras pull" would).

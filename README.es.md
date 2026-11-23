@@ -1,11 +1,15 @@
-# Operador de Script Applications para HCL DX
+# DX Delivery Operator
 
 [English](README.md) · [Historial de versiones](CHANGELOG.es.md)
 
-**Un operador de Kubernetes que despliega Script Applications de HCL DX y las mantiene en DX tal como se
-declaran: la aplicación en WCM, sus páginas, sus ficheros del DAM y la base de datos de su backend. Se declara
-en YAML (o en Git, con ArgoCD); el operador hace el resto, revisa DX periódicamente y vuelve a dejar lo que
-alguien cambió o borró.**
+**Un operador de Kubernetes que entrega aplicaciones y contenido de HCL DX desde Git, de forma declarativa, y
+los mantiene en DX tal como se declaran. Su foco es la entrega de aplicaciones: una Script Application en WCM, sus
+páginas, sus ficheros del DAM y la base de datos de su backend. También lleva librerías WCM, temas, páginas,
+XMLAccess y paquetes de portal completos entre portales como artefactos OCI. Se declara en YAML (o en Git, con
+ArgoCD); el operador hace el resto, revisa DX periódicamente y vuelve a dejar lo que alguien cambió o borró.**
+
+> **Nuevo nombre en la 0.13.0:** hasta la 0.12.x este operador se llamaba *HCL DX Script Application operator*. La
+> API (`dx.europesip.com`, todos los tipos) no cambia; ver [Actualizar desde la 0.12.x](CHANGELOG.es.md#0130--2026-11-23).
 
 ```yaml
 apiVersion: dx.europesip.com/v1alpha1
@@ -113,11 +117,11 @@ docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bi
 ```
 
 ```bash
-helm upgrade --install dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version 0.3.2 \
+helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.13.0 \
   -n dxop-system --create-namespace --set dxclient.acceptLicense=true
 ```
 
-Valores: [values.yaml](charts/hcl-dx-scriptapp-operator/values.yaml), por ejemplo `watchNamespaces` para limitar
+Valores: [values.yaml](charts/dx-delivery-operator/values.yaml), por ejemplo `watchNamespaces` para limitar
 el operador a algunos namespaces.
 
 ## Uso

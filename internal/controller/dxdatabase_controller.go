@@ -16,8 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/db"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/db"
 )
 
 // DXDatabaseReconciler creates a database and its owner (PostgreSQL, Oracle or SQL Server) for the backend of an

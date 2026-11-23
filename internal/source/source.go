@@ -34,7 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
 )
 
 // MaxFileSize: WCM stores each file of a Script Application in one element of at most 5,000,000 bytes; a

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/wcmexport"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/wcmexport"
 )
 
 func TestExportLibrariesPlan(t *testing.T) {

@@ -14,7 +14,7 @@ metadata:
   name: dxop-brand
 spec:
   connectionRef: { name: dx }
-  description: Images of the DXOP samples (managed by the HCL DX Script Application operator)
+  description: Images of the DXOP samples (managed by the DX Delivery Operator)
   source:
     configMap: { name: brand-files }
   access: { anonymous: true }       # public images

@@ -27,9 +27,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/source"
 )
 
 // DXXMLAccessReconciler runs XMLAccess requests against DX, once per change of the spec or of its source (like a Job).

@@ -28,7 +28,7 @@ asistente pide la fuente (la lista del proyecto de Harbor, lo más nuevo primero
 bibliotecas propias, saltar las que existen, Portal Site sin tocar, dxadmins Administrator), lanza una **simulación**
 y enseña el inventario; **Import** la ejecuta de verdad. El progreso y el historial quedan en la pestaña.
 
-**Como YAML:** mira el [ejemplo 10](https://github.com/europesip/hcl-dx-scriptapp-operator/tree/main/samples/10-wcm-library-import).
+**Como YAML:** mira el [ejemplo 10](https://github.com/europesip/dx-delivery-operator/tree/main/samples/10-wcm-library-import).
 
 ```bash
 kubectl get dxwcmimport -n <ns>                         # Phase, Ready, Reason

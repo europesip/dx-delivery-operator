@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/static"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
 )
 
 // ArtifactType of the artifacts the operator pushes (ORAS shows it; readers only need the file layers).

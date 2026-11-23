@@ -1,7 +1,12 @@
-{{- define "dxop.name" -}}{{ .Chart.Name | trunc 63 | trimSuffix "-" }}{{- end -}}
+{{- /* nameOverride: keep the resource names of 0.12.x (hcl-dx-scriptapp-operator) on an existing install */ -}}
+{{- define "dxop.name" -}}{{ default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}{{- end -}}
 {{- define "dxop.fullname" -}}
-{{- if contains .Chart.Name .Release.Name -}}{{ .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else -}}{{ printf "%s-%s" .Release.Name .Chart.Name | trunc 63 | trimSuffix "-" }}{{- end -}}
+{{- if .Values.fullnameOverride -}}{{ .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+{{- $name := include "dxop.name" . -}}
+{{- if contains $name .Release.Name -}}{{ .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else -}}{{ printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}{{- end -}}
+{{- end -}}
 {{- end -}}
 {{- define "dxop.labels" -}}
 app.kubernetes.io/name: {{ include "dxop.name" . }}

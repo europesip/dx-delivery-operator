@@ -9,7 +9,7 @@ body:
       value: |
         This issue is the **spec** of the change: what and why, not how. Keep it short and testable.
         The maintainers add the priority (`P1`-`P3`), the area, the **Effort** and the **Release** when it is triaged.
-        See [docs/workflow.md](https://github.com/europesip/hcl-dx-scriptapp-operator/blob/main/docs/workflow.md). **Never paste credentials, keys or licence data.**
+        See [docs/workflow.md](https://github.com/europesip/dx-delivery-operator/blob/main/docs/workflow.md). **Never paste credentials, keys or licence data.**
   - type: textarea
     id: summary
     attributes:

@@ -1,7 +1,12 @@
-# HCL DX Script Application operator
+# DX Delivery Operator (formerly HCL DX Script Application operator)
+
+# Resource names: by default <release>-dx-delivery-operator. An install made with 0.12.x or earlier (chart
+# hcl-dx-scriptapp-operator) can keep its resource names with nameOverride: hcl-dx-scriptapp-operator.
+nameOverride: ""
+fullnameOverride: ""
 
 image:
-  repository: ghcr.io/europesip/hcl-dx-scriptapp-operator
+  repository: ghcr.io/europesip/dx-delivery-operator
   tag: ""                      # default: the chart appVersion
   pullPolicy: IfNotPresent
 imagePullSecrets: []

@@ -1,4 +1,4 @@
-# HCL DX Script Application operator.
+# DX Delivery Operator.
 # The runtime image is HCL's public DXClient image (hclcr.io/dx-public/dxclient) plus the operator binary: the
 # operator runs DXClient itself to push Script Applications, so no Job or extra image is needed.
 # DXClient is HCL software under its own licence (see LICENSE-DXClient.md): the operator does not run it unless
@@ -17,8 +17,8 @@ COPY internal/ internal/
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -trimpath -ldflags="-s -w" -o manager ./cmd
 
 FROM ${DXCLIENT_IMAGE}
-LABEL org.opencontainers.image.title="HCL DX Script Application operator" \
-      org.opencontainers.image.source="https://github.com/europesip/hcl-dx-scriptapp-operator" \
+LABEL org.opencontainers.image.title="DX Delivery Operator" \
+      org.opencontainers.image.source="https://github.com/europesip/dx-delivery-operator" \
       org.opencontainers.image.licenses="MIT AND LicenseRef-HCL-DXClient" \
       org.opencontainers.image.description="Kubernetes operator that keeps HCL DX Script Applications, pages and DAM collections as declared (includes HCL DXClient)"
 COPY --from=builder /workspace/manager /usr/local/bin/manager

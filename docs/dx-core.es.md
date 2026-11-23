@@ -2,7 +2,7 @@
 
 [English](dx-core.md) · **Español**
 
-Desde la issue [#44](https://github.com/europesip/hcl-dx-scriptapp-operator/issues/44) el operador también trabaja con
+Desde la issue [#44](https://github.com/europesip/dx-delivery-operator/issues/44) el operador también trabaja con
 **DX Core**, el servidor tradicional de HCL DX 9.5 sobre WebSphere Application Server: el pod `core` del chart de HCL
 (`applications.core`) y un DX tradicional instalado en una máquina virtual. DX Compose (el Web Engine) sigue siendo lo
 predeterminado.

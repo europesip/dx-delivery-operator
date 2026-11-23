@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # scripts/github-labels.sh · creates (or updates) the labels of the work model described in docs/workflow.md.
-# Usage: scripts/github-labels.sh [owner/repo]   (default: europesip/hcl-dx-scriptapp-operator). Needs gh with repo scope.
+# Usage: scripts/github-labels.sh [owner/repo]   (default: europesip/dx-delivery-operator). Needs gh with repo scope.
 set -euo pipefail
-R="${1:-europesip/hcl-dx-scriptapp-operator}"
+R="${1:-europesip/dx-delivery-operator}"
 l(){ gh label create "$1" -R "$R" --color "$2" --description "$3" --force; }
 # Type
 l bug            CF222E "Something does not behave as it should"

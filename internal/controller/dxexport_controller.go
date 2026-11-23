@@ -26,10 +26,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/wcmexport"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/source"
+	"github.com/europesip/dx-delivery-operator/internal/wcmexport"
 )
 
 // DXExportReconciler exports pages, Portal Site and WCM libraries of DX into one portable "DX bundle" (an OCI
@@ -540,7 +540,7 @@ type bundleManifest struct {
 
 func bundleOf(conn *Connection, o *dxv1.DXExport) bundleManifest {
 	ann := o.Annotations
-	tools := map[string]string{"operator": "hcl-dx-scriptapp-operator " + source.OperatorVersion()}
+	tools := map[string]string{"operator": "dx-delivery-operator " + source.OperatorVersion()}
 	if cw := strings.TrimSpace(ann[source.ResCreatedWith]); cw != "" {
 		tools["createdWith"] = cw
 	}
@@ -745,7 +745,7 @@ choice for the pages and for Portal Site:
     with their Portal Site content is by ID: test a copy with Portal Site in a test portal first.
 
 `)
-	fmt.Fprintf(&w, "A. HCL DX Compose (DX Script App Operator, or Backstage):\n")
+	fmt.Fprintf(&w, "A. HCL DX Compose (DX Delivery Operator, or Backstage):\n")
 	for _, s := range b.Import {
 		fmt.Fprintf(&w, "   %d. %s (%s): %s\n      New IDs: %s\n", s.Step, s.Part, s.File, s.Compose, s.ComposeNewIDs)
 	}

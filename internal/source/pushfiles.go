@@ -21,7 +21,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
 )
 
 // ArtifactFile is a local file to push, with the media type of its layer.

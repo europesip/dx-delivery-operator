@@ -2,8 +2,41 @@
 
 **English** · [Español](CHANGELOG.es.md)
 
-To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator --version <version> --reuse-values`
+To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version <version> --reuse-values`
+for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` for 0.12.x and earlier
 (0.3.0 renamed the resources: see its notes).
+
+## 0.13.0 · 2026-11-23 · Renamed: DX Delivery Operator
+
+The product is now called **DX Delivery Operator** (by EUROPESIP), formerly *HCL DX Script Application operator*
+(#52). It started as a Script Application deployer and today also moves WCM libraries, pages, themes, XMLAccess, DAM
+collections, WCM admin tasks, databases and portal bundles; the focus stays on delivering applications. No functional
+changes.
+
+**Renamed**
+- Repository `europesip/hcl-dx-scriptapp-operator` → `europesip/dx-delivery-operator` (GitHub redirects the old
+  URLs); Go module `github.com/europesip/dx-delivery-operator`.
+- Image `ghcr.io/europesip/dx-delivery-operator`. 0.13.x is also published as
+  `ghcr.io/europesip/hcl-dx-scriptapp-operator` (deprecated, removed in 0.15.0).
+- Helm chart `oci://ghcr.io/europesip/charts/dx-delivery-operator`. 0.13.x is also published under the old name
+  `hcl-dx-scriptapp-operator` (deprecated alias, removed in 0.15.0), identical except that it keeps the 0.12.x
+  resource names.
+- Values `nameOverride` / `fullnameOverride` (new).
+- The `com.europesip.dx.tool.operator` annotation, the `Operator:` line of `EXPORT-INFO.txt` and the event source now
+  say `dx-delivery-operator <version>`.
+
+**Not changed:** API group `dx.europesip.com`, every kind and CRD, finalizers, labels, the leader-election lease
+(`hcl-dx-scriptapp-operator.europesip.com`, so an old and a new pod never run at the same time), the release name
+`dxop` and the namespace `dxop-system` of the documentation. Existing manifests and artifacts keep working.
+
+**Upgrading from 0.12.x** (apply the CRDs first, as for every release):
+- Keep the resource names: `helm upgrade dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.13.0
+  -n dxop-system --reuse-values --set nameOverride=hcl-dx-scriptapp-operator --set image.repository=ghcr.io/europesip/dx-delivery-operator`
+  (or the deprecated chart `hcl-dx-scriptapp-operator` 0.13.0, which sets the override itself).
+- Or take the new names (Deployment, ServiceAccount, ClusterRole and Binding `dxop-dx-delivery-operator`): the same
+  command without `nameOverride`. Helm replaces the old objects; the shared lease hands over to the new pod.
+- With `--reuse-values`, set `image.repository` as shown: an old release keeps its stored image repository otherwise.
+- As with any operator restart, check that no WCM import or export is running.
 
 ## 0.12.0 · 2026-11-23 · Artifact kinds `theme` and `app`
 

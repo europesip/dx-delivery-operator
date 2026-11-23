@@ -1,6 +1,6 @@
 # Restricciones y limitaciones
 
-[English](limitations.md) · [README](https://github.com/europesip/hcl-dx-scriptapp-operator/blob/main/README.es.md)
+[English](limitations.md) · [README](https://github.com/europesip/dx-delivery-operator/blob/main/README.es.md)
 
 ## Script Applications
 
@@ -44,7 +44,7 @@
   cambia, así que la página sigue `InSync`. Para volver a aplicar la página declarada, fuerza una reconciliación:
   `kubectl -n <namespace> annotate dxpage <nombre> dx.europesip.com/reconcile="$(date +%s)" --overwrite`.
   Corregirlo (comparar el estado real de la página) es el
-  [issue #2](https://github.com/europesip/hcl-dx-scriptapp-operator/issues/2).
+  [issue #2](https://github.com/europesip/dx-delivery-operator/issues/2).
 - **Cambiar la lista de aplicaciones vuelve a crear la página** (XMLAccess no puede sustituir los componentes de
   una página): se pierden los ajustes de los visores y los cambios de layout. Títulos, acceso, tema, padre y
   posición se actualizan sin recrearla.

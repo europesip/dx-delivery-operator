@@ -16,7 +16,7 @@ func TestArtifactAnnotations(t *testing.T) {
 	}.Annotations()
 	want := map[string]string{
 		"org.opencontainers.image.created": "2026-11-19T08:00:00Z", "org.opencontainers.image.vendor": "EUROPESIP",
-		AnnKind: "wcm", AnnSchema: "2", AnnToolOperator: "hcl-dx-scriptapp-operator 0.8.0", AnnRequestedBy: "andres", AnnAuthors: "andres",
+		AnnKind: "wcm", AnnSchema: "2", AnnToolOperator: "dx-delivery-operator 0.8.0", AnnRequestedBy: "andres", AnnAuthors: "andres",
 		AnnReason: "move to prod", AnnLibraries: "orbita | ThemeDS", AnnLibrariesCount: "2", AnnSourcePortal: "", AnnSourceVP: "",
 		AnnSourceServer: "demo", AnnSourceURL: "https://dx.example.com", "org.opencontainers.image.source": "https://dx.example.com",
 		AnnToolCreatedBy: "backstage-europesip 1.0.0; @europesip/backstage-plugin-hcl-dx 0.6.0", AnnAttrPrefix + "customer": "europesip",

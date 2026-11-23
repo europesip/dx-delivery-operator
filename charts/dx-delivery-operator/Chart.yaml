@@ -1,0 +1,18 @@
+apiVersion: v2
+name: dx-delivery-operator
+description: >-
+  DX Delivery Operator (formerly HCL DX Script Application operator): delivers HCL DX applications and content
+  from Git. It pushes Script Applications to WCM, creates their pages and DAM collections, prepares the database
+  of their backend, moves WCM libraries, themes, pages and portal bundles between portals, and keeps everything
+  as declared (drift correction). Not an HCL product.
+type: application
+version: 0.13.0
+appVersion: "0.13.0"
+home: https://github.com/europesip/dx-delivery-operator
+sources: [https://github.com/europesip/dx-delivery-operator]
+keywords: [hcl, dx, digital-experience, delivery, script-application, wcm, operator, gitops]
+maintainers:
+  - name: EUROPESIP
+    url: https://www.europesip.com
+annotations:
+  artifacthub.io/license: MIT

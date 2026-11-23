@@ -24,9 +24,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	dxv1 "github.com/europesip/hcl-dx-scriptapp-operator/api/v1alpha1"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/dx"
-	"github.com/europesip/hcl-dx-scriptapp-operator/internal/source"
+	dxv1 "github.com/europesip/dx-delivery-operator/api/v1alpha1"
+	"github.com/europesip/dx-delivery-operator/internal/dx"
+	"github.com/europesip/dx-delivery-operator/internal/source"
 )
 
 // DXWCMLibraryExportReconciler exports WCM libraries of DX to an OCI artifact, once per spec.
@@ -347,7 +347,7 @@ func exportInfo(conn *Connection, o *dxv1.DXWCMLibraryExport, version string, li
 	}
 	fmt.Fprintf(&b, "Requested by:    %s\n", who)
 	fmt.Fprintf(&b, "Reason:          %s\n", reason)
-	fmt.Fprintf(&b, "Operator:        hcl-dx-scriptapp-operator %s\n", source.OperatorVersion())
+	fmt.Fprintf(&b, "Operator:        dx-delivery-operator %s\n", source.OperatorVersion())
 	if cw := strings.TrimSpace(ann[source.ResCreatedWith]); cw != "" {
 		fmt.Fprintf(&b, "Created with:    %s\n", cw)
 	} else {

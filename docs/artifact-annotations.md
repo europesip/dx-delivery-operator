@@ -51,7 +51,7 @@ read each other's artifacts. No artifact type is set: the folder of the reposito
 | `com.europesip.dx.requested-by` | Who (`spec.destination.authors`, else the annotation `dx.europesip.com/changed-by`) | `andres` | |
 | `com.europesip.dx.reason` | Why (`spec.destination.reason`, else the annotation `dx.europesip.com/reason`, else the attribute `reason`) | `Migration CF230 → Compose` | |
 | `com.europesip.dx.attr.<key>` | Free attributes (`spec.destination.attributes`) | `com.europesip.dx.attr.customer: aeat` | search and filters |
-| `com.europesip.dx.tool.operator` / `com.europesip.dx.tool` | The operator / DX Transfer Studio and its version | `hcl-dx-scriptapp-operator 0.11.0` | |
+| `com.europesip.dx.tool.operator` / `com.europesip.dx.tool` | The operator / DX Transfer Studio and its version | `dx-delivery-operator 0.11.0` | |
 | `com.europesip.dx.tool.created-with` | What created the resource (Backstage) | `backstage-europesip 1.0.0; …` | |
 | `com.europesip.dx.resource` | The resource that made it | `dxop-core-sergio/cf230-aeat-wcm` | |
 

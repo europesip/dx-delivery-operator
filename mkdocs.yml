@@ -1,10 +1,10 @@
-# TechDocs of the HCL DX Script Application operator: the docs/ folder, shown in the EUROPESIP Internal Developer
+# TechDocs of the DX Delivery Operator: the docs/ folder, shown in the EUROPESIP Internal Developer
 # Portal (Backstage) through the annotation backstage.io/techdocs-ref of its catalog entity. Build locally (same as
 # Backstage):
 #   pip install mkdocs-techdocs-core==1.7.1 && mkdocs serve
-site_name: HCL DX Script Application operator
-site_description: Kubernetes operator that deploys HCL DX Script Applications and keeps them in DX as declared (not an HCL product)
-repo_url: https://github.com/europesip/hcl-dx-scriptapp-operator
+site_name: DX Delivery Operator
+site_description: Kubernetes operator that delivers HCL DX applications and content from Git and keeps them in DX as declared (not an HCL product)
+repo_url: https://github.com/europesip/dx-delivery-operator
 edit_uri: edit/main/docs/
 docs_dir: docs
 
