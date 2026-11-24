@@ -183,7 +183,7 @@ def main():
     (out / "metadata").mkdir()
     for f in sorted((CHART / "crds").glob("*.yaml")):
         shutil.copy(f, out / "manifests" / f.name)
-    icon = base64.b64encode((ROOT / "docs" / "images" / "europesip-logo.svg").read_bytes()).decode()
+    icon = base64.b64encode((ROOT / "docs" / "images" / "europesip-icon.svg").read_bytes()).decode()
     csv = {
         "apiVersion": "operators.coreos.com/v1alpha1", "kind": "ClusterServiceVersion",
         "metadata": {
@@ -234,6 +234,16 @@ def main():
     }
     with open(out / "manifests" / f"{NAME}.clusterserviceversion.yaml", "w") as f:
         yaml.safe_dump(csv, f, sort_keys=False, width=120)
+    # scorecard (basic + OLM suites): the community catalogs run it on every PR
+    sc = {"apiVersion": "scorecard.operatorframework.io/v1alpha3", "kind": "Configuration",
+          "metadata": {"name": "config"}, "stages": [{"parallel": True, "tests": [
+              {"entrypoint": ["scorecard-test", t], "image": "quay.io/operator-framework/scorecard-test:v1.42.3",
+               "labels": {"suite": suite, "test": t + "-test"}}
+              for suite, t in [("basic", "basic-check-spec"), ("olm", "olm-bundle-validation"),
+                               ("olm", "olm-crds-have-validation")]]}]}
+    (out / "tests" / "scorecard").mkdir(parents=True)
+    with open(out / "tests" / "scorecard" / "config.yaml", "w") as f:
+        yaml.safe_dump(sc, f, sort_keys=False)
     annotations = {"annotations": {
         "operators.operatorframework.io.bundle.mediatype.v1": "registry+v1",
         "operators.operatorframework.io.bundle.manifests.v1": "manifests/",
