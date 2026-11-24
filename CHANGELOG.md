@@ -6,7 +6,7 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
 for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` for 0.12.x and earlier
 (0.3.0 renamed the resources: see its notes).
 
-## 0.16.0 · unreleased · DXJavaExtension: the same portlet identifiers in every environment
+## 0.16.0 · 2026-11-24 · DXJavaExtension: the same portlet identifiers in every environment
 
 **New** (#69, raised by Jordi Urrea, HCL): pages and XMLAccess requests that refer to a portlet keep working when they
 move between environments. See [Same IDs in every environment](docs/java-extensions.md#same-ids-in-every-environment).
