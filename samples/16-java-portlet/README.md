@@ -17,12 +17,18 @@ badge, to see a version change.
 | `build-and-push.sh` | `mvn package` + `oras push` with the annotations the operator and people read |
 | `dxjavaextension.yaml` | The resource: artifact, context root and a page `…/wps/portal/Home/showcase` |
 
-Published by EUROPESIP (immutable tags):
+Published by EUROPESIP, public (no pull secret needed) and with immutable tags, in two registries:
 
 ```
-harbor.k3s.europesip.com/dx-artifacts/java-extensions/portlets/europesip-showcase-portlet:1.0.2
-harbor.k3s.europesip.com/dx-artifacts/java-extensions/portlets/europesip-showcase-portlet:1.1.2
+ghcr.io/europesip/dx-delivery-operator/samples/europesip-showcase-portlet:1.0.2
+ghcr.io/europesip/dx-delivery-operator/samples/europesip-showcase-portlet:1.1.2
+harbor.k3s.europesip.com/public/dx-delivery-operator/samples/europesip-showcase-portlet:1.0.2
+harbor.k3s.europesip.com/public/dx-delivery-operator/samples/europesip-showcase-portlet:1.1.2
 ```
+
+Versions 1.0.0 to 1.1.2 are there, and also `test-hello-portlet:1.0` and `1.1`, the minimal portlet of our first
+proof of concept. The Harbor project `public` is read-only (anonymous pull); the workflow
+`.github/workflows/publish-samples.yml` copies it to ghcr.io.
 
 Prerequisites: the operator with `javaExtensions.enabled=true`, the namespace labelled
 `dx.europesip.com/java-extensions=enabled`, a `DXConnection` and a pull secret for your registry. Then:

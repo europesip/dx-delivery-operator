@@ -18,12 +18,18 @@ de la página) y, para usuarios con sesión y permiso de edición, un **modo EDI
 | `build-and-push.sh` | `mvn package` + `oras push` con las anotaciones que leen el operador y las personas |
 | `dxjavaextension.yaml` | El recurso: artefacto, ruta y una página `…/wps/portal/Home/showcase` |
 
-Publicado por EUROPESIP (etiquetas inmutables):
+Publicado por EUROPESIP, público (no hace falta pull secret) y con etiquetas inmutables, en dos registros:
 
 ```
-harbor.k3s.europesip.com/dx-artifacts/java-extensions/portlets/europesip-showcase-portlet:1.0.2
-harbor.k3s.europesip.com/dx-artifacts/java-extensions/portlets/europesip-showcase-portlet:1.1.2
+ghcr.io/europesip/dx-delivery-operator/samples/europesip-showcase-portlet:1.0.2
+ghcr.io/europesip/dx-delivery-operator/samples/europesip-showcase-portlet:1.1.2
+harbor.k3s.europesip.com/public/dx-delivery-operator/samples/europesip-showcase-portlet:1.0.2
+harbor.k3s.europesip.com/public/dx-delivery-operator/samples/europesip-showcase-portlet:1.1.2
 ```
+
+Están las versiones 1.0.0 a 1.1.2, y también `test-hello-portlet:1.0` y `1.1`, el portlet mínimo de nuestra primera
+prueba de concepto. El proyecto `public` de Harbor es de solo lectura (descarga anónima); el workflow
+`.github/workflows/publish-samples.yml` lo copia a ghcr.io.
 
 Requisitos: el operador con `javaExtensions.enabled=true`, el namespace con la etiqueta
 `dx.europesip.com/java-extensions=enabled`, un `DXConnection` y un pull secret de tu registro. Después:

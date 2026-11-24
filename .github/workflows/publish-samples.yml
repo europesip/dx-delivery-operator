@@ -1,0 +1,26 @@
+# Copies the sample Java extension artifacts (DXJavaExtension, sample 16) from EUROPESIP's public read-only Harbor
+# project to ghcr.io, so the samples can be pulled from either registry without credentials. Run it by hand after
+# publishing a new sample version in Harbor; tags are immutable, so existing tags are skipped.
+name: Publish sample artifacts
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  packages: write
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: oras-project/setup-oras@v1
+      - run: echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Copy from harbor.k3s.europesip.com/public to ghcr.io
+        run: |
+          set -euo pipefail
+          src=harbor.k3s.europesip.com/public/dx-delivery-operator/samples
+          dst=ghcr.io/europesip/dx-delivery-operator/samples
+          for repo in europesip-showcase-portlet test-hello-portlet; do
+            for tag in $(oras repo tags "$src/$repo"); do
+              if oras manifest fetch "$dst/$repo:$tag" >/dev/null 2>&1; then echo "exists $repo:$tag"; continue; fi
+              oras cp "$src/$repo:$tag" "$dst/$repo:$tag"
+            done
+          done
