@@ -141,10 +141,6 @@ Videos (English, subtitles EN/ES):
 | [DX Delivery Operator: the Complete Tour](https://youtu.be/KrAI2CTEM6Y) (9:29) | Every resource, drift correction, imports and exports between portals |
 | [Java Portlets on HCL DX Compose Without a Custom Image](https://youtu.be/ncVQlSORBOg) (7:11) | `DXJavaExtension`: a JSR 286 portlet loaded from a registry onto the official image |
 | [Lucía's First Day: HCL DX Compose, Truly Integrated with Your Architecture](https://youtu.be/Aj6zETHoi4k) (9:00) | A developer story: from Backstage to an application delivered by the operator |
-| [DX Backstage, by EUROPESIP](https://youtu.be/1vgqlGoHJeU) | The Backstage plugin, which shows the GitOps state of the applications and pages the operator manages |
-| [DX Transfer Studio: Move HCL DX Content Between Portals](https://youtu.be/dsfNOOeCLg4) (6:16) | The desktop tool that reads and writes the same artifacts as the operator |
-| [HCL DX Portals for Your POCs, from Backstage](https://youtu.be/GObX-VtAEP8) | Self-service portals; the operator imports the WCM content into the new portal |
-| [The EUROPESIP Vision: HCL DX Compose, Truly Native to Kubernetes](https://youtu.be/rce-btJ927A) | Where the operator fits in a Kubernetes-native DX platform |
 
 ## Samples
 
