@@ -132,6 +132,10 @@ Values: [values.yaml](charts/dx-delivery-operator/values.yaml), for example `wat
 operator to some namespaces. The same chart runs on **OpenShift** without any extra value:
 [OpenShift and other platforms](docs/openshift.md).
 
+> **Tested on k3s only.** The chart and the image take the security context and the particularities of OpenShift
+> into account (no fixed UID, `restricted-v2`, the HCL DX namespace annotations, the OpenShift service CA), but the
+> operator **has not been tested on OpenShift yet**. Feedback from OpenShift users is welcome (open an issue).
+
 ## Use it
 
 In the namespace of your applications, a DX user and (only for a self-signed certificate or a private CA) its CA:

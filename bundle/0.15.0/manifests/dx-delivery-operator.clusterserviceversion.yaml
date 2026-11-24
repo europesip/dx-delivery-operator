@@ -97,12 +97,15 @@ spec:
     \ (`DXWCMLibraryExport`,\n  `DXWCMLibraryImport`), themes (`DXTheme`), pages and XMLAccess (`DXXMLAccess`), whole portal\
     \ bundles (`DXExport`).\n- **WCM maintenance modules** (`DXWCMAdminTask`) and **Java extensions** (`DXJavaExtension`:\
     \ portlet WARs and\n  shared-library JARs loaded onto the official DX Compose Web Engine image, without a custom image).\n\
-    \nWorks with HCL DX Compose and DX Core on Kubernetes and OpenShift, and with traditional DX on a virtual machine.\n\n\
-    ### Before you start: accept the HCL DXClient licence\n\nThe operator image includes **HCL DXClient** (from HCL's public\
-    \ image `hclcr.io/dx-public/dxclient`), which is HCL\nsoftware under its own licence. Read it (`docker run --rm hclcr.io/dx-public/dxclient:<tag>\
-    \ /dxclient/bin/dxclient\naccept-license`) and accept it in the Subscription:\n\n```yaml\nspec:\n  config:\n    env:\n\
-    \      - { name: DXCLIENT_ACCEPT_LICENSE, value: \"true\" }\n```\n\nUntil then the operator runs but does not call DXClient\
-    \ (the resources report it).\n\n### Java extensions\n\nTo use `DXJavaExtension` in a portal namespace, label it `dx.europesip.com/java-extensions=enabled`.\n\
+    \nWorks with HCL DX Compose and DX Core on Kubernetes, and with traditional DX on a virtual machine.\n\n> **Tested on\
+    \ k3s only.** The operator takes the security context and the particularities of OpenShift into account\n> (no fixed UID,\
+    \ `restricted-v2` SCC, the HCL DX namespace annotations), but it has **not been tested on OpenShift\n> yet**. Please report\
+    \ your experience in https://github.com/europesip/dx-delivery-operator/issues.\n\n### Before you start: accept the HCL\
+    \ DXClient licence\n\nThe operator image includes **HCL DXClient** (from HCL's public image `hclcr.io/dx-public/dxclient`),\
+    \ which is HCL\nsoftware under its own licence. Read it (`docker run --rm hclcr.io/dx-public/dxclient:<tag> /dxclient/bin/dxclient\n\
+    accept-license`) and accept it in the Subscription:\n\n```yaml\nspec:\n  config:\n    env:\n      - { name: DXCLIENT_ACCEPT_LICENSE,\
+    \ value: \"true\" }\n```\n\nUntil then the operator runs but does not call DXClient (the resources report it).\n\n###\
+    \ Java extensions\n\nTo use `DXJavaExtension` in a portal namespace, label it `dx.europesip.com/java-extensions=enabled`.\n\
     \nDocumentation: https://github.com/europesip/dx-delivery-operator \xB7 Not an HCL product. HCL, HCL DX and HCL DX\nCompose\
     \ are trademarks of HCL Technologies.\n"
   minKubeVersion: 1.27.0

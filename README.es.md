@@ -126,6 +126,11 @@ Valores: [values.yaml](charts/dx-delivery-operator/values.yaml), por ejemplo `wa
 el operador a algunos namespaces. El mismo chart funciona en **OpenShift** sin ningún valor extra:
 [OpenShift y otras plataformas](docs/openshift.es.md).
 
+> **Probado solo sobre k3s.** El chart y la imagen tienen en cuenta el contexto de seguridad y las particularidades de
+> OpenShift (sin UID fijo, `restricted-v2`, las anotaciones de namespace de HCL DX, el service CA de OpenShift), pero
+> el operador **todavía no se ha probado en OpenShift**. Se agradecen las experiencias de quien lo use en OpenShift
+> (abre una issue).
+
 ## Uso
 
 En el namespace de tus aplicaciones, un usuario de DX y (solo con un certificado autofirmado o de una CA privada)

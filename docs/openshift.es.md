@@ -6,6 +6,11 @@ Desde la 0.15.0 (issue #63) el mismo chart y los mismos valores funcionan en k3s
 **OpenShift** (SCC `restricted-v2` por defecto). **No hay un flag para OpenShift**: el chart solo usa ajustes que
 aceptan todas las plataformas y detecta al instalar lo que tiene que detectar.
 
+> **Probado solo sobre k3s.** El chart y la imagen tienen en cuenta el contexto de seguridad y las particularidades de
+> OpenShift (sin UID fijo, `restricted-v2`, las anotaciones de namespace de HCL DX, el service CA de OpenShift), pero
+> el operador **todavía no se ha probado en OpenShift**. Se agradecen las experiencias de quien lo use en OpenShift
+> (abre una issue).
+
 ## Qué hace el chart en cada plataforma
 
 | Tema | k3s y otros Kubernetes | OpenShift |

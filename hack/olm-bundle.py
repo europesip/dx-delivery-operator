@@ -48,7 +48,11 @@ exactly as declared (drift correction).
 - **WCM maintenance modules** (`DXWCMAdminTask`) and **Java extensions** (`DXJavaExtension`: portlet WARs and
   shared-library JARs loaded onto the official DX Compose Web Engine image, without a custom image).
 
-Works with HCL DX Compose and DX Core on Kubernetes and OpenShift, and with traditional DX on a virtual machine.
+Works with HCL DX Compose and DX Core on Kubernetes, and with traditional DX on a virtual machine.
+
+> **Tested on k3s only.** The operator takes the security context and the particularities of OpenShift into account
+> (no fixed UID, `restricted-v2` SCC, the HCL DX namespace annotations), but it has **not been tested on OpenShift
+> yet**. Please report your experience in https://github.com/europesip/dx-delivery-operator/issues.
 
 ### Before you start: accept the HCL DXClient licence
 

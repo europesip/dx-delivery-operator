@@ -10,6 +10,7 @@ desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para
 
 **Nuevo** (#63): el mismo chart y los mismos valores funcionan en k3s, en otros Kubernetes y en **OpenShift** (SCC
 `restricted-v2`), sin ningún valor específico de OpenShift. Mira [OpenShift y otras plataformas](docs/openshift.es.md).
+**Probado solo sobre k3s; todavía no se ha probado en OpenShift.**
 - **Sin UID fijo**: el pod ya no pone `runAsUser`/`runAsGroup`/`fsGroup` 1000 (`restricted-v2` lo rechaza). En
   Kubernetes el proceso sigue corriendo con el UID 1000 (el de la imagen); en OpenShift la SCC pone el UID del
   namespace. Valores nuevos `podSecurityContext` y `containerSecurityContext` (por defecto: `runAsNonRoot`, seccomp

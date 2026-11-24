@@ -6,6 +6,10 @@ Since 0.15.0 (issue #63) the same chart and the same values run on k3s, any othe
 `restricted-v2` SCC). **There is no OpenShift flag**: the chart only uses settings that every platform accepts and
 detects at install time what it needs to detect.
 
+> **Tested on k3s only.** The chart and the image take the security context and the particularities of OpenShift
+> into account (no fixed UID, `restricted-v2`, the HCL DX namespace annotations, the OpenShift service CA), but the
+> operator **has not been tested on OpenShift yet**. Feedback from OpenShift users is welcome (open an issue).
+
 ## What the chart does on every platform
 
 | Topic | k3s and other Kubernetes | OpenShift |
