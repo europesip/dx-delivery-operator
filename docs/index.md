@@ -129,7 +129,7 @@ Step-by-step guides: [Migrate a portal](migration-guide.md) · [Java extensions]
 | ![kubectl: WCM library exports, imports and portable bundles](images/kubectl-transfer.png) | **Content between portals.** WCM library exports to OCI artifacts, imports with a dry run first (`DryRun`) and warnings reported, and portable bundles, all as one-shot resources |
 | ![Samples 03, 05 and 01 on the page of sample 08](images/showcase.png) | **In the portal.** Three sample Script Applications on one page created by the operator: a DAM image, an application with folders of files and a ConfigMap one |
 
-Video: [Java portlets on HCL DX Compose without a custom image](https://youtu.be/ncVQlSORBOg) (7 min, subtitles EN/ES).
+Video: [Java portlets on HCL DX Compose without a custom image](https://youtu.be/bvTHifIU8nA) (8 min, subtitles EN/ES).
 
 ## Platforms
 

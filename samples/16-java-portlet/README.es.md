@@ -10,6 +10,9 @@ El portlet **EUROPESIP Showcase** (JSR 286, Java 8, Java puro, MIT) cargado desd
 > derecho a) el **Java Transition Module** (JTM) de HCL. `DXJavaExtension` es una forma de desplegar ese código; no
 > sustituye a ese derecho.
 
+> **Vídeo (8 min):** [Portlets Java en HCL DX Compose sin imagen propia](https://youtu.be/bvTHifIU8nA), con este portlet
+> en una demo real (en inglés, subtítulos EN/ES).
+
 Qué muestra en su página: la versión (de la construcción), la hora del servidor, el usuario, el idioma, el modo y el
 estado de la ventana, un formulario de saludo (una **acción** que fija un **parámetro de render**), un contador de clics
 (ida y vuelta acción → render), unas etiquetas de tema (un **parámetro de render público** que comparten los portlets
