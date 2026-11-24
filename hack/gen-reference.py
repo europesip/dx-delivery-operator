@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 """Generates docs/reference.md from the CRDs (config/crd/bases): every field with its type, default and description."""
 import glob, os, yaml
 os.chdir(os.path.join(os.path.dirname(__file__), ".."))

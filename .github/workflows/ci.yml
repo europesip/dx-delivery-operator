@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # Tests; the operator image (FROM HCL's public DXClient image) and the sample images on every push to main
 # (:main) and on tags vX.Y.Z (:X.Y.Z, :latest); the Helm chart on tags.
 # 0.13.x: the operator image and the chart are also published under the deprecated name hcl-dx-scriptapp-operator

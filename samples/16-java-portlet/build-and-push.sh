@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # Builds the EUROPESIP Showcase portlet and pushes it as an OCI artifact for DXJavaExtension (issue #54).
 #   ./build-and-push.sh <version> <registry/repository> ["what's new" text]
 #   e.g. ./build-and-push.sh 1.0.0 harbor.example.com/dx-artifacts/java-extensions/portlets/europesip-showcase-portlet

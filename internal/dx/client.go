@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 // Package dx talks to HCL DX: its REST APIs (Ring API for authentication and WCM queries, DAM API) and
 // DXClient, the HCL command line tool, for what has no REST API (pushing Script Applications, XMLAccess).
 package dx

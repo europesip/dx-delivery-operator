@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # dx-extensions-init: the init container that the DX Delivery Operator injects into the DX Compose Web Engine pod
 # (DXJavaExtension, issue #54). It pulls the Java extensions from the registry by digest before the Web Engine
 # starts. Small static binary on distroless; runs with the uid of the pod (the Web Engine runs as 1000).

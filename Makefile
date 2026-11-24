@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # YEAR defines the year value used for substituting the YEAR placeholder in the boilerplate header.

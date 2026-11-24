@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 package dx
 
 // WCM library import on DX Compose (checked on CF239, 2026-11-17):

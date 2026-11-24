@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 package controller
 
 // DXWCMAdminTask: the WCM maintenance modules of DX Compose (member fixer, workflow checker) over HTTP, once per spec,

@@ -258,3 +258,5 @@ use Node.js 24. Renamed in 0.13.0 (it was *HCL DX Script Application operator* u
 MIT ([LICENSE](LICENSE)) for this repository. The operator image contains HCL DXClient under HCL's licence
 ([LICENSE-DXClient.md](LICENSE-DXClient.md)). HCL, HCL Digital Experience and DXClient are trademarks of HCL
 Technologies Ltd. Made by [EUROPESIP](https://www.europesip.com).
+
+**Attribution:** any copy or redistribution of this code, modified or not (also when it is reworked with AI tools), must keep the copyright notice (`Copyright (c) 2026 EUROPESIP`) and the MIT licence text.

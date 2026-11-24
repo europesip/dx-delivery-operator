@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # Copies the sample Java extension artifacts (DXJavaExtension, sample 16) from EUROPESIP's public read-only Harbor
 # project to ghcr.io, so the samples can be pulled from either registry without credentials. Run it by hand after
 # publishing a new sample version in Harbor; tags are immutable, so existing tags are skipped.

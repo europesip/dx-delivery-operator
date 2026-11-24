@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 // visits-api: the tiny backend of sample 04. It counts the visits of each DX user in PostgreSQL.
 //   GET  /dxop-visits/api/visits          -> {"total": n, "users": n}
 //   POST /dxop-visits/api/visits?user=uid -> {"user": "...", "count": n, "total": n}

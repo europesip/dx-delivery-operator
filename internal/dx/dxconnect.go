@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 // DXConnect of DX Core (the traditional DX 9.5 on WebSphere Application Server).
 //
 // DX Core has no dxFileTransfer (it answers 404 on CF239) and no WCM data module export to a folder the operator can

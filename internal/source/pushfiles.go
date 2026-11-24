@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 package source
 
 // Pushing big local files as an OCI artifact in the layout of "oras push <ref> file...": an OCI image manifest whose config is

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # Bundle image of sample 05: only the files of the application, in /app. The operator reads them straight
 # from the registry; nothing runs this image.
 FROM busybox:1.37.0

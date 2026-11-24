@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # This file configures golangci-lint with module plugins.
 # When you run 'make lint', it will automatically build a custom golangci-lint binary
 # with all the plugins listed below.
