@@ -147,6 +147,15 @@ en todos los portales** (issue #69, 0.16.0):
   `objectid` de un módulo web `predeployed`, de su aplicación de portlets y de sus portlets (también con
   `create-oids="true"`) y genera los suyos; con `action="create"` la petición falla porque el despliegue ya creó la
   aplicación de portlets a partir de `portlet.xml`. Por eso el operador se apoya en el `uid` y en los nombres únicos.
+- **Importante: los nombres únicos no sustituyen a unos object ID estables.** En HCL DX el object ID es *el*
+  identificador: lo usan las exportaciones e importaciones de releases, ReleaseBuilder, las URL con IDs de portlets y
+  las referencias desde contenido o reglas, y la promoción habitual entre entornos espera que el mismo objeto tenga
+  el **mismo object ID** en todos. Los nombres únicos solo ayudan cuando *tus propias* peticiones XMLAccess localizan
+  el portlet. Con este modo, el mismo portlet sigue teniendo un object ID distinto en cada entorno, lo que importa si
+  promocionas releases o páginas que lo referencian por object ID. Estamos comprobando con HCL cómo mantener los
+  object ID idénticos (por ejemplo, importando el XML del entorno de referencia con `create-oids="true"` en el
+  `<request>`); mientras tanto, planifica la promoción de páginas con nombres únicos, o despliega ese portlet con el
+  método documentado por HCL. Gracias a Jordi Urrea (HCL) por la revisión.
 
 ## Activarlo
 
