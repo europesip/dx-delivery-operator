@@ -66,7 +66,8 @@ metadata:
       ,\n        \"pullSecrets\": [\n          {\n            \"name\": \"registry-pull\"\n          }\n        ]\n      },\n\
       \      \"contextRoot\": \"/europesip-showcase\",\n      \"page\": {\n        \"uniqueName\": \"com.europesip.showcase.page\"\
       ,\n        \"title\": \"EUROPESIP Showcase\",\n        \"titles\": {\n          \"es\": \"Escaparate EUROPESIP\"\n \
-      \       },\n        \"friendlyName\": \"showcase\",\n        \"anonymous\": true\n      }\n    }\n  }\n]"
+      \       },\n        \"friendlyName\": \"showcase\",\n        \"anonymous\": true\n      },\n      \"identifiers\": {\n\
+      \        \"uniqueNames\": true\n      }\n    }\n  }\n]"
     capabilities: Basic Install
     categories: Developer Tools,Integration & Delivery
     containerImage: ghcr.io/europesip/dx-delivery-operator:0.16.0
