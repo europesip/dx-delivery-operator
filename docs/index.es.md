@@ -129,7 +129,7 @@ paso a paso: [Migrar un portal](migration-guide.es.md) · [Extensiones Java](jav
 | ![kubectl: exportaciones e importaciones de librerías WCM y paquetes portables](images/kubectl-transfer.png) | **Contenido entre portales.** Exportaciones de librerías WCM a artefactos OCI, importaciones con simulación previa (`DryRun`) y avisos, y paquetes portables, todo como recursos de una sola vez |
 | ![Los ejemplos 03, 05 y 01 en la página del ejemplo 08](images/showcase.png) | **En el portal.** Tres Script Applications de ejemplo en una página creada por el operador: una imagen del DAM, una aplicación con carpetas de ficheros y otra desde un ConfigMap |
 
-Vídeo: [Portlets Java en HCL DX Compose sin imagen propia](https://youtu.be/ncVQlSORBOg) (7 min, subtítulos EN/ES).
+Vídeo: [Portlets Java en HCL DX Compose sin imagen propia](https://youtu.be/bvTHifIU8nA) (8 min, subtítulos EN/ES).
 
 ## Plataformas
 

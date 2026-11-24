@@ -9,6 +9,9 @@ Compose Web Engine image with `DXJavaExtension` — no custom image. See [Java e
 > to) HCL's **Java Transition Module** (JTM). `DXJavaExtension` is a way to deploy that code; it does not replace the
 > entitlement.
 
+> **Video (8 min):** [Java portlets on HCL DX Compose without a custom image](https://youtu.be/bvTHifIU8nA), with this
+> portlet in a live demo (English, subtitles EN/ES).
+
 What it shows on its page: version (from the build), server time, user, locale, portlet mode and window state, a
 greeting form (an **action** that sets a **render parameter**), a click counter (action → render parameter round trip),
 topic chips (a **public render parameter** shared with other portlets on the page) and, for signed-in users with edit

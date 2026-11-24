@@ -2,7 +2,7 @@
 
 [English](java-extensions.md) · **Español**
 
-> **Vídeo (7 min):** [Portlets Java en HCL DX Compose sin imagen propia](https://youtu.be/ncVQlSORBOg) —
+> **Vídeo (8 min):** [Portlets Java en HCL DX Compose sin imagen propia](https://youtu.be/bvTHifIU8nA) —
 > el HCL Java Transition Module, el código Java que cubre y una demo real de DXJavaExtension (en inglés, subtítulos EN/ES).
 
 > **Requisito de licencia:** ejecutar código Java propio en DX Compose exige que el cliente haya adquirido (tenga

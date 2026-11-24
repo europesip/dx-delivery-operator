@@ -2,7 +2,7 @@
 
 **English** · [Español](java-extensions.es.md)
 
-> **Video (7 min):** [Java portlets on HCL DX Compose without a custom image](https://youtu.be/ncVQlSORBOg) —
+> **Video (8 min):** [Java portlets on HCL DX Compose without a custom image](https://youtu.be/bvTHifIU8nA) —
 > the HCL Java Transition Module, the Java code it covers, and a live DXJavaExtension demo (English, subtitles EN/ES).
 
 > **Licence requirement:** running custom Java code on DX Compose requires the customer to have purchased (be entitled
