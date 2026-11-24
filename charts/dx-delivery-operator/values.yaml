@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # DX Delivery Operator (formerly HCL DX Script Application operator)
 
 # Resource names: by default <release>-dx-delivery-operator. An install made with 0.12.x or earlier (chart

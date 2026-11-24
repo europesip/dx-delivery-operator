@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # DX Delivery Operator.
 # The runtime image is HCL's public DXClient image (hclcr.io/dx-public/dxclient) plus the operator binary: the
 # operator runs DXClient itself to push Script Applications, so no Job or extra image is needed.

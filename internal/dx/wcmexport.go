@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 package dx
 
 // WCM library export on DX Compose (HCL documents it for CF238+): create a dxFileTransfer folder, run the WCM data

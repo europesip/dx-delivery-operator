@@ -260,3 +260,5 @@ la API es la misma): [actualizar desde la 0.12.x](CHANGELOG.es.md#0130--2026-11-
 MIT ([LICENSE](LICENSE)) para este repositorio. La imagen del operador contiene HCL DXClient con la licencia de HCL
 ([LICENSE-DXClient.md](LICENSE-DXClient.md)). HCL, HCL Digital Experience y DXClient son marcas de HCL Technologies
 Ltd. Hecho por [EUROPESIP](https://www.europesip.com).
+
+**Atribución:** cualquier copia o redistribución de este código, modificado o no (también si se rehace con herramientas de IA), debe mantener el aviso de copyright (`Copyright (c) 2026 EUROPESIP`) y el texto de la licencia MIT.

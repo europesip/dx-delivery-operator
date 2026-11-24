@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 package dx
 
 // Themes of DX Compose: the static files live in the WebDAV file store (dav:fs-type1/themes/<folder>/) and the theme

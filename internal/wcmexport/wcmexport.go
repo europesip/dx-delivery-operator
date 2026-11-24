@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 // Package wcmexport reads a Web Content Manager library export in JCR format (the tree that ConfigEngine
 // export-wcm-data or the WCM data module write: <root>/<ws>/<library>.node plus a <library>/ folder per library) and
 // packs a selection of its libraries into zip files that DX Compose accepts (dxFileTransfer: at most 500 MB per upload,

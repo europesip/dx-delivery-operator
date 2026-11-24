@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 package dx
 
 // WCM maintenance modules of DX Compose over HTTP (/wps/wcm/myconnect[/<vp>]?MOD=MemberFixer|WorkflowControlChecker),

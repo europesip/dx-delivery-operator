@@ -1,5 +1,8 @@
 //go:build e2e
 
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 package controller
 
 // Manual end-to-end check of DXExport against a real DX and registry (never in CI):

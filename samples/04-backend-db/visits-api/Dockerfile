@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 FROM golang:1.26 AS build
 WORKDIR /src
 COPY go.mod go.sum ./

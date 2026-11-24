@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # Builds the deprecated alias chart hcl-dx-scriptapp-operator (0.13.x only) from charts/dx-delivery-operator:
 # identical templates, CRDs and values, the old chart name, and nameOverride set to the old name so an existing
 # release (helm upgrade dxop) keeps its resource names. Output: dist/alias/hcl-dx-scriptapp-operator.

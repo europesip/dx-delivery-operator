@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 # Copies the generated CRDs and RBAC rules into the Helm chart (run after "make manifests"; CI checks it).
 set -euo pipefail
 cd "$(dirname "$0")/.."

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 {{- if not .Values.dxclient.acceptLicense }}
 {{- fail "The operator image includes HCL DXClient: read its licence and accept it with --set dxclient.acceptLicense=true (see the README)" }}
 {{- end }}

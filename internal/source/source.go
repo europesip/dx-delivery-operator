@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
+
 // Package source gets the files of a Script Application or of a DAM collection: from an OCI image (read
 // directly from the registry, nothing runs in the cluster), from a ConfigMap or from an archive URL. It
 // prepares a working copy with the substitutions applied, and computes the hashes the operator compares.

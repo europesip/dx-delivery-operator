@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 EUROPESIP
 // The clock of sample 05. The time zone comes from a substitution (data-zone of the script tag).
 (function () {
   var me = document.currentScript, zone = (me && me.getAttribute("data-zone")) || undefined;

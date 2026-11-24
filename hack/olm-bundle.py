@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 # Copyright 2026 EUROPESIP. Licensed under the MIT License (see LICENSE).
 """Generate the OLM bundle (issue #63) from the Helm chart, so the chart stays the single source of truth.
 

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
 {{- if (.Values.javaExtensions).enabled }}
 {{- $fullname := include "dxop.fullname" . }}
 {{- $issuer := ternary (printf "%s-selfsigned" $fullname) .Values.javaExtensions.certManager.issuerName .Values.javaExtensions.certManager.createSelfSignedIssuer }}
