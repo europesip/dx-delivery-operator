@@ -1,177 +1,146 @@
 # DX Delivery Operator
 
-[Español](README.es.md) · [Release history](CHANGELOG.md)
+[![CI](https://github.com/europesip/dx-delivery-operator/actions/workflows/ci.yml/badge.svg)](https://github.com/europesip/dx-delivery-operator/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/europesip/dx-delivery-operator)](CHANGELOG.md)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-**A Kubernetes operator that delivers HCL DX applications and content from Git, declaratively, and keeps them
-in DX exactly as declared. Its focus is the delivery of applications: a Script Application in WCM, its pages, its
-DAM files and the database of its backend. It also moves WCM libraries, themes, pages, XMLAccess and whole portal
-bundles between portals as OCI artifacts. Declare it in YAML (or in Git, with ArgoCD); the operator does the rest,
-checks DX regularly and puts back what someone changed or deleted.**
+[Español](README.es.md) · [Documentation](docs/index.md) · [Release history](CHANGELOG.md) · [Roadmap](https://github.com/orgs/europesip/projects/3)
 
-> **Renamed in 0.13.0:** this operator was called *HCL DX Script Application operator* until 0.12.x. The API
-> (`dx.europesip.com`, every kind) did not change; see [Upgrading from 0.12.x](CHANGELOG.md#0130--2026-11-23).
+**Deliver HCL DX applications and content from Git, the Kubernetes way.** Declare a Script Application, its pages,
+its DAM files, its database, a theme or a Java portlet in YAML; the operator puts them in DX, reports their state in
+Kubernetes and puts them back when someone changes or deletes them in DX. It also moves WCM libraries, pages and whole
+portal bundles between portals as OCI artifacts.
 
-```yaml
-apiVersion: dx.europesip.com/v1alpha1
-kind: DXScriptApplication
-metadata:
-  name: time-off
-spec:
-  connectionRef: { name: dx }
-  source:
-    image: { ref: ghcr.io/acme/time-off:2.3.0, path: /app }   # the built app (dist/)
-  wcm: { title: "Time off" }
-  substitutions:
-    - { name: API_URL, value: /time-off-api }                 # ${API_URL} in the files
-  dependsOn:
-    - { kind: Deployment, name: time-off-api }                # push only when the backend is up
----
-apiVersion: dx.europesip.com/v1alpha1
-kind: DXPage
-metadata:
-  name: time-off
-spec:
-  connectionRef: { name: dx }
-  titles: { en: "Time off", es: "Vacaciones" }
-  applications: [{ name: time-off }]
-```
-
-```
-$ kubectl get dxscriptapplications,dxpages
-NAME                                            READY   REASON   CONTENT ID                             LAST PUSH
-dxscriptapplication.dx.europesip.com/time-off   True    InSync   65f22d2a-8eed-4dfc-bd13-f3d1fce68143   3m
-NAME                               UNIQUE NAME              READY   REASON
-dxpage.dx.europesip.com/time-off   dxop.intranet.time-off   True    InSync
-```
-
-It is not an HCL product. Tested on HCL DX Compose CF239 (Kubernetes 1.35, DXClient `v95_CF239_20261103-1404`).
-
-## Why it exists
-
-On HCL DX Compose, custom applications are **Script Applications** (custom Java portlets need the separately
-licensed Java Transition Module). HCL deploys them with **DXClient**, a command line tool: a push from a
-workstation or a CI job. That works for one application, but a real one is more than a push:
-
-- its **backend**: microservices and a database, which must be ready before the application is useful;
-- its **pages** in DX, with the application on them (XMLAccess);
-- its **images and files** in the DAM, and their URLs in the application;
-- different values per environment (URLs, flags), without building it again.
-
-EUROPESIP first wrapped the push in a Helm chart ([hcl-dx-scriptapp-helm](https://github.com/europesip/hcl-dx-scriptapp-helm):
-a Job with DXClient as a Helm hook), then built [ÓRBITA](https://github.com/europesip/orbita), an intranet with
-six Script Applications, a REST API, PostgreSQL, pages, a theme and DAM images, on the same model (an
-after-push script). It works, but it showed the limits of an imperative step inside a declarative tool:
-
-- **Nothing in Kubernetes knows the state in DX.** The Job runs once and is gone. If someone deletes or edits
-  the application in WCM, or DX is reinstalled, nothing notices and nothing fixes it.
-- **Every change is a full re-run.** Helm (and ArgoCD, which turns the hooks into sync hooks) runs the Job on
-  every upgrade or sync, changed or not.
-- **The result is only in a log**: the content ID, the pages, the DAM URLs.
-- **Deleting is manual**: `helm uninstall` leaves the application, the pages and the files in DX.
-- **Every new application needs its own chart and scripts** for pages, DAM and database.
-
-The operator turns those steps into **resources with a desired state and a status**, reconciled continuously.
-
-## What it does
-
-| Resource | What the operator does |
+| | |
 |---|---|
-| **DXConnection** | Checks that DX answers and accepts the credentials (a Secret, optionally a CA). Shared by the resources of a namespace; sets how often everything is checked against DX (`resyncInterval`) |
-| **DXScriptApplication** | Gets the built files from an **OCI image** (read straight from the registry, nothing runs), a **ConfigMap** or an **archive URL**; replaces `${NAME}` placeholders (values, ConfigMaps, Secrets, URLs of DAM assets); checks the WCM limits; **pushes** with DXClient only when something changed; restores it if it was **deleted or edited in DX**; removes it on delete if asked |
-| **DXPage** | Creates the page with its Script Applications (XMLAccess): titles by locale, access, theme, position. Keeps the layout and the settings people make on it across updates; **recreates** it if it was deleted in DX |
-| **DXDamCollection** | Creates the collection and uploads every file of its source; a changed file becomes a **new version of the same asset** (same URL); restores deleted assets; public or authenticated access; optional prune |
-| **DXTheme** | A **theme**: uploads the files of its source (a complete theme of its own, such as the [EUROPESIP sample theme](https://github.com/europesip/hcl-dx-theme-sample), or files added to a copy of a theme of the same DX) to the WebDAV store, optional HTML in the `<head>` of its templates, and registers it with XMLAccess. Pages use it with `spec.theme`; restored if its registration or folder is deleted in DX |
-| **DXDatabase** | Creates the database of a backend and its owner in an existing **PostgreSQL, Oracle or SQL Server**, and writes a **Secret** for the backend (`uri`, `jdbcUrl`, user, password...). The password is generated once and kept |
-| **DXWCMLibraryImport** | **Imports WCM libraries** from a library export (`ConfigEngine export-wcm-data` of a traditional portal, or the WCM data module of DX Compose: no ConfigEngine needed) into the base portal or a **virtual portal** (created if asked). From a URL or a registry (the file as delivered, pushed with ORAS); selection by title, existing libraries and **Portal Site** protected unless asked, automatic **chunks** (500 MB / 20-minute limits of DX), `dryRun` inventory, roles on the imported libraries. **One-shot**: it imports when the resource changes and never restores or deletes content |
-| **DXWCMLibraryExport** | **Exports WCM libraries** of a DX Compose portal (base or virtual) to an **OCI artifact** (Harbor): the zip as DX writes it plus `EXPORT-INFO.txt` (source server, DX build, date, libraries). Importable with `DXWCMLibraryImport` into another DX Compose, or with ConfigEngine `import-wcm-data` into a traditional DX. **One-shot** |
-| **DXExport** | **Portable bundles**: pages (XMLAccess), the Portal Site library and WCM libraries of a DX Compose portal in **one OCI artifact** (`dx-bundle/v1`), every file in the native format of DX, with `EXPORT-INFO.txt` and `bundle.json` (import steps). Imports into another DX Compose (`DXXMLAccess`, `DXWCMLibraryImport`) or a **traditional DX on WebSphere** (`xmlaccess.sh`, `ConfigEngine import-wcm-data`). See [Portable bundles](docs/portable-bundles.md). **One-shot** |
-| **DXXMLAccess** | **Runs XMLAccess requests** of your own against the base portal or a virtual portal: inline, or the `.xml` files of a URL archive (for example a folder of a Git repository), a registry (ORAS) or a ConfigMap, with `${NAME}` variables. Every file is checked before anything is sent; results per request in the status, and DX's answers (exports) in a ConfigMap. **Once per change**, like a Job; an optional `cleanup` request on delete |
-| **DXJavaExtension** | **Custom Java on DX Compose without a custom image** (0.14.0): a JSR 168/286 **portlet** (WAR) or **shared-library JARs** from an OCI artifact, loaded onto the **official** Web Engine image by an init container that the operator's admission webhook adds to the Web Engine pod. Resolves the tag to a digest **before** any restart (a missing tag never restarts the portal), rolls the Web Engine out one pod at a time, registers the portlets in DX with XMLAccess `predeployed` **only when missing**, optional page, rollback on failure. See [Java extensions](docs/java-extensions.md) |
-| **DXWCMAdminTask** | **WCM maintenance modules**: the **member fixer** (users and groups that WCM items reference) and the **workflow checker** (workflow security, pending actions, items without a workflow), the `ConfigEngine run-wcm-admin-task-*` of traditional DX, over HTTP. **Report mode** unless `fix: true`; summary in the status, DX's answer in a ConfigMap. **One-shot** |
+| **For** | Teams that run HCL DX Compose (or DX Core) on Kubernetes and deliver their own applications and content |
+| **The problem** | DXClient pushes are one-off, imperative steps: nothing in Kubernetes knows what is in DX, every change is a full re-run, pages, DAM and databases need scripts, and changes made by hand in DX go unnoticed |
+| **What it does** | Turns each piece into a **resource with a desired state and a status**, reconciled continuously against DX |
+| **Value** | GitOps for DX (Argo CD shows health), the same build in every environment, drift detection and restore, safe deletes, content moved between portals in a standard format |
 
-And for every resource: **dependencies** (`dependsOn`: Deployments, StatefulSets, Jobs and the other resources,
-so nothing is pushed until the backend is up), **drift policy** (`Restore`, the default, or `Report`),
-**deletion policy** (`Retain`, the default, or `Delete`), `suspend`, a **status** with conditions,
-**Kubernetes events** for everything it does in DX, and an annotation to force a reconciliation now.
+It is not an HCL product. Tested on HCL DX Compose CF239 on k3s (Kubernetes 1.35).
 
-### Compared with the Helm chart and its Job
+![kubectl showing the applications, pages and theme of an intranet, all in sync](docs/images/kubectl-get.png)
 
-| | Helm chart with a DXClient Job | Operator |
+## How it fits
+
+```mermaid
+flowchart LR
+  git["Git / Argo CD<br/>YAML resources"] --> k8s
+  subgraph k8s["Kubernetes"]
+    res["DXScriptApplication · DXPage · DXDamCollection<br/>DXTheme · DXDatabase · DXJavaExtension<br/>DXWCMLibraryImport/Export · DXExport · DXXMLAccess"]
+    op["DX Delivery Operator<br/>controllers · DXClient · admission webhook"]
+    res -- "desired state" --> op
+    op -- "status · events" --> res
+  end
+  reg[("OCI registry<br/>app images · artifacts")]
+  db[("PostgreSQL · Oracle<br/>SQL Server")]
+  subgraph dx["HCL DX"]
+    wcm["WCM · pages (XMLAccess)<br/>DAM · themes (WebDAV)"]
+    we["Web Engine pod<br/>(official image)"]
+  end
+  reg -- "sources, exports, Java extensions" --- op
+  op -- "push · check · restore" --> wcm
+  op -- "init container" --> we
+  op -- "database + Secret" --> db
+```
+
+## Features
+
+| Area | Resources | What you get |
 |---|---|---|
-| Push the application | On every install/upgrade, always | **Only when something changed** (hash of files and settings) |
-| Know if it is in DX | No (log of a finished Job) | **Yes**: status, conditions, events, `kubectl get` |
-| Deleted or edited in DX, DX reinstalled | Unnoticed | **Detected and restored** on the next check |
-| Pages, DAM, database | Custom scripts per application | **Declarative resources**, reusable |
-| Same build in every environment | Values baked into the build or the chart | `substitutions` per environment |
-| Order (backend first) | Hook weights | `dependsOn`, waits and retries |
-| Remove from DX on uninstall | Manual | `deletionPolicy: Delete` |
-| GitOps (ArgoCD) | Hooks re-run on every sync, no health | Plain resources with **health** (see below) |
-| Concurrent pushes to one DX | Jobs can collide | **Serialised** by the operator |
+| **Deliver applications** | `DXScriptApplication`, `DXPage`, `DXDamCollection`, `DXTheme`, `DXDatabase` | A Script Application from an OCI image, a ConfigMap or a URL, with per-environment `substitutions`; its pages, DAM files (stable URLs), theme and backend database. Pushed only when something changed; restored when deleted or edited in DX |
+| **Move content between portals** | `DXWCMLibraryExport`, `DXWCMLibraryImport`, `DXExport`, `DXXMLAccess` | WCM libraries, the Portal Site, pages and XMLAccess as OCI artifacts in your registry, with a dry run first, automatic chunks, virtual portals; to and from DX Compose, DX Core and traditional DX on WebSphere |
+| **Custom Java on DX Compose** | `DXJavaExtension` | JSR 168/286 portlets and shared-library JARs loaded onto the **official** Web Engine image (no custom image), rolled out one pod at a time with rollback, portlets registered automatically. Running custom Java on DX Compose requires the customer's entitlement to HCL's **Java Transition Module** (JTM) |
+| **Maintain WCM** | `DXWCMAdminTask` | The member fixer and the workflow checker, in report mode unless you ask to fix |
+| **Every resource** | | `dependsOn` (backend first), drift policy (`Restore` / `Report`), deletion policy (`Retain` / `Delete`), `suspend`, conditions, Kubernetes events, Argo CD health checks |
 
-The Helm chart is still a good choice for a single application installed once; the operator pays off with
-several applications, several environments, GitOps, or when DX must be kept as declared.
+Every resource, in detail: [Features](docs/features.md) · every field: [API reference](docs/reference.md).
 
-## Install
+## Quick start
 
-You need Kubernetes 1.28+ and Helm 3.8+ (or 4). **No registry login**: the chart and the image are public.
+Requirements: Kubernetes 1.28+, Helm 3.8+, a DX user (Editor on the Script Application Library; pages and DAM need a
+DX administrator). **No registry login**: the chart and the images are public.
 
-The operator image is built **on top of HCL's public DXClient image**, so it contains HCL DXClient, which is
-HCL software under its own licence ([LICENSE-DXClient.md](LICENSE-DXClient.md)). Read it and accept it, or the
-chart refuses to install:
+1. **Install.** The operator image includes HCL DXClient, HCL software under its own licence
+   ([LICENSE-DXClient.md](LICENSE-DXClient.md)): read it (`docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bin/dxclient accept-license`) and accept it.
 
-```bash
-docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bin/dxclient accept-license
-```
+   ```bash
+   helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.15.0 \
+     -n dxop-system --create-namespace --set dxclient.acceptLicense=true
+   ```
 
-```bash
-helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.15.0 \
-  -n dxop-system --create-namespace --set dxclient.acceptLicense=true
-```
+2. **Connect to DX** from the namespace of your applications (the CA only for a self-signed or private certificate):
 
-Values: [values.yaml](charts/dx-delivery-operator/values.yaml), for example `watchNamespaces` to limit the
-operator to some namespaces. The same chart runs on **OpenShift** without any extra value:
-[OpenShift and other platforms](docs/openshift.md).
+   ```bash
+   kubectl create namespace intranet
+   kubectl -n intranet create secret generic dx-admin --from-literal=username='<DX user>' --from-literal=password='<password>'
+   kubectl -n intranet create secret generic dx-ca --from-file=ca.crt=dx-ca.crt
+   ```
 
-> **Tested on k3s only.** The chart and the image take the security context and the particularities of OpenShift
-> into account (no fixed UID, `restricted-v2`, the HCL DX namespace annotations, the OpenShift service CA), but the
-> operator **has not been tested on OpenShift yet**. Feedback from OpenShift users is welcome (open an issue).
+   ```yaml
+   apiVersion: dx.europesip.com/v1alpha1
+   kind: DXConnection
+   metadata: { name: dx }
+   spec:
+     url: https://dx.example.com
+     portalCredentialsSecret: { name: dx-admin }
+     tlsCASecret: { name: dx-ca }
+   ```
 
-## Use it
+3. **Deliver an application and its page:**
 
-In the namespace of your applications, a DX user and (only for a self-signed certificate or a private CA) its CA:
+   ```yaml
+   apiVersion: dx.europesip.com/v1alpha1
+   kind: DXScriptApplication
+   metadata: { name: time-off }
+   spec:
+     connectionRef: { name: dx }
+     source:
+       image: { ref: ghcr.io/acme/time-off:2.3.0, path: /app }   # the built app (dist/)
+     wcm: { title: "Time off" }
+     substitutions:
+       - { name: API_URL, value: /time-off-api }                 # ${API_URL} in the files
+     dependsOn:
+       - { kind: Deployment, name: time-off-api }                # push only when the backend is up
+   ---
+   apiVersion: dx.europesip.com/v1alpha1
+   kind: DXPage
+   metadata: { name: time-off }
+   spec:
+     connectionRef: { name: dx }
+     titles: { en: "Time off", es: "Vacaciones" }
+     applications: [{ name: time-off }]
+   ```
 
-```bash
-kubectl create namespace intranet
-kubectl -n intranet create secret generic dx-admin --from-literal=username='<DX user>' --from-literal=password='<password>'
-kubectl -n dx-demo get secret dx-tls-cert -o jsonpath='{.data.tls\.crt}' | base64 -d > dx-ca.crt   # labs: self-signed
-kubectl -n intranet create secret generic dx-ca --from-file=ca.crt=dx-ca.crt
-```
+4. **Watch it:**
 
-The user needs Editor access to the Script Application Library; **pages and DAM need a DX administrator**
-(XMLAccess). Then the connection and your resources:
+   ```bash
+   kubectl -n intranet get dxconnections,dxscriptapplications,dxpages
+   kubectl -n intranet get events --field-selector involvedObject.kind=DXScriptApplication
+   kubectl -n intranet annotate dxscriptapplication time-off dx.europesip.com/reconcile="$(date +%s)" --overwrite  # force now
+   ```
 
-```yaml
-apiVersion: dx.europesip.com/v1alpha1
-kind: DXConnection
-metadata: { name: dx }
-spec:
-  url: https://dx.example.com
-  portalCredentialsSecret: { name: dx-admin }
-  tlsCASecret: { name: dx-ca }
-```
+Values of the chart: [values.yaml](charts/dx-delivery-operator/values.yaml) (for example `watchNamespaces`).
+Step-by-step guides: [Migrate a portal](docs/migration-guide.md) · [Java extensions](docs/java-extensions.md) ·
+[DX Core](docs/dx-core.md).
 
-```bash
-kubectl -n intranet get dxconnections                  # Ready = signed in to DX
-kubectl -n intranet apply -f my-app.yaml
-kubectl -n intranet get dxscriptapplications,dxpages,dxdamcollections,dxdatabases
-kubectl -n intranet get events --field-selector involvedObject.kind=DXScriptApplication
-```
+## See it working
 
-Force a full reconciliation now (a push even if nothing changed):
+| | |
+|---|---|
+| ![kubectl describe: conditions and history of a Script Application](docs/images/kubectl-describe.png) | **Status you can trust.** Conditions say whether the dependencies are ready, whether DX matches the resource and the content ID in DX. The history records every push: `Created`, `Updated` and `Restored` (someone deleted or edited it in DX, the operator put it back) |
+| ![kubectl: WCM library exports, imports and portable bundles](docs/images/kubectl-transfer.png) | **Content between portals.** WCM library exports to OCI artifacts, imports with a dry run first (`DryRun`) and warnings reported, and portable bundles, all as one-shot resources |
+| ![Samples 03, 05 and 01 on the page of sample 08](docs/images/showcase.png) | **In the portal.** Three sample Script Applications on one page created by the operator: a DAM image, an application with folders of files and a ConfigMap one |
 
-```bash
-kubectl -n intranet annotate dxscriptapplication time-off dx.europesip.com/reconcile="$(date +%s)" --overwrite
-```
+Videos (English, subtitles EN/ES):
+
+| Video | What you see |
+|---|---|
+| [DX Delivery Operator: Your Whole Portal, Declared in Git](https://youtu.be/4eD-UtWonbA) | The operator in a few minutes: applications, pages, DAM and themes declared in Git |
+| [DX Delivery Operator: the Complete Tour](https://youtu.be/KrAI2CTEM6Y) (9:29) | Every resource, drift correction, imports and exports between portals |
+| [Java Portlets on HCL DX Compose Without a Custom Image](https://youtu.be/ncVQlSORBOg) (7:11) | `DXJavaExtension`: a JSR 286 portlet loaded from a registry onto the official image |
+| [Lucía's First Day: HCL DX Compose, Truly Integrated with Your Architecture](https://youtu.be/Aj6zETHoi4k) (9:00) | A developer story: from Backstage to an application delivered by the operator |
 
 ## Samples
 
@@ -190,56 +159,84 @@ Small applications, each one showing one case. Apply them in a namespace with th
 | [08-page](samples/08-page/page.yaml) | One page with three applications, a position and a deletion policy |
 | [09-theme](samples/09-theme/theme.yaml) | A theme of its own (the [EUROPESIP sample theme](https://github.com/europesip/hcl-dx-theme-sample), from its release) and a page that uses it |
 | [10-wcm-library-import](samples/10-wcm-library-import/wcm-library-import.yaml) | Import the WCM libraries of a ConfigEngine export into a virtual portal, after a dry run |
+| [11-xmlaccess](samples/11-xmlaccess/xmlaccess.yaml) | Your own XMLAccess requests, inline or from Git |
 | [12-wcm-library-export](samples/12-wcm-library-export/wcm-library-export.yaml) | Export WCM libraries to an OCI artifact in a registry |
-| [16-java-portlet](samples/16-java-portlet) | A JSR 286 portlet (EUROPESIP Showcase) from a registry onto the official Web Engine image, on its own page (`DXJavaExtension`) |
+| [13-dx-export](samples/13-dx-export/dx-export.yaml) | A portable bundle: pages, Portal Site and WCM libraries in one artifact |
+| [14-wcm-admin-task](samples/14-wcm-admin-task/wcm-admin-task.yaml) | The WCM member fixer and workflow checker, in report mode |
+| [15-dx-core](samples/15-dx-core/dx-core.yaml) | DX Core (traditional DX on WebSphere): its connection, the export of a site with its theme, and its import into another portal |
+| [16-java-portlet](samples/16-java-portlet) | A JSR 286 portlet (EUROPESIP Showcase, public on ghcr.io) from a registry onto the official Web Engine image, on its own page (`DXJavaExtension`) |
 
-![Samples 03, 05 and 01 on the page of sample 08](docs/images/showcase.png)
+## GitOps with Argo CD
 
-## GitOps with ArgoCD
-
-The resources are plain Kubernetes objects: put them in Git and point an ArgoCD Application at them. ArgoCD
+The resources are plain Kubernetes objects: put them in Git and point an Argo CD Application at them. Argo CD
 applies them; the operator does the work in DX and reports it in the status. Add the health checks of
-[examples/argocd](examples/argocd) so ArgoCD shows them as Progressing, Healthy or Degraded; the example
-Application is there too. Releasing a new version of an application is then a commit that changes its image tag
-(or digest).
+[examples/argocd](examples/argocd) so Argo CD shows them as Progressing, Healthy or Degraded. Releasing a new version
+of an application is then a commit that changes its image tag (or digest).
 
-## How it works
+## Why an operator, not a Helm Job
 
-Every resource is compared with DX on each change and every `resyncInterval`. A Script Application is pushed only
-when the hash of its prepared files and settings changes, when DX no longer has it (Ring API, by content ID), or
-when it was modified there (its last modification date changed). Pushes run DXClient inside the operator, one at
-a time; pages and the DAM use DX's XMLAccess endpoint and DAM REST API directly. Details:
-[docs/how-it-works.md](docs/how-it-works.md). Every field: [docs/reference.md](docs/reference.md).
+| | Helm chart with a DXClient Job | Operator |
+|---|---|---|
+| Push the application | On every install/upgrade, always | **Only when something changed** (hash of files and settings) |
+| Know if it is in DX | No (log of a finished Job) | **Yes**: status, conditions, events, `kubectl get` |
+| Deleted or edited in DX, DX reinstalled | Unnoticed | **Detected and restored** on the next check |
+| Pages, DAM, database | Custom scripts per application | **Declarative resources**, reusable |
+| Same build in every environment | Values baked into the build or the chart | `substitutions` per environment |
+| Order (backend first) | Hook weights | `dependsOn`, waits and retries |
+| Remove from DX on uninstall | Manual | `deletionPolicy: Delete` |
+| GitOps (Argo CD) | Hooks re-run on every sync, no health | Plain resources with **health** |
+| Concurrent pushes to one DX | Jobs can collide | **Serialised** by the operator |
+
+The Helm chart is still a good choice for a single application installed once. The story behind the operator:
+[Why an operator](docs/why.md).
+
+## Platforms
+
+| | |
+|---|---|
+| **DX** | DX Compose (default, tested on CF239); [DX Core](docs/dx-core.md) (`runtime: core`); traditional DX on WebSphere as source or target of exports and imports |
+| **Kubernetes** | 1.28+; tested on k3s. The same chart runs on **OpenShift** (`restricted-v2`, no fixed UID, OpenShift service CA) without extra values, but it **has not been tested on OpenShift yet**: [OpenShift and other platforms](docs/openshift.md) |
+| **Install** | Helm chart `oci://ghcr.io/europesip/charts/dx-delivery-operator`; an OLM bundle for OperatorHub is generated from it (`make bundle`) |
+| **Databases** (`DXDatabase`) | PostgreSQL, Oracle, SQL Server (existing servers) |
+
+## Documentation
+
+| | |
+|---|---|
+| [Features](docs/features.md) | Every resource and what the operator does with it |
+| [How it works](docs/how-it-works.md) | The pieces, the reconciliation loop of each resource, concurrency, status and events |
+| [Guide: migrate a portal, XMLAccess](docs/migration-guide.md) | Libraries, Portal Site, pages, themes and XMLAccess requests |
+| [Portable bundles](docs/portable-bundles.md) · [Artifact annotations](docs/artifact-annotations.md) | The `DXExport` format and the annotations every artifact carries |
+| [Java extensions](docs/java-extensions.md) | `DXJavaExtension`: custom Java on the official Web Engine image |
+| [WCM maintenance modules](docs/wcm-admin-tasks.md) · [DX Core](docs/dx-core.md) · [OpenShift](docs/openshift.md) | Specific cases |
+| [Restrictions and limitations](docs/limitations.md) · [Secret fields](docs/secret-fields.md) | What DX allows; whose credentials go where |
+| [API reference](docs/reference.md) | Every field of every resource, generated from the CRDs |
+| [How we work](docs/workflow.md) | Issues, the project board and the specs |
+
+The same pages are published as TechDocs in Backstage (`mkdocs.yml`).
 
 ## Restrictions and limitations
 
 The important ones (all of them in [docs/limitations.md](docs/limitations.md)):
 
-- **The main HTML file must be a complete document** (`<html><head>…</head><body>…</body></html>`): DXClient
-  keeps the `<link>` and `<script>` of the `<head>` and the content of the `<body>`. A bare fragment loses its
-  outer element and its links.
-- **Each file is limited to 4.5 MB** (WCM stores each in one element of at most 5,000,000 bytes); the operator
-  refuses bigger files before touching DX.
-- **Anonymous pages** need anonymous users to have the User role on the Script Application Library: the operator
-  cannot set WCM item permissions.
-- A Script Application restored after being **deleted** in DX gets a **new content ID**; its pages are rebuilt
-  automatically (with their default settings).
-- Changing the **list of applications of a page** recreates the page (DX cannot replace its components in place).
+- **The main HTML file must be a complete document** (`<html><head>…</head><body>…</body></html>`): DXClient keeps
+  the `<link>` and `<script>` of the `<head>` and the content of the `<body>`.
+- **Each file is limited to 4.5 MB** (one WCM element); the operator refuses bigger files before touching DX.
+- **Anonymous pages** need anonymous users to have the User role on the Script Application Library.
+- A Script Application restored after being **deleted** in DX gets a **new content ID**; its pages are rebuilt.
+- Changing the **list of applications of a page** recreates the page.
 - **Push or syndication, per environment**: where content arrives by syndication, use `mode: Verify`.
-- Edits made in DX to a managed application or to page settings are **overwritten** (`driftPolicy: Restore`);
-  use `Report` where people edit in DX.
-- One active replica (leader election); pushes are serialised.
-- **WCM library imports**: DX Compose accepts uploads of at most 500 MB and file names without spaces (a library with
-  such names is reported, not uploaded); its HAProxy cuts requests after 20 minutes (chunks of at most 4,000 files);
-  imported libraries keep the access control of the source portal (use `access`); Portal Site is never imported unless
-  `portalSiteLibraryOverwrite: true`.
+- Edits made in DX to managed objects are **overwritten** (`driftPolicy: Restore`); use `Report` where people edit
+  in DX.
+- **WCM library imports**: uploads of at most 500 MB, file names without spaces, 20-minute requests (handled with
+  chunks); Portal Site is never imported unless asked.
 
 ## Security
 
 - The DX credentials stay in Secrets. DXClient gets them in its configuration file during each push (never on a
-  command line, as DXClient recommends) and the file is removed afterwards; passwords are redacted from logs.
-- The operator runs as a non-root user without privileges. It can read the Secrets and ConfigMaps of the
-  namespaces it watches (limit them with `watchNamespaces`) and needs a DX user with the rights of what you declare.
+  command line) and the file is removed afterwards; passwords are redacted from logs.
+- The operator runs as a non-root user without privileges. It can read the Secrets and ConfigMaps of the namespaces
+  it watches (limit them with `watchNamespaces`) and needs a DX user with the rights of what you declare.
 - Values of `substitutions` end up in files every visitor can download: never put credentials there.
 
 ## Development
@@ -249,10 +246,12 @@ make manifests generate && ./hack/sync-chart.sh   # after changing api/
 go test ./internal/...
 make install                                      # the CRDs into the current cluster
 DXCLIENT_HOME=<dxclient folder> DXCLIENT_ACCEPT_LICENSE=true go run ./cmd --leader-elect=false
+make bundle                                       # the OLM bundle, from the chart
 ```
 
-To run it outside a container, extract `/dxclient` from the DXClient image (`crane export ... | tar -x dxclient`)
-and use Node.js 24.
+To run it outside a container, extract `/dxclient` from the DXClient image (`crane export ... | tar -x dxclient`) and
+use Node.js 24. Renamed in 0.13.0 (it was *HCL DX Script Application operator* until 0.12.x; same API):
+[upgrading from 0.12.x](CHANGELOG.md#0130--2026-11-23).
 
 ## Licence
 

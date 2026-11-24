@@ -34,7 +34,7 @@ NAME = "dx-delivery-operator"
 SA = NAME
 REPO = "https://github.com/europesip/dx-delivery-operator"
 IMAGE = "ghcr.io/europesip/dx-delivery-operator"
-OPENSHIFT_VERSIONS = "v4.14"  # this version and later (community-operators-prod)
+OPENSHIFT_VERSIONS = "v4.16"  # this version and later (community-operators-prod catalogs v4.16-v4.22)
 
 DESCRIPTION = """\
 **DX Delivery Operator** delivers HCL DX applications and content from Git, declaratively, and keeps them in DX

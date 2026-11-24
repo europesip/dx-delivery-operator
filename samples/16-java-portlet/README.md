@@ -5,6 +5,10 @@
 The **EUROPESIP Showcase** portlet (JSR 286, Java 8, plain Java, MIT) loaded from a registry onto the **official** DX
 Compose Web Engine image with `DXJavaExtension` — no custom image. See [Java extensions](../../docs/java-extensions.md).
 
+> **Licence requirement:** running custom Java code on DX Compose requires the customer to have purchased (be entitled
+> to) HCL's **Java Transition Module** (JTM). `DXJavaExtension` is a way to deploy that code; it does not replace the
+> entitlement.
+
 What it shows on its page: version (from the build), server time, user, locale, portlet mode and window state, a
 greeting form (an **action** that sets a **render parameter**), a click counter (action → render parameter round trip),
 topic chips (a **public render parameter** shared with other portlets on the page) and, for signed-in users with edit

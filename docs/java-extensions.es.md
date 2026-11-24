@@ -5,6 +5,10 @@
 > **Vídeo (7 min):** [Portlets Java en HCL DX Compose sin imagen propia](https://youtu.be/ncVQlSORBOg) —
 > el HCL Java Transition Module, el código Java que cubre y una demo real de DXJavaExtension (en inglés, subtítulos EN/ES).
 
+> **Requisito de licencia:** ejecutar código Java propio en DX Compose exige que el cliente haya adquirido (tenga
+> derecho a) el **Java Transition Module** (JTM) de HCL. `DXJavaExtension` es una forma de desplegar ese código; no
+> sustituye a ese derecho.
+
 `DXJavaExtension` (0.14.0, issue [#54](https://github.com/europesip/dx-delivery-operator/issues/54)) despliega
 **código Java propio** en el Web Engine de DX Compose **sin imagen propia**: **portlets** JSR 168/286 (WAR) y
 **JAR de librería compartida**. El código es un artefacto OCI en tu registro (Harbor, GHCR…); el operador lo carga
