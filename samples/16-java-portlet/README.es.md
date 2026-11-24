@@ -23,7 +23,8 @@ de la página) y, para usuarios con sesión y permiso de edición, un **modo EDI
 |---|---|
 | `showcase-portlet/` | Proyecto Maven (`portlet-api` 2.0 provided, sin JSP) |
 | `build-and-push.sh` | `mvn package` + `oras push` con las anotaciones que leen el operador y las personas |
-| `dxjavaextension.yaml` | El recurso: artefacto, ruta y una página `…/wps/portal/Home/showcase` |
+| `dxjavaextension.yaml` | El recurso: artefacto, ruta y una página `…/wps/portal/Home/showcase` (entrega `webhook`, la de por defecto) |
+| `dxjavaextension-startuphook.yaml` | Lo mismo con entrega `startupHook` (0.17.0): por la carpeta de arranque de cliente de la imagen de HCL, sin webhook; mira [Dos modos de entrega](../../docs/java-extensions.es.md#dos-modos-de-entrega-webhook-por-defecto-o-startup-hook) |
 
 Publicado por EUROPESIP, público (no hace falta pull secret) y con etiquetas inmutables, en dos registros:
 

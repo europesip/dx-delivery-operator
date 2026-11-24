@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
+{{- if and (.Values.javaExtensions).enabled (.Values.javaExtensions.startupHook).enabled }}
+# DXJavaExtension delivery "startupHook" (issue #72): the endpoint that serves the Java extensions to the startup
+# script of the Web Engine (HCL customer startup folder). Cluster-internal; every request carries a token valid for
+# one Web Engine only.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dxop.fullname" . }}-java-extensions
+  labels: {{- include "dxop.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "dxop.selector" . | nindent 4 }}
+  ports:
+    - { name: http, port: {{ .Values.javaExtensions.startupHook.port }}, targetPort: startup-hook }
+{{- end }}

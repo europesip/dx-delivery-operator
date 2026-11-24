@@ -192,6 +192,67 @@ Pages, XMLAccess requests and content refer to a portlet by an identifier. For a
   page promotion around unique names, or deploy that portlet with HCL's documented method. Thanks to Jordi Urrea
   (HCL) for the review.
 
+## Two delivery modes: webhook (default) or startup hook
+
+Since 0.17.0 (issue #72) the files of a `DXJavaExtension` reach the Web Engine in one of two ways
+(`spec.delivery`). Everything else is the same in both: the artifact by digest, the rollout pod by pod with rollback,
+the XMLAccess registration and the stable unique names.
+
+| | `webhook` (default) | `startupHook` |
+|---|---|---|
+| How | The operator's admission webhook adds an init container to the Web Engine pod when it is created | A script on a volume mounted on the HCL customer startup folder of the image (`/opt/openliberty/wlp/usr/svrcfg/bin/customer/startup`) runs on every container start and downloads the extensions through the operator |
+| Inside what the HCL chart supports | No: the pod is changed outside the chart values | Yes: the chart value `volumes.webEngine.customPVCs` plus the startup folder the HCL entrypoint runs |
+| Needs | The webhook (certificate: cert-manager, OpenShift service CA or OLM) and the namespace label | A `customPVCs` entry on the portal (a `helm upgrade` of the HCL release) and the operator endpoint (port 8090, cluster-internal) |
+| When the files arrive | Before the Web Engine container starts (init container) | During the container start, just before the final Liberty start |
+| Registry credentials | Only in the init container | Only in the operator; the DX container gets a token valid for its own Web Engine |
+| If loading fails | The init container fails, the pod does not start | The script stops the start (`abort_container`, exit 2); the container restarts |
+| Several replicas | Nothing to share: every pod prepares itself | One volume for every replica (the chart creates **one PVC shared by all the Web Engine pods**): ReadWriteMany storage for more than one replica, or one replica with ReadWriteOnce |
+
+**They cannot be used together on one portal.** All the extensions of one Web Engine use the same mode, and a
+namespace with the webhook label (`dx.europesip.com/java-extensions=enabled`) cannot use `startupHook` (the webhook
+would deliver the files too). The operator reports `DeliveryConflict` and changes nothing until it is fixed.
+
+**Which one to choose**
+
+- `webhook` (default): portals already installed that you do not want to `helm upgrade`, clusters where admission
+  webhooks are normal (Istio, Vault), several replicas without RWX storage.
+- `startupHook`: customers who want to stay strictly within the HCL chart values, OpenShift or clusters where a new
+  admission webhook needs a security review, new portals (add the volume when you install).
+
+### Set up the startup hook
+
+1. Add the volume to the HCL chart values of the portal and `helm upgrade` it (real Helm, the HCL chart):
+
+   ```yaml
+   volumes:
+     webEngine:
+       customPVCs:
+         - name: startup
+           accessModes: ["ReadWriteMany"]     # ReadWriteOnce is enough with one Web Engine replica
+           mountPath: /opt/openliberty/wlp/usr/svrcfg/bin/customer/startup
+           storageClassName: <your storage class>
+           requests: { storage: 100Mi }
+   ```
+
+2. The namespace must **not** have the label `dx.europesip.com/java-extensions=enabled`.
+3. In every `DXJavaExtension` of that Web Engine: `spec.delivery: startupHook` (sample:
+   `samples/16-java-portlet/dxjavaextension-startuphook.yaml`).
+
+The operator writes a small script and a token on the volume once (a short job, as the user of the Web Engine;
+`status.startupHookClaim` names the volume) and rolls the Web Engine out. On every start the HCL entrypoint runs the
+script, which calls the operator (`http://<release>-java-extensions.<operator namespace>.svc:8090`), unpacks the
+WARs into `resources/customApplications`, the JARs into `libraries/customSharedLib` and the Liberty configuration into
+`configDropins/defaults`, and logs `[dx-java-extensions]` lines in the Web Engine log. Adding the volume to a running
+portal restarts the Web Engine twice (the `helm upgrade`, then the rollout with the script).
+
+### Change the mode of a portal
+
+- **webhook → startupHook:** add the volume (`helm upgrade`), remove the namespace label, set `delivery:
+  startupHook` in every extension of that Web Engine. One restart; the portlets stay registered.
+- **startupHook → webhook:** label the namespace, set `delivery: webhook` (or remove the field) in every extension.
+  The volume can stay (with no extension in that mode the script finds nothing and does nothing) or be removed with
+  another `helm upgrade`.
+
 ## Enable it
 
 ```bash
@@ -204,12 +265,17 @@ Needs a certificate for the webhook: cert-manager, or on OpenShift the service C
 comes from a private registry), `javaExtensions.webhook.failurePolicy`, `namespaceSelector`, `objectSelector`
 (default: pods with `app=dx-deployment-web-engine`; add yours if the DX release has another name).
 
+The startup hook mode is available with `javaExtensions.enabled=true` and `javaExtensions.startupHook.enabled` (default
+`true`, port `javaExtensions.startupHook.port`, 8090); it needs no namespace label (see above).
+
 ## Support and limits
 
 - The webhook changes the **pod** of the Web Engine (an init container, volumes, mounts). That is outside the values
   the HCL chart supports, so, strictly, that part is outside HCL support — the same as a Helm post-renderer. We have
   asked HCL (Idea) for chart values (`initContainers`/extra volumes, or `webEngine.extensions`) and for automatic
-  registration of predeployed portlets, which would remove the need for it.
+  registration of predeployed portlets, which would remove the need for it. The `startupHook` mode avoids changing
+  the pod: it only uses the chart value `customPVCs` and the customer startup folder of the HCL image (documented in
+  the image itself, `svrcfg/bin/customer/README.md`; we have asked HCL to confirm it as a supported extension point).
 - A new version still needs a Web Engine restart (Liberty loads the WAR at start), as with a custom image.
 - Phase 1: portlets and shared libraries. Later: properties files and filters (`propertiesFilesOverrides`, the CF239
   append), cosign verification, a persistent cache with digest check.

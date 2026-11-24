@@ -99,7 +99,34 @@ func load(ctx context.Context, e javaext.Entry) error {
 	return nil
 }
 
+// seed writes the startup script and its token on the startup volume (DXJavaExtension delivery startupHook,
+// issue #72): `dx-extensions-init seed`, with the files in DX_JAVA_EXTENSIONS_SEED.
+func seed() {
+	var files []javaext.SeedFile
+	if err := json.Unmarshal([]byte(os.Getenv("DX_JAVA_EXTENSIONS_SEED")), &files); err != nil {
+		logf("ERROR: DX_JAVA_EXTENSIONS_SEED is not a valid list: %v", err)
+		os.Exit(2)
+	}
+	dir := os.Getenv("DX_JAVA_EXTENSIONS_SEED_DIR")
+	if dir == "" {
+		dir = "/seed"
+	}
+	if err := javaext.WriteSeed(dir, files); err != nil {
+		logf("ERROR: writing the startup volume: %v", err)
+		os.Exit(1)
+	}
+	names := make([]string, 0, len(files))
+	for _, f := range files {
+		names = append(names, f.Name)
+	}
+	logf("startup volume ready: %v in %s", names, dir)
+}
+
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "seed" {
+		seed()
+		return
+	}
 	var entries []javaext.Entry
 	if err := json.Unmarshal([]byte(os.Getenv(javaext.EnvExtensions)), &entries); err != nil {
 		logf("ERROR: %s is not a valid list: %v", javaext.EnvExtensions, err)

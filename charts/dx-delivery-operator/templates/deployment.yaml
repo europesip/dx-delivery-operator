@@ -50,6 +50,8 @@ spec:
           env:
             - { name: DXCLIENT_ACCEPT_LICENSE, value: "true" }
             - { name: WORK_DIR, value: /work }
+            - name: POD_NAMESPACE
+              valueFrom: { fieldRef: { fieldPath: metadata.namespace } }
             # 0.15.0 (#63): a writable HOME for any UID (the HOME of the image is /home/dx_user, only for UID 1000)
             - { name: HOME, value: /tmp }
             - { name: OPERATOR_VERSION, value: {{ .Chart.AppVersion | quote }} }
@@ -64,11 +66,21 @@ spec:
             - { name: JAVA_EXTENSIONS_INIT_IMAGE, value: "{{ .Values.javaExtensions.initImage.repository }}:{{ .Values.javaExtensions.initImage.tag | default .Chart.AppVersion }}" }
             - { name: JAVA_EXTENSIONS_INIT_PULL_POLICY, value: {{ .Values.javaExtensions.initImage.pullPolicy | quote }} }
             - { name: JAVA_EXTENSIONS_INIT_PULL_SECRET, value: {{ .Values.javaExtensions.initImage.pullSecret | default "" | quote }} }
+            {{- if (.Values.javaExtensions.startupHook).enabled }}
+            # 0.17.0 (#72): delivery "startupHook" (HCL customer startup folder): the endpoint the startup script calls
+            - { name: JAVA_EXTENSIONS_STARTUP_HOOK, value: "true" }
+            - { name: JAVA_EXTENSIONS_STARTUP_HOOK_ADDR, value: ":{{ .Values.javaExtensions.startupHook.port }}" }
+            - { name: JAVA_EXTENSIONS_STARTUP_HOOK_URL, value: "http://{{ include "dxop.fullname" . }}-java-extensions.$(POD_NAMESPACE).svc:{{ .Values.javaExtensions.startupHook.port }}" }
+            - { name: JAVA_EXTENSIONS_STARTUP_HOOK_SECRET, value: "{{ include "dxop.fullname" . }}-startup-hook" }
+            {{- end }}
             {{- end }}
           ports:
             - { name: health, containerPort: 8081 }
             {{- if (.Values.javaExtensions).enabled }}
             - { name: webhook, containerPort: 9443 }
+            {{- if (.Values.javaExtensions.startupHook).enabled }}
+            - { name: startup-hook, containerPort: {{ .Values.javaExtensions.startupHook.port }} }
+            {{- end }}
             {{- end }}
           livenessProbe:
             httpGet: { path: /healthz, port: health }

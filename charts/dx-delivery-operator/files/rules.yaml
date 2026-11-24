@@ -15,10 +15,19 @@ rules:
   - ""
   resources:
   - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
   - pods
   verbs:
   - get
   - list
+  - patch
   - watch
 - apiGroups:
   - admissionregistration.k8s.io
@@ -49,6 +58,8 @@ rules:
   resources:
   - jobs
   verbs:
+  - create
+  - delete
   - get
   - list
   - watch

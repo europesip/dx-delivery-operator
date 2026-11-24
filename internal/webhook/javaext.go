@@ -57,7 +57,8 @@ func (h *JavaExtensionInjector) Handle(ctx context.Context, req admission.Reques
 	if sts == "" {
 		return admission.Allowed("not a StatefulSet pod")
 	}
-	entries, container, err := EntriesFor(ctx, h.Client, req.Namespace, sts)
+	// Only the extensions delivered by the webhook (issue #72: startupHook ones come through the HCL startup folder).
+	entries, container, err := EntriesForMode(ctx, h.Client, req.Namespace, sts, dxv1.DeliveryWebhook)
 	if err != nil {
 		// The API server applies the failurePolicy of the chart (Fail by default): the pod is not created and the
 		// StatefulSet retries, instead of starting a Web Engine without its extensions.
@@ -90,6 +91,11 @@ func (h *JavaExtensionInjector) Handle(ctx context.Context, req admission.Reques
 // EntriesFor returns the extensions to inject into the pods of a Web Engine StatefulSet: every DXJavaExtension of
 // the namespace that targets it and has a desired reference (a resolved digest), and the container name.
 func EntriesFor(ctx context.Context, c client.Reader, namespace, sts string) ([]javaext.Entry, string, error) {
+	return EntriesForMode(ctx, c, namespace, sts, "")
+}
+
+// EntriesForMode is EntriesFor limited to one delivery mode ("" = every mode).
+func EntriesForMode(ctx context.Context, c client.Reader, namespace, sts, mode string) ([]javaext.Entry, string, error) {
 	var list dxv1.DXJavaExtensionList
 	if err := c.List(ctx, &list, client.InNamespace(namespace)); err != nil {
 		return nil, "", err
@@ -99,6 +105,9 @@ func EntriesFor(ctx context.Context, c client.Reader, namespace, sts string) ([]
 	for i := range list.Items {
 		e := &list.Items[i]
 		if e.StatefulSetName() != sts || e.Status.DesiredRef == "" || !e.DeletionTimestamp.IsZero() {
+			continue
+		}
+		if mode != "" && e.DeliveryMode() != mode {
 			continue
 		}
 		container = e.ContainerName()

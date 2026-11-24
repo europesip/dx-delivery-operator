@@ -135,6 +135,10 @@ def deployment(dep):
     for e in c["env"]:
         if e["name"] == "DXCLIENT_ACCEPT_LICENSE":
             continue  # accepted by the user in the Subscription (spec.config.env)
+        if e["name"] == "JAVA_EXTENSIONS_STARTUP_HOOK_URL":  # the Service of the bundle (see main)
+            e = {"name": e["name"], "value": "http://" + NAME + "-java-extensions.$(POD_NAMESPACE).svc:8090"}
+        if e["name"] == "JAVA_EXTENSIONS_STARTUP_HOOK_SECRET":
+            e = {"name": e["name"], "value": NAME + "-startup-hook"}
         if e["name"] == "WATCH_NAMESPACES":
             e = {"name": "WATCH_NAMESPACES",
                  "valueFrom": {"fieldRef": {"fieldPath": "metadata.annotations['olm.targetNamespaces']"}}}
@@ -184,6 +188,13 @@ def main():
     (out / "metadata").mkdir()
     for f in sorted((CHART / "crds").glob("*.yaml")):
         shutil.copy(f, out / "manifests" / f.name)
+    # DXJavaExtension delivery startupHook (#72): the Service of the endpoint the startup script calls
+    svc = {"apiVersion": "v1", "kind": "Service", "metadata": {"name": NAME + "-java-extensions",
+           "labels": {"app.kubernetes.io/name": NAME}},
+           "spec": {"selector": {"app.kubernetes.io/name": NAME},
+                    "ports": [{"name": "http", "port": 8090, "targetPort": 8090}]}}
+    with open(out / "manifests" / (NAME + "-java-extensions_v1_service.yaml"), "w") as f:
+        yaml.safe_dump(svc, f, sort_keys=False)
     icon = base64.b64encode((ROOT / "docs" / "images" / "europesip-icon.svg").read_bytes()).decode()
     csv = {
         "apiVersion": "operators.coreos.com/v1alpha1", "kind": "ClusterServiceVersion",
