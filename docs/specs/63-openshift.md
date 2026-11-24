@@ -1,6 +1,6 @@
 # Run on OpenShift without a flag + OLM bundle
 
-Issue: #63 · Status: Implemented · Release: 0.15.0
+Issue: #63 · Status: Implemented · Release: 0.15.0 (2026-11-24)
 
 ## Summary
 The operator chart runs unchanged on OpenShift (default `restricted-v2` SCC) as well as on k3s and other Kubernetes,

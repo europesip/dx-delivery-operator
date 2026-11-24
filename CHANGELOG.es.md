@@ -6,7 +6,7 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
 desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para la 0.12.x y anteriores
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## 0.15.0 · sin publicar · OpenShift sin flag, bundle de OLM
+## 0.15.0 · 2026-11-24 · OpenShift sin flag, bundle de OLM
 
 **Nuevo** (#63): el mismo chart y los mismos valores funcionan en k3s, en otros Kubernetes y en **OpenShift** (SCC
 `restricted-v2`), sin ningún valor específico de OpenShift. Mira [OpenShift y otras plataformas](docs/openshift.es.md).
