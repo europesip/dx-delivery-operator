@@ -183,7 +183,7 @@ def main():
     (out / "metadata").mkdir()
     for f in sorted((CHART / "crds").glob("*.yaml")):
         shutil.copy(f, out / "manifests" / f.name)
-    icon = base64.b64encode((ROOT / "docs" / "images" / "europesip-logo.svg").read_bytes()).decode()
+    icon = base64.b64encode((ROOT / "docs" / "images" / "europesip-icon.svg").read_bytes()).decode()
     csv = {
         "apiVersion": "operators.coreos.com/v1alpha1", "kind": "ClusterServiceVersion",
         "metadata": {
