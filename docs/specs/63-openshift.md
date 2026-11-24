@@ -27,7 +27,7 @@ without an OpenShift-specific flag, and an OLM bundle is generated from the char
 - Webhook injection: when the pod has no `runAsUser` (`runAsGroup`, `runAsNonRoot`) at pod level and the Web Engine
   container has one, the init container gets it; otherwise nothing is set.
 - `hack/olm-bundle.py` / `make bundle`: `bundle/<version>/manifests` (CRDs of the chart + CSV) and `metadata`
-  (package `dx-delivery-operator`, channel `alpha`, `com.redhat.openshift.versions: v4.14`). The CSV takes the
+  (package `dx-delivery-operator`, channel `alpha`, `com.redhat.openshift.versions: v4.16`). The CSV takes the
   Deployment, ClusterRole and leader-election Role of the rendered chart; WATCH_NAMESPACES from
   `olm.targetNamespaces`; no `DXCLIENT_ACCEPT_LICENSE` (accepted in the Subscription `spec.config.env`); the webhook
   as a `webhookdefinition` with `failurePolicy: Ignore` (OLM sets the namespaceSelector); one `alm-examples` entry per

@@ -17,6 +17,8 @@ exclude_docs: |
 
 nav:
   - Overview: index.md
+  - Features: features.md
+  - Why an operator: why.md
   - How it works: how-it-works.md
   - 'Guide: migrate a portal, XMLAccess': migration-guide.md
   - Restrictions and limitations: limitations.md
@@ -31,6 +33,8 @@ nav:
   - How we work: workflow.md
   - Español:
       - Introducción: index.es.md
+      - Funciones: features.es.md
+      - Por qué un operador: why.es.md
       - Cómo funciona: how-it-works.es.md
       - 'Guía: migrar un portal, XMLAccess': migration-guide.es.md
       - Restricciones y limitaciones: limitations.es.md
@@ -47,3 +51,9 @@ nav:
 markdown_extensions:
   - toc:
       slugify: !!python/object/apply:pymdownx.slugs.slugify {kwds: {case: lower}}
+  # Mermaid diagrams (the README and the overview have one): rendered by GitHub, and as a diagram block here
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
