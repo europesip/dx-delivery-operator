@@ -155,7 +155,7 @@ en todos los portales** (issue #69, 0.16.0):
   promocionas releases o páginas que lo referencian por object ID. Estamos comprobando con HCL cómo mantener los
   object ID idénticos (por ejemplo, importando el XML del entorno de referencia con `create-oids="true"` en el
   `<request>`); mientras tanto, planifica la promoción de páginas con nombres únicos, o despliega ese portlet con el
-  método documentado por HCL. Gracias a Jordi Urrea (HCL) por la revisión.
+  método documentado por HCL. Gracias a Jordi Urrea por la revisión.
 
 ## Dos modos de entrega: webhook (por defecto) o startup hook
 

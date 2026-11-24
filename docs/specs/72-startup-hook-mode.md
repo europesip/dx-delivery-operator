@@ -5,7 +5,7 @@ Issue: #72 · Status: Implemented · Release: 0.17.0 (unreleased)
 ## Summary
 A second way to deliver the Java extensions that stays inside what the HCL chart and image support: a volume of the
 chart value `volumes.webEngine.customPVCs` mounted on the Web Engine customer startup folder, whose scripts the HCL
-entrypoint runs on every container start. Suggested by Jordi Urrea (HCL). The webhook stays the default.
+entrypoint runs on every container start. Suggested by Jordi Urrea. The webhook stays the default.
 
 ## Current behaviour (before)
 - Only the mutating admission webhook adds an init container to the Web Engine pod (outside the chart values).

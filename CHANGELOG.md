@@ -8,7 +8,7 @@ for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator`
 
 ## 0.17.0 · 2026-11-24 · DXJavaExtension: second delivery mode through the HCL customer startup folder
 
-**New** (#72, suggested by Jordi Urrea, HCL): `spec.delivery: startupHook` delivers the Java extensions without the
+**New** (#72, suggested by Jordi Urrea): `spec.delivery: startupHook` delivers the Java extensions without the
 admission webhook, staying inside the values the HCL chart supports. See
 [Two delivery modes](docs/java-extensions.md#two-delivery-modes-webhook-default-or-startup-hook).
 - The portal gets a volume on the customer startup folder of the Web Engine image
@@ -29,7 +29,7 @@ admission webhook, staying inside the values the HCL chart supports. See
 
 ## 0.16.0 · 2026-11-24 · DXJavaExtension: the same portlet identifiers in every environment
 
-**New** (#69, raised by Jordi Urrea, HCL): pages and XMLAccess requests that refer to a portlet keep working when they
+**New** (#69, raised by Jordi Urrea): pages and XMLAccess requests that refer to a portlet keep working when they
 move between environments. See [Same IDs in every environment](docs/java-extensions.md#same-ids-in-every-environment).
 - Every portlet is registered with a **unique name** `<portlet-app uid>.<portlet-name>` derived from `portlet.xml`
   (`spec.identifiers.uniqueNames`, default true). Existing registrations get it on the next reconcile, without a
