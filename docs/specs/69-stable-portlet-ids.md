@@ -5,7 +5,7 @@ Issue: #69 · Status: Implemented · Release: 0.16.0 (unreleased)
 ## Summary
 Register the portlets of a `DXJavaExtension` with identifiers that are the same in every environment, so pages,
 XMLAccess requests and content that reference a portlet keep working when they move between portals. Raised by
-Jordi Urrea (HCL).
+Jordi Urrea.
 
 ## Current behaviour
 `internal/javaext/xmlaccess.go` registered the web module and the portlet application by `uid` (stable, from

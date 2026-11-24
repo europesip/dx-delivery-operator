@@ -189,8 +189,7 @@ Pages, XMLAccess requests and content refer to a portlet by an identifier. For a
   same portlet still gets a different object ID in each environment, which matters if you promote releases or pages
   that reference it by object ID. We are checking with HCL how to keep the object IDs identical (for example
   importing the reference environment's XML with `create-oids="true"` on the `<request>`); until then, plan your
-  page promotion around unique names, or deploy that portlet with HCL's documented method. Thanks to Jordi Urrea
-  (HCL) for the review.
+  page promotion around unique names, or deploy that portlet with HCL's documented method. Thanks to Jordi Urrea for the review.
 
 ## Two delivery modes: webhook (default) or startup hook
 
