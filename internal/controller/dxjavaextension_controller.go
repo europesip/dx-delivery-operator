@@ -58,6 +58,15 @@ type DXJavaExtensionReconciler struct {
 	// overrides it); 0 = 30 minutes. Env JAVA_EXTENSIONS_ROLLOUT_TIMEOUT (chart javaExtensions.rolloutTimeout).
 	RolloutTimeout time.Duration
 
+	// Delivery "startupHook" (issue #72): the URL of the operator endpoint the startup script calls, the key of the
+	// per-Web-Engine tokens, and the image of the job that writes the script on the startup volume (the init image).
+	// Empty URL or key: the mode is not available (chart javaExtensions.startupHook.enabled=false).
+	StartupHookURL string
+	StartupHookKey []byte
+	SeedImage      string
+	SeedPullPolicy corev1.PullPolicy
+	SeedPullSecret string
+
 	mu   sync.Mutex
 	apps map[string]*javaext.PortletApp // digest -> portlet.xml (artifacts are immutable by digest)
 }
@@ -66,7 +75,9 @@ type DXJavaExtensionReconciler struct {
 // +kubebuilder:rbac:groups=dx.europesip.com,resources=dxjavaextensions/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=dx.europesip.com,resources=dxjavaextensions/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;patch
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;patch
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;patch
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list
 // +kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list
@@ -82,6 +93,12 @@ const (
 	reasonJXPodPending     = "PodPending"
 	reasonJXRegisterFailed = "RegisterFailed"
 	reasonJXInvalid        = "InvalidArtifact"
+	reasonJXConflict       = "DeliveryConflict"
+	reasonJXNoVolume       = "StartupVolumeMissing"
+	reasonJXHookOff        = "StartupHookDisabled"
+	reasonJXSeeding        = "SeedingStartupVolume"
+	reasonJXSeedFailed     = "SeedFailed"
+	reasonJXHookNotRun     = "StartupHookNotRun"
 	jxDefaultTimeout       = 30 * time.Minute
 	jxPoll                 = 10 * time.Second
 	// jxReconcileTimeout bounds one reconcile (registry calls, XMLAccess): a hung call must never block the
@@ -140,12 +157,20 @@ func (r *DXJavaExtensionReconciler) keychain(ctx context.Context, e *dxv1.DXJava
 }
 
 func (r *DXJavaExtensionReconciler) reconcile(ctx context.Context, e *dxv1.DXJavaExtension) (ctrl.Result, error) {
-	// The namespace must be enabled: the webhook only acts there (without it the pods would restart for nothing).
 	var ns corev1.Namespace
 	if err := r.APIReader.Get(ctx, client.ObjectKey{Name: e.Namespace}, &ns); err != nil {
 		return ctrl.Result{}, err
 	}
-	if ns.Labels[dxv1.LabelJavaExtensionsNamespace] != "enabled" {
+	// One delivery mode per Web Engine (issue #72): never both, or the files would be delivered twice.
+	if msg, err := r.deliveryConflict(ctx, e, &ns); err != nil {
+		return ctrl.Result{}, err
+	} else if msg != "" {
+		r.fail(e, dxv1.ConditionReady, reasonJXConflict, msg)
+		return ctrl.Result{RequeueAfter: 2 * time.Minute}, nil
+	}
+	// Webhook mode: the namespace must be enabled, the webhook only acts there (without it the pods would restart
+	// for nothing).
+	if e.DeliveryMode() == dxv1.DeliveryWebhook && ns.Labels[dxv1.LabelJavaExtensionsNamespace] != "enabled" {
 		r.fail(e, dxv1.ConditionReady, reasonJXNamespace, fmt.Sprintf("the namespace needs the label %s=enabled (the webhook acts only there)", dxv1.LabelJavaExtensionsNamespace))
 		return ctrl.Result{RequeueAfter: 2 * time.Minute}, nil
 	}
@@ -183,7 +208,15 @@ func (r *DXJavaExtensionReconciler) reconcile(ctx context.Context, e *dxv1.DXJav
 		}
 	}
 
-	// 2. A new digest: record it (the webhook injects DesiredRef) and roll the Web Engine out.
+	// Startup hook mode: the script must be on the startup volume before any pod restarts.
+	if e.DeliveryMode() == dxv1.DeliveryStartupHook {
+		ready, res, err := r.ensureStartupHook(ctx, e)
+		if err != nil || !ready {
+			return res, err
+		}
+	}
+
+	// 2. A new digest: record it (the webhook or the startup script delivers DesiredRef) and roll the Web Engine out.
 	if e.Status.DesiredRef != pinned && e.Status.FailedRef != pinned {
 		if e.Status.DesiredRef != "" {
 			e.Status.PreviousRef = e.Status.DesiredRef
@@ -299,16 +332,33 @@ func (r *DXJavaExtensionReconciler) syncHash(ctx context.Context, e *dxv1.DXJava
 	if err != nil {
 		return err
 	}
-	want := ""
-	if len(entries) > 0 {
-		want = hashOf(javaext.Summary(entries))
-	}
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKey{Namespace: e.Namespace, Name: e.StatefulSetName()}, &sts); err != nil {
 		if apierrors.IsNotFound(err) {
 			return notReady("StatefulSet %s does not exist", e.StatefulSetName())
 		}
 		return err
+	}
+	want := ""
+	if len(entries) > 0 {
+		parts := []string{javaext.Summary(entries)}
+		// Startup hook (issue #72): the delivery mode and the script on the startup volume are part of the hash, so
+		// a mode change or a new script restarts the Web Engine (its next start runs the script).
+		hook, _, err := webhook.EntriesForMode(ctx, r.APIReader, e.Namespace, e.StatefulSetName(), dxv1.DeliveryStartupHook)
+		if err != nil {
+			return err
+		}
+		if len(hook) > 0 {
+			seeded := ""
+			if claim := javaext.StartupVolume(&sts, e.ContainerName(), dxv1.StartupHookDir); claim != "" {
+				var pvc corev1.PersistentVolumeClaim
+				if err := r.Get(ctx, client.ObjectKey{Namespace: e.Namespace, Name: claim}, &pvc); err == nil {
+					seeded = pvc.Annotations[dxv1.AnnotationStartupHookSeeded]
+				}
+			}
+			parts = append(parts, "startupHook:"+javaext.Summary(hook), seeded)
+		}
+		want = hashOf(parts...)
 	}
 	if sts.Spec.Template.Annotations[dxv1.AnnotationJavaExtensionsHash] == want {
 		return nil
@@ -336,7 +386,7 @@ func (r *DXJavaExtensionReconciler) rolledOut(ctx context.Context, e *dxv1.DXJav
 		return false, "", err
 	}
 	want := e.Name + "@" + e.Status.DesiredRef[strings.LastIndex(e.Status.DesiredRef, "@")+1:]
-	st := jxRolloutState(&sts, pods.Items, want)
+	st := jxRolloutStateMode(&sts, pods.Items, want, e.DeliveryMode(), e.ContainerName())
 	if st.failure != "" || st.done {
 		return st.done, st.failure, nil
 	}
@@ -365,6 +415,16 @@ type jxState struct {
 // current pod without the injection means the webhook did not act; a terminating old pod or a new pod that is not
 // created or not scheduled yet is part of a normal rollout.
 func jxRolloutState(sts *appsv1.StatefulSet, pods []corev1.Pod, want string) jxState {
+	return jxRolloutStateMode(sts, pods, want, dxv1.DeliveryWebhook, "web-engine")
+}
+
+// jxRolloutStateMode is jxRolloutState for a delivery mode. With the startup hook the pod gets the annotation when
+// its script downloads the extensions (during the container start), so a current pod without it is still starting,
+// unless it is already Ready (the script did not run); a Web Engine container that keeps failing (the script
+// aborted the start) fails the rollout.
+func jxRolloutStateMode(sts *appsv1.StatefulSet, pods []corev1.Pod, want, mode, container string) jxState {
+	hook := mode == dxv1.DeliveryStartupHook
+	var hookNotRun []string
 	replicas := int32(1)
 	if sts.Spec.Replicas != nil {
 		replicas = *sts.Spec.Replicas
@@ -381,6 +441,13 @@ func jxRolloutState(sts *appsv1.StatefulSet, pods []corev1.Pod, want string) jxS
 		if !p.DeletionTimestamp.IsZero() {
 			terminating++
 			continue
+		}
+		if hook {
+			for _, cs := range p.Status.ContainerStatuses {
+				if cs.Name == container && cs.State.Waiting != nil && cs.State.Waiting.Reason == "CrashLoopBackOff" && cs.RestartCount >= 2 {
+					return jxState{failure: fmt.Sprintf("pod %s: the Web Engine container keeps failing at start (the startup script may have aborted it); see its log ([dx-java-extensions] lines)", p.Name)}
+				}
+			}
 		}
 		for _, cs := range p.Status.InitContainerStatuses {
 			if cs.Name != javaext.InitContainerName {
@@ -403,7 +470,12 @@ func jxRolloutState(sts *appsv1.StatefulSet, pods []corev1.Pod, want string) jxS
 		if isCurrent {
 			current++
 			if !hasIt {
-				notInjected = append(notInjected, p.Name)
+				switch {
+				case !hook:
+					notInjected = append(notInjected, p.Name)
+				case podReady(p):
+					hookNotRun = append(hookNotRun, p.Name)
+				}
 			}
 		}
 		for _, c := range p.Status.Conditions {
@@ -424,6 +496,8 @@ func jxRolloutState(sts *appsv1.StatefulSet, pods []corev1.Pod, want string) jxS
 		return jxState{done: true}
 	}
 	switch {
+	case len(hookNotRun) > 0:
+		return jxState{reason: reasonJXHookNotRun, msg: "pod " + strings.Join(hookNotRun, ", ") + " is Ready without the extension: the startup script did not load it (is the script on the startup volume? see the Web Engine log, [dx-java-extensions] lines)"}
 	case len(notInjected) > 0:
 		return jxState{reason: reasonJXNotInjected, msg: "pod " + strings.Join(notInjected, ", ") + " was created from the current template without the extension (the operator webhook did not inject it)"}
 	case len(unschedulable) > 0:
@@ -432,6 +506,8 @@ func jxRolloutState(sts *appsv1.StatefulSet, pods []corev1.Pod, want string) jxS
 		return jxState{reason: reasonJXRollingOut, msg: "waiting for the old Web Engine pod to stop"}
 	case current < int(replicas):
 		return jxState{reason: reasonJXRollingOut, msg: "waiting for the new Web Engine pod"}
+	case hook:
+		return jxState{reason: reasonJXRollingOut, msg: "waiting for the Web Engine to load the extensions at start-up and be Ready"}
 	default:
 		return jxState{reason: reasonJXRollingOut, msg: "waiting for the Web Engine pod to be Ready"}
 	}

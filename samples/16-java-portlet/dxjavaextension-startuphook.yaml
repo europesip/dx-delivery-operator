@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 EUROPESIP
+# DXJavaExtension with delivery "startupHook" (0.17.0, issue #72): the same Showcase portlet, delivered through the
+# customer startup folder of the HCL Web Engine image instead of the webhook. Prerequisites:
+#   - the portal installed (or helm upgraded) with this HCL chart value:
+#       volumes:
+#         webEngine:
+#           customPVCs:
+#             - name: startup
+#               accessModes: ["ReadWriteMany"]   # ReadWriteOnce is enough with one Web Engine replica
+#               mountPath: /opt/openliberty/wlp/usr/svrcfg/bin/customer/startup
+#               storageClassName: <your storage class>
+#               requests: { storage: 100Mi }
+#   - the namespace WITHOUT the label dx.europesip.com/java-extensions=enabled (the two modes never mix);
+#   - every DXJavaExtension of that Web Engine with delivery: startupHook.
+# The public sample artifact needs no pull secret.
+apiVersion: dx.europesip.com/v1alpha1
+kind: DXJavaExtension
+metadata:
+  name: europesip-showcase
+spec:
+  connectionRef: { name: dx }
+  type: portlet
+  delivery: startupHook
+  artifact:
+    ref: ghcr.io/europesip/dx-delivery-operator/samples/europesip-showcase-portlet:1.0.2
+  contextRoot: /europesip-showcase
+  page:
+    uniqueName: com.europesip.showcase.page
+    title: EUROPESIP Showcase
+    titles: { es: Escaparate EUROPESIP }
+    friendlyName: showcase
+    anonymous: true

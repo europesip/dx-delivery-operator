@@ -6,6 +6,27 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
 for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` for 0.12.x and earlier
 (0.3.0 renamed the resources: see its notes).
 
+## 0.17.0 · unreleased · DXJavaExtension: second delivery mode through the HCL customer startup folder
+
+**New** (#72, suggested by Jordi Urrea, HCL): `spec.delivery: startupHook` delivers the Java extensions without the
+admission webhook, staying inside the values the HCL chart supports. See
+[Two delivery modes](docs/java-extensions.md#two-delivery-modes-webhook-default-or-startup-hook).
+- The portal gets a volume on the customer startup folder of the Web Engine image
+  (`volumes.webEngine.customPVCs`, mountPath `/opt/openliberty/wlp/usr/svrcfg/bin/customer/startup`; the HCL chart
+  creates one PVC shared by every replica). The operator writes a small script and a token there once (a short job),
+  and the HCL entrypoint runs the script on every container start, before the final Liberty start.
+- The script downloads the extensions **through the operator** (new cluster-internal endpoint, Service
+  `<release>-java-extensions`, port 8090; per-Web-Engine HMAC token, key in the Secret `<release>-startup-hook`
+  created by the operator): registry credentials never reach the DX container. It stops the start (exit 2) when a
+  required extension cannot be loaded.
+- Rollout pod by pod, rollback, XMLAccess registration and unique names are the same as with the webhook.
+- **`webhook` stays the default.** The two modes never mix on one Web Engine: a namespace with the webhook label or
+  extensions of one Web Engine with different modes report `DeliveryConflict`. New reasons: `StartupVolumeMissing`,
+  `SeedingStartupVolume`, `SeedFailed`, `StartupHookNotRun`, `StartupHookDisabled`.
+- Chart: `javaExtensions.startupHook.enabled` (default `true`) and `.port` (8090); RBAC adds `pods` patch,
+  `persistentvolumeclaims` get/list/watch/patch and `jobs` create/delete. The OLM bundle includes the Service.
+- Upgrading: existing webhook extensions do not restart (the rollout hash is unchanged for them).
+
 ## 0.16.0 · 2026-11-24 · DXJavaExtension: the same portlet identifiers in every environment
 
 **New** (#69, raised by Jordi Urrea, HCL): pages and XMLAccess requests that refer to a portlet keep working when they

@@ -746,6 +746,7 @@ Short names: `dxjx`, `dxjavaext`
 | `connectionRef` | object (required) |  | ConnectionRef: the DXConnection of the portal (used to register the portlets with XMLAccess). |
 | `connectionRef.name` | string (required) |  | Name of the object. |
 | `contextRoot` | string |  | ContextRoot of the web application (portlets; default /<metadata.name>). Must start with a slash. |
+| `delivery` | webhook \| startupHook | `webhook` | Delivery: how the files reach the Web Engine (issue #72). webhook (default): the operator's admission webhook adds an init container to the Web Engine pod (namespace label dx.europesip.com/java-extensions=enabled). startupHook: a script that the operator writes on a volume mounted on the HCL customer startup folder (chart value volumes.webEngine.customPVCs, mountPath /opt/openliberty/wlp/usr/svrcfg/bin/customer/startup) downloads them through the operator on every container start; no webhook, and the namespace must NOT have the webhook label. All the extensions of one Web Engine must use the same mode. |
 | `fileName` | string |  | FileName of the WAR in customApplications (default <metadata.name>.war) or of the JAR in customSharedLib (default <metadata.name>.jar). |
 | `identifiers` | object |  | Identifiers: the same identifiers in every environment (portlet unique names; issue #69). |
 | `identifiers.uniqueNames` | boolean | `True` | UniqueNames: register every portlet with the unique name <portlet-app uid>.<portlet-name>, derived from portlet.xml (default true). Registrations made before get it on the next reconcile. |
@@ -791,5 +792,6 @@ Short names: `dxjx`, `dxjavaext`
 | `resolvedDigest` | string |  | ResolvedDigest: the digest of artifact.ref the last time it was resolved. |
 | `rolledOutRef` | string |  | RolledOutRef: repository@digest every Web Engine pod runs with after the last finished rollout. |
 | `rolloutStarted` | string |  | RolloutStarted: when the current rollout started. |
+| `startupHookClaim` | string |  | StartupHookClaim: the PVC mounted on the HCL customer startup folder (delivery startupHook). |
 | `webModuleObjectID` | string |  | WebModuleObjectID: object ID of the web module in DX. |
 

@@ -19,6 +19,22 @@ const (
 	JavaExtensionSharedLibrary = "sharedLibrary"
 )
 
+// Delivery modes of the Java extensions (issue #72): how the files reach the Web Engine container.
+const (
+	// DeliveryWebhook (default): the operator's admission webhook adds an init container to the Web Engine pod.
+	DeliveryWebhook = "webhook"
+	// DeliveryStartupHook: a script in the HCL customer startup folder of the Web Engine image
+	// (StartupHookDir, a volume of the HCL chart value volumes.webEngine.customPVCs) downloads the extensions
+	// through the operator on every container start, before the final Liberty start. No webhook.
+	DeliveryStartupHook = "startupHook"
+	// StartupHookDir: the folder whose *.sh scripts the entrypoint of the HCL Web Engine image runs on every
+	// container start (svrcfg/bin/customer/startup, CF239).
+	StartupHookDir = "/opt/openliberty/wlp/usr/svrcfg/bin/customer/startup"
+	// AnnotationStartupHookSeeded: set by the operator on the startup volume (PVC) with the hash of the script it
+	// wrote there.
+	AnnotationStartupHookSeeded = "dx.europesip.com/java-extensions-startup-hook"
+)
+
 // Conditions of a DXJavaExtension (besides Ready).
 const (
 	// ConditionArtifactResolved: the artifact reference was resolved to a digest in the registry.
@@ -162,6 +178,16 @@ type DXJavaExtensionSpec struct {
 	// (default 30m).
 	// +optional
 	RolloutTimeout *metav1.Duration `json:"rolloutTimeout,omitempty"`
+	// Delivery: how the files reach the Web Engine (issue #72). webhook (default): the operator's admission webhook
+	// adds an init container to the Web Engine pod (namespace label dx.europesip.com/java-extensions=enabled).
+	// startupHook: a script that the operator writes on a volume mounted on the HCL customer startup folder
+	// (chart value volumes.webEngine.customPVCs, mountPath /opt/openliberty/wlp/usr/svrcfg/bin/customer/startup)
+	// downloads them through the operator on every container start; no webhook, and the namespace must NOT have
+	// the webhook label. All the extensions of one Web Engine must use the same mode.
+	// +kubebuilder:validation:Enum=webhook;startupHook
+	// +kubebuilder:default=webhook
+	// +optional
+	Delivery string `json:"delivery,omitempty"`
 }
 
 // DXJavaExtensionStatus is what the operator saw and did.
@@ -201,6 +227,9 @@ type DXJavaExtensionStatus struct {
 	// environment) of every registered portlet.
 	// +optional
 	PortletIDs []RegisteredPortletID `json:"portletIDs,omitempty"`
+	// StartupHookClaim: the PVC mounted on the HCL customer startup folder (delivery startupHook).
+	// +optional
+	StartupHookClaim string `json:"startupHookClaim,omitempty"`
 	// RegisteredHash: hash of what was registered (uid, portlets, context root, page); registration runs again
 	// only when it changes.
 	// +optional
@@ -220,6 +249,7 @@ type DXJavaExtensionStatus struct {
 // +kubebuilder:resource:shortName=dxjx;dxjavaext
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`
 // +kubebuilder:printcolumn:name="Artifact",type=string,JSONPath=`.spec.artifact.ref`
+// +kubebuilder:printcolumn:name="Delivery",type=string,JSONPath=`.spec.delivery`,priority=1
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
@@ -298,6 +328,14 @@ func (e *DXJavaExtension) Context() string {
 		return e.Spec.ContextRoot
 	}
 	return "/" + e.Name
+}
+
+// DeliveryMode of the extension (webhook by default; issue #72).
+func (e *DXJavaExtension) DeliveryMode() string {
+	if e.Spec.Delivery == DeliveryStartupHook {
+		return DeliveryStartupHook
+	}
+	return DeliveryWebhook
 }
 
 // Registers says whether the portlets are registered in DX.

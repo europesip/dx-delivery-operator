@@ -103,6 +103,15 @@ javaExtensions:
   # How long a rollout may take before the operator rolls back to the previous version (Go duration; empty = 30m).
   # spec.rolloutTimeout of a DXJavaExtension overrides it.
   rolloutTimeout: ""
+  # Delivery "startupHook" (0.17.0, issue #72): a DXJavaExtension with spec.delivery startupHook is delivered by a
+  # script on a volume of the HCL chart (volumes.webEngine.customPVCs, mountPath
+  # /opt/openliberty/wlp/usr/svrcfg/bin/customer/startup) instead of the webhook. The operator serves the extensions
+  # to that script on this port (Service <release>-java-extensions, cluster-internal) and keeps the key of the
+  # per-Web-Engine tokens in the Secret <release>-startup-hook (created by the operator). The webhook stays the
+  # default delivery; this only makes the second mode available.
+  startupHook:
+    enabled: true
+    port: 8090
   initImage:
     repository: ghcr.io/europesip/dx-delivery-operator/dx-extensions-init
     tag: ""                    # default: the chart appVersion

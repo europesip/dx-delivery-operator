@@ -22,7 +22,8 @@ badge, to see a version change.
 |---|---|
 | `showcase-portlet/` | Maven project (`portlet-api` 2.0 provided, no JSP) |
 | `build-and-push.sh` | `mvn package` + `oras push` with the annotations the operator and people read |
-| `dxjavaextension.yaml` | The resource: artifact, context root and a page `…/wps/portal/Home/showcase` |
+| `dxjavaextension.yaml` | The resource: artifact, context root and a page `…/wps/portal/Home/showcase` (delivery `webhook`, the default) |
+| `dxjavaextension-startuphook.yaml` | The same with delivery `startupHook` (0.17.0): through the customer startup folder of the HCL image, no webhook; see [Two delivery modes](../../docs/java-extensions.md#two-delivery-modes-webhook-default-or-startup-hook) |
 
 Published by EUROPESIP, public (no pull secret needed) and with immutable tags, in two registries:
 

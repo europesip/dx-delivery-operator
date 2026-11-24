@@ -9,12 +9,13 @@ Licensed under the MIT License (see LICENSE).
 package main
 
 import (
-	"time"
+	"context"
 	"crypto/tls"
 	"flag"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -38,6 +39,7 @@ import (
 	"github.com/europesip/dx-delivery-operator/internal/dx"
 	"github.com/europesip/dx-delivery-operator/internal/javaext"
 	"github.com/europesip/dx-delivery-operator/internal/source"
+	"github.com/europesip/dx-delivery-operator/internal/startuphook"
 	dxwebhook "github.com/europesip/dx-delivery-operator/internal/webhook"
 	// +kubebuilder:scaffold:imports
 )
@@ -346,13 +348,44 @@ func main() {
 				jxTimeout = d
 			}
 		}
-		if err := (&controller.DXJavaExtensionReconciler{
+		jx := &controller.DXJavaExtensionReconciler{
 			Client:         mgr.GetClient(),
 			APIReader:      mgr.GetAPIReader(),
 			Scheme:         mgr.GetScheme(),
 			Shared:         shared,
 			RolloutTimeout: jxTimeout,
-		}).SetupWithManager(mgr); err != nil {
+		}
+		// Delivery "startupHook" (issue #72): the endpoint the startup script of the Web Engine calls, and the
+		// job image that writes the script on the startup volume (the init image).
+		if v := strings.ToLower(strings.TrimSpace(os.Getenv("JAVA_EXTENSIONS_STARTUP_HOOK"))); v == "true" || v == "1" {
+			opNS := os.Getenv("POD_NAMESPACE")
+			secretName := os.Getenv("JAVA_EXTENSIONS_STARTUP_HOOK_SECRET")
+			if secretName == "" {
+				secretName = "dx-delivery-operator-startup-hook"
+			}
+			kctx, kcancel := context.WithTimeout(context.Background(), 30*time.Second)
+			key, err := startuphook.EnsureKey(kctx, mgr.GetClient(), mgr.GetAPIReader(), opNS, secretName)
+			kcancel()
+			if err != nil {
+				setupLog.Error(err, "startup hook: cannot read or create the token key Secret", "namespace", opNS, "name", secretName)
+				os.Exit(1)
+			}
+			addr := os.Getenv("JAVA_EXTENSIONS_STARTUP_HOOK_ADDR")
+			if addr == "" {
+				addr = ":8090"
+			}
+			if err := mgr.Add(&startuphook.Server{Addr: addr, Key: key, Reader: mgr.GetAPIReader(), Client: mgr.GetClient()}); err != nil {
+				setupLog.Error(err, "startup hook server")
+				os.Exit(1)
+			}
+			jx.StartupHookURL = strings.TrimRight(os.Getenv("JAVA_EXTENSIONS_STARTUP_HOOK_URL"), "/")
+			jx.StartupHookKey = key
+			jx.SeedImage = os.Getenv("JAVA_EXTENSIONS_INIT_IMAGE")
+			jx.SeedPullPolicy = corev1.PullPolicy(os.Getenv("JAVA_EXTENSIONS_INIT_PULL_POLICY"))
+			jx.SeedPullSecret = os.Getenv("JAVA_EXTENSIONS_INIT_PULL_SECRET")
+			setupLog.Info("java extensions startup hook enabled", "addr", addr, "url", jx.StartupHookURL)
+		}
+		if err := jx.SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Failed to create controller", "controller", "dxjavaextension")
 			os.Exit(1)
 		}
