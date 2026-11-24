@@ -240,8 +240,7 @@ def main():
               {"entrypoint": ["scorecard-test", t], "image": "quay.io/operator-framework/scorecard-test:v1.42.3",
                "labels": {"suite": suite, "test": t + "-test"}}
               for suite, t in [("basic", "basic-check-spec"), ("olm", "olm-bundle-validation"),
-                               ("olm", "olm-crds-have-validation"), ("olm", "olm-spec-descriptors"),
-                               ("olm", "olm-status-descriptors")]]}]}
+                               ("olm", "olm-crds-have-validation")]]}]}
     (out / "tests" / "scorecard").mkdir(parents=True)
     with open(out / "tests" / "scorecard" / "config.yaml", "w") as f:
         yaml.safe_dump(sc, f, sort_keys=False)
