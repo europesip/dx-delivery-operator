@@ -23,3 +23,23 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if .Values.serviceAccount.create -}}{{ default (include "dxop.fullname" .) .Values.serviceAccount.name }}
 {{- else -}}{{ default "default" .Values.serviceAccount.name }}{{- end -}}
 {{- end -}}
+
+{{/*
+Who issues the certificate of the Java extensions webhook (issue #63): cert-manager or openshift-service-ca.
+auto: the OpenShift service CA on OpenShift without cert-manager; cert-manager otherwise (also when Helm cannot see the
+APIs of the cluster, as with helm template: the behaviour before 0.15.0).
+*/}}
+{{- define "dxop.webhookCertProvider" -}}
+{{- $p := (((.Values.javaExtensions).certificate).provider) | default "auto" -}}
+{{- if eq $p "auto" -}}
+{{- if and (not (.Capabilities.APIVersions.Has "cert-manager.io/v1")) (or (.Capabilities.APIVersions.Has "route.openshift.io/v1") (.Capabilities.APIVersions.Has "security.openshift.io/v1")) -}}
+openshift-service-ca
+{{- else -}}
+cert-manager
+{{- end -}}
+{{- else if or (eq $p "cert-manager") (eq $p "openshift-service-ca") -}}
+{{ $p }}
+{{- else -}}
+{{- fail (printf "javaExtensions.certificate.provider must be auto, cert-manager or openshift-service-ca (got %q)" $p) -}}
+{{- end -}}
+{{- end -}}

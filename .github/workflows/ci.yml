@@ -40,6 +40,10 @@ jobs:
           helm lint dist/alias/hcl-dx-scriptapp-operator --set dxclient.acceptLicense=true
           # the alias keeps the 0.12.x resource names (helm upgrade dxop with the old chart name changes nothing)
           helm template dxop dist/alias/hcl-dx-scriptapp-operator --set dxclient.acceptLicense=true | grep -q "name: dxop-hcl-dx-scriptapp-operator$"
+          # OLM bundle (#63): generated from the chart, up to date and valid
+          python3 -c "import yaml" 2>/dev/null || pip install pyyaml
+          make bundle
+          git diff --exit-code -- bundle
           v=$(sed -n 's/^appVersion: "\(.*\)"/\1/p' charts/dx-delivery-operator/Chart.yaml)
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then [ "v$v" = "${GITHUB_REF#refs/tags/}" ]; fi
 

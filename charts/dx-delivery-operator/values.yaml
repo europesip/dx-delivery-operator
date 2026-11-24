@@ -67,6 +67,18 @@ probes:
   failureThreshold: 6
 priorityClassName: ""
 
+# Security context of the operator pod (0.15.0, issue #63). Only settings that every platform accepts: no UID, GID or
+# fsGroup, so the same values work on any Kubernetes and on OpenShift (restricted-v2 SCC) without a flag. On k3s and
+# other Kubernetes the process runs as the UID of the image (1000); on OpenShift the SCC gives the UID of the
+# namespace range. The writable paths (/work, /tmp, /dxclient/store, HOME=/tmp) are emptyDir volumes, so any UID works.
+# Before 0.15.0 the chart fixed runAsUser/runAsGroup/fsGroup 1000; set them here to keep that.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile: { type: RuntimeDefault }
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities: { drop: [ALL] }
+
 serviceAccount:
   create: true
   name: ""
@@ -82,7 +94,8 @@ leaderElectionID: ""
 # DXJavaExtension (0.14.0, issue #54): Java extensions (portlet WARs, shared-library JARs) loaded from a registry
 # onto the official DX Compose Web Engine image. Off by default. When on, the chart registers a mutating admission
 # webhook (served by the operator pod) that adds an init container to the Web Engine pods of the namespaces with
-# the label below. Needs cert-manager for the webhook certificate.
+# the label below. The webhook certificate comes from cert-manager or, on OpenShift, from the service CA (see
+# javaExtensions.certificate).
 javaExtensions:
   enabled: false
   # How long a rollout may take before the operator rolls back to the previous version (Go duration; empty = 30m).
@@ -107,6 +120,13 @@ javaExtensions:
     objectSelector:
       matchExpressions:
         - { key: app, operator: In, values: [dx-deployment-web-engine] }
+  # Who issues the certificate of the webhook (0.15.0, issue #63):
+  #   auto (default): on OpenShift without cert-manager, the service CA of OpenShift (annotations on the Service and
+  #     the webhook); everywhere else cert-manager (the behaviour before 0.15.0).
+  #   cert-manager / openshift-service-ca: force one. With `helm template` or Argo CD Helm cannot see the APIs of the
+  #     cluster and auto means cert-manager: set openshift-service-ca there (or pass --api-versions route.openshift.io/v1).
+  certificate:
+    provider: auto
   certManager:
     # An Issuer of this release (self-signed) or an existing issuer.
     createSelfSignedIssuer: true

@@ -178,6 +178,7 @@ func Inject(pod *corev1.Pod, es []Entry, o InjectOptions) (bool, error) {
 		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{Name: vn, VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: s}}})
 		init.VolumeMounts = append(init.VolumeMounts, corev1.VolumeMount{Name: vn, MountPath: initAuth + "/" + s, ReadOnly: true})
 	}
+	sameUserAsWebEngine(&init, pod, pod.Spec.Containers[ci])
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, init)
 	if o.ImagePullSecret != "" {
 		has := false
@@ -197,6 +198,31 @@ func Inject(pod *corev1.Pod, es []Entry, o InjectOptions) (bool, error) {
 }
 
 func ptrBool(b bool) *bool { return &b }
+
+// sameUserAsWebEngine (issue #63): the init container runs as the same user as DX. The HCL chart sets the UID and GID
+// at pod level (1000/1001, inside the UID range of the OpenShift namespace annotations HCL asks for), and the init
+// container inherits them. When the pod has none but the Web Engine container has its own, the init container takes
+// them; otherwise it would run as the UID of its image (65532, distroless nonroot), outside that range on OpenShift.
+// With neither, nothing is set: the platform decides (the SCC of OpenShift gives the namespace UID to the whole pod).
+func sameUserAsWebEngine(init *corev1.Container, pod *corev1.Pod, we corev1.Container) {
+	psc := pod.Spec.SecurityContext
+	csc := we.SecurityContext
+	if csc == nil {
+		return
+	}
+	if (psc == nil || psc.RunAsUser == nil) && csc.RunAsUser != nil {
+		u := *csc.RunAsUser
+		init.SecurityContext.RunAsUser = &u
+	}
+	if (psc == nil || psc.RunAsGroup == nil) && csc.RunAsGroup != nil {
+		g := *csc.RunAsGroup
+		init.SecurityContext.RunAsGroup = &g
+	}
+	if csc.RunAsNonRoot != nil && (psc == nil || psc.RunAsNonRoot == nil) {
+		n := *csc.RunAsNonRoot
+		init.SecurityContext.RunAsNonRoot = &n
+	}
+}
 
 // InitPaths are the folders of the init container (for the init binary).
 var InitPaths = struct{ Apps, Libs, Config, Auth string }{initApps, initLibs, initConfig, initAuth}

@@ -124,12 +124,17 @@ docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bi
 ```
 
 ```bash
-helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.14.2 \
+helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.15.0 \
   -n dxop-system --create-namespace --set dxclient.acceptLicense=true
 ```
 
 Values: [values.yaml](charts/dx-delivery-operator/values.yaml), for example `watchNamespaces` to limit the
-operator to some namespaces.
+operator to some namespaces. The same chart runs on **OpenShift** without any extra value:
+[OpenShift and other platforms](docs/openshift.md).
+
+> **Tested on k3s only.** The chart and the image take the security context and the particularities of OpenShift
+> into account (no fixed UID, `restricted-v2`, the HCL DX namespace annotations, the OpenShift service CA), but the
+> operator **has not been tested on OpenShift yet**. Feedback from OpenShift users is welcome (open an issue).
 
 ## Use it
 

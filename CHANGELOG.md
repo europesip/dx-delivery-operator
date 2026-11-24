@@ -6,6 +6,27 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
 for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` for 0.12.x and earlier
 (0.3.0 renamed the resources: see its notes).
 
+## 0.15.0 · 2026-11-24 · OpenShift without a flag, OLM bundle
+
+**New** (#63): the same chart and values run on k3s, other Kubernetes and **OpenShift** (`restricted-v2` SCC), with
+no OpenShift-specific value. See [OpenShift and other platforms](docs/openshift.md). **Tested on k3s only; not yet
+tested on OpenShift.**
+- **No fixed UID**: the pod no longer sets `runAsUser`/`runAsGroup`/`fsGroup` 1000 (rejected by `restricted-v2`).
+  On Kubernetes the process still runs as UID 1000 (the image); on OpenShift the SCC gives the namespace UID. New
+  values `podSecurityContext` and `containerSecurityContext` (defaults: `runAsNonRoot`, `RuntimeDefault` seccomp, no
+  privilege escalation, drop `ALL`); set `runAsUser: 1000` etc. there to keep the old pod.
+- **Writable paths for any UID**: `HOME=/tmp` and an emptyDir at `/dxclient/store` (DXClient configuration and logs).
+- **Webhook certificate detected** (`javaExtensions.certificate.provider: auto`): the OpenShift service CA on
+  OpenShift without cert-manager, cert-manager everywhere else (as before). `cert-manager` or `openshift-service-ca`
+  can be forced (`helm template`, Argo CD).
+- **Java extensions init container**: when the Web Engine pod has no UID at pod level but its container has one, the
+  init container takes it, so it always runs as the DX user.
+- **OLM bundle** (`hack/olm-bundle.py`, `make bundle`): generated from the chart for the community catalogs
+  (OperatorHub.io, OpenShift OperatorHub); validated with `operator-sdk bundle validate`. Not published yet.
+
+Upgrading from 0.14.2: apply the CRDs (unchanged) and `helm upgrade` with your values file. The operator pod
+restarts (check that no import or export is running); nothing changes in DX.
+
 ## 0.14.2 · 2026-11-24 · DXJavaExtension: no false WebhookNotActive
 
 **Fixed** (#61): a `DXJavaExtension` reported `WebhookNotActive` while the webhook was working, in the window

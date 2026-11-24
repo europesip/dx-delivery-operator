@@ -153,7 +153,8 @@ helm upgrade dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --reuse-va
 kubectl label namespace <portal-namespace> dx.europesip.com/java-extensions=enabled
 ```
 
-Needs cert-manager (the webhook certificate). Values: `javaExtensions.initImage.*` (the init image; `pullSecret` if it
+Needs a certificate for the webhook: cert-manager, or on OpenShift the service CA when there is no cert-manager
+(`javaExtensions.certificate.provider`, see [OpenShift and other platforms](openshift.md)). Values: `javaExtensions.initImage.*` (the init image; `pullSecret` if it
 comes from a private registry), `javaExtensions.webhook.failurePolicy`, `namespaceSelector`, `objectSelector`
 (default: pods with `app=dx-deployment-web-engine`; add yours if the DX release has another name).
 
