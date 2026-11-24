@@ -18,3 +18,7 @@ spec:
     titles: { es: Escaparate EUROPESIP }
     friendlyName: showcase                        # https://<portal>/wps/portal/Home/showcase
     anonymous: true
+  # 0.16.0 (#69): every portlet gets the unique name <portlet-app uid>.<portlet-name>, the same in every environment
+  # (default true). The status shows the unique names and the object IDs DX generated (portletIDs).
+  identifiers:
+    uniqueNames: true

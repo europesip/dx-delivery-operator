@@ -6,6 +6,23 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
 desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para la 0.12.x y anteriores
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.16.0 · sin publicar · DXJavaExtension: los mismos identificadores de portlet en todos los entornos
+
+**Nuevo** (#69, a propuesta de Jordi Urrea, HCL): las páginas y peticiones XMLAccess que se refieren a un portlet
+siguen funcionando al pasar de un entorno a otro. Mira [Los mismos identificadores en todos los entornos](docs/java-extensions.es.md#los-mismos-identificadores-en-todos-los-entornos).
+- Cada portlet se registra con un **nombre único** `<uid de la portlet-app>.<portlet-name>` derivado de
+  `portlet.xml` (`spec.identifiers.uniqueNames`, por defecto true). Los registros existentes lo reciben en la
+  siguiente reconciliación, sin reiniciar el Web Engine.
+- Campos nuevos en el status: `webModuleObjectID`, `portletAppObjectID`, `portletIDs` (nombre, nombre único,
+  object ID).
+- No se ofrecen object ID fijos: probado en CF239, DX los ignora en los portlets `predeployed` y genera los suyos.
+
+**Corregido**: al borrar un `DXJavaExtension` con página, los portlets y la página se quedaban en DX: la petición
+XMLAccess llevaba `content-node` antes que `web-app` y el esquema la rechaza entera (EJPXA0049E). Ahora va primero
+`web-app`.
+
+Para actualizar desde la 0.15.0: aplica las CRD (campos opcionales nuevos) y `helm upgrade` con tu fichero de valores.
+
 ## 0.15.0 · 2026-11-24 · OpenShift sin flag, bundle de OLM
 
 **Nuevo** (#63): el mismo chart y los mismos valores funcionan en k3s, en otros Kubernetes y en **OpenShift** (SCC

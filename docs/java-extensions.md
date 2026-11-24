@@ -150,6 +150,39 @@ Artifact annotations we use (`oras push --annotation`):
 Registry layout we recommend: `<registry>/dx-artifacts/java-extensions/portlets/<name>:<semver>` and
 `.../java-extensions/libraries/<name>:<semver>`.
 
+## Same IDs in every environment
+
+Pages, XMLAccess requests and content refer to a portlet by an identifier. For a promotion between environments
+(development, staging, production) to work, that identifier must be **the same in every portal** (issue #69,
+0.16.0):
+
+| Identifier | Example | Same in every environment? |
+|---|---|---|
+| `uid` of the web module and of the portlet application | `com.europesip.showcase.ShowcasePortlet.webmod` | **Yes**: from `<portlet-app id>` in `portlet.xml` (or `spec.portletAppUID`) |
+| **Unique name** of each portlet | `com.europesip.showcase.ShowcasePortlet.ShowcasePortlet` | **Yes** (new): `<portlet-app uid>.<portlet-name>`, set by the operator |
+| Object ID of each object | `Z3_4G9I0G01110000M8G31CLH0006` | **No**: DX generates it in each portal |
+
+- The operator registers every portlet with its **unique name** (`spec.identifiers.uniqueNames`, default `true`).
+  Portlets registered by an earlier version get it on the next reconcile, without restarting the Web Engine.
+- In your XMLAccess requests and scripts, locate the portlet by its unique name (or by the `uid` of its application
+  and its name), never by its object ID:
+
+  ```xml
+  <web-app action="locate" uid="com.europesip.showcase.ShowcasePortlet.webmod">
+    <portlet-app action="locate" uid="com.europesip.showcase.ShowcasePortlet">
+      <portlet action="locate" uniquename="com.europesip.showcase.ShowcasePortlet.ShowcasePortlet" objectid="showcase"/>
+    </portlet-app>
+  </web-app>
+  <!-- … then portletref="showcase" in the page -->
+  ```
+
+- The status shows what DX has: `webModuleObjectID`, `portletAppObjectID` and `portletIDs` (name, unique name,
+  object ID of each portlet), for diagnosis.
+- **Fixed object IDs are not possible** for portlets registered this way: tested on DX Compose CF239, DX ignores
+  the `objectid` of a predeployed web module, its portlet application and its portlets (with `create-oids="true"`
+  too) and generates its own; with `action="create"` the request fails because the deployment already created the
+  portlet application from `portlet.xml`. That is why the operator relies on `uid` and unique names.
+
 ## Enable it
 
 ```bash

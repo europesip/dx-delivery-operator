@@ -22,7 +22,50 @@ type Registration struct {
 	ContextRoot string
 	DisplayName string
 	Page        *Page
+	IDs         Identifiers
 }
+
+// Identifiers of a registration that are the same in every environment (issue #69).
+//
+// Fixed object IDs are not offered: tested on DX Compose CF239, DX ignores the objectid of a predeployed web module,
+// its portlet application and its portlets (create-oids="true" or not) and generates its own; with action="create"
+// the request fails (the deployment already created the portlet application from portlet.xml). Unique names are
+// kept, can be added to an existing registration and can be used to locate a portlet in XMLAccess.
+type Identifiers struct {
+	// UniqueNames: register every portlet with PortletUniqueName (the same in every portal).
+	UniqueNames bool
+}
+
+// PortletUniqueName is the unique name of a portlet: <portlet-app uid>.<portlet-name>, derived from portlet.xml, so
+// it is the same in every environment.
+func PortletUniqueName(appUID, portlet string) string { return appUID + "." + portlet }
+
+// RegisteredIDs are the identifiers DX has for a registered web module (read from an export).
+type RegisteredIDs struct {
+	WebModuleOID  string
+	PortletAppOID string
+	Portlets      []RegisteredPortlet
+}
+
+// RegisteredPortlet is one portlet as DX has it.
+type RegisteredPortlet struct {
+	Name       string
+	UniqueName string
+	ObjectID   string
+}
+
+// Portlet returns the portlet with that name (nil when it is not there).
+func (r RegisteredIDs) Portlet(name string) *RegisteredPortlet {
+	for i := range r.Portlets {
+		if r.Portlets[i].Name == name {
+			return &r.Portlets[i]
+		}
+	}
+	return nil
+}
+
+// portletRef is the temporary id of a portlet inside the request.
+func (r Registration) portletRef(i int) string { return fmt.Sprintf("jx.portlet.%d", i) }
 
 // Page of a registration.
 type Page struct {
@@ -66,7 +109,11 @@ func RegisterXML(r Registration) string {
 	b.WriteString(acl() + "\n")
 	fmt.Fprintf(&b, `<portlet-app action="update" active="true" name="%s" uid="%s">`+"\n", xa(r.App.UID), xa(r.App.UID))
 	for i, p := range r.App.Portlets {
-		fmt.Fprintf(&b, `<portlet action="update" active="true" name="%s" objectid="jx.portlet.%d">%s</portlet>`+"\n", xa(p), i, acl())
+		un := ""
+		if r.IDs.UniqueNames {
+			un = fmt.Sprintf(` uniquename="%s"`, xa(PortletUniqueName(r.App.UID, p)))
+		}
+		fmt.Fprintf(&b, `<portlet action="update" active="true" name="%s" objectid="%s"%s>%s</portlet>`+"\n", xa(p), xa(r.portletRef(i)), un, acl())
 	}
 	b.WriteString("</portlet-app>\n</web-app>\n")
 	if pg := r.Page; pg != nil {
@@ -91,7 +138,7 @@ func RegisterXML(r Registration) string {
 		b.WriteString(acl() + "\n")
 		fmt.Fprintf(&b, `<component action="update" active="true" domain="rel" ordinal="100" orientation="H" type="container" uniquename="%s">`+"\n", xa(pg.UniqueName+".row"))
 		b.WriteString(`<component action="update" active="true" domain="rel" ordinal="100" orientation="V" type="container">` + "\n")
-		b.WriteString(`<component action="update" active="true" domain="rel" ordinal="100" type="control"><portletinstance action="update" domain="rel" portletref="jx.portlet.0"/></component>` + "\n")
+		b.WriteString(`<component action="update" active="true" domain="rel" ordinal="100" type="control"><portletinstance action="update" domain="rel" portletref="` + xa(r.portletRef(0)) + `"/></component>` + "\n")
 		b.WriteString("</component>\n</component>\n</content-node>\n")
 	}
 	b.WriteString("</portal>\n</request>\n")
@@ -110,10 +157,12 @@ func UnregisterXML(appUID, pageUniqueName string) string {
 	var b strings.Builder
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
 	b.WriteString(`<request xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="PortalConfig_8.0.0.xsd" type="update">` + "\n<portal action=\"locate\">\n")
+	// the schema (PortalConfig_8.0.0.xsd) wants web-app before content-node: the other order fails as a whole
+	// (EJPXA0049E) and nothing is deleted (issue #69)
+	fmt.Fprintf(&b, `<web-app action="delete" uid="%s"/>`+"\n", xa(WebModuleUID(appUID)))
 	if pageUniqueName != "" {
 		fmt.Fprintf(&b, `<content-node action="delete" uniquename="%s"/>`+"\n", xa(pageUniqueName))
 	}
-	fmt.Fprintf(&b, `<web-app action="delete" uid="%s"/>`+"\n", xa(WebModuleUID(appUID)))
 	b.WriteString("</portal>\n</request>\n")
 	return b.String()
 }
@@ -143,6 +192,52 @@ func ParseExport(result string) (exists bool, portlets []string, err error) {
 	}
 	sort.Strings(portlets)
 	return true, portlets, nil
+}
+
+var (
+	exportedWebApp     = regexp.MustCompile(`<web-app\s[^>]*>`)
+	exportedPortletApp = regexp.MustCompile(`<portlet-app\s[^>]*>`)
+	exportedPortletTag = regexp.MustCompile(`<portlet\s[^>]*>`)
+	xmlAttribute       = regexp.MustCompile(`\b([a-zA-Z-]+)="([^"]*)"`)
+)
+
+func attrs(tag string) map[string]string {
+	m := map[string]string{}
+	for _, a := range xmlAttribute.FindAllStringSubmatch(tag, -1) {
+		m[a[1]] = a[2]
+	}
+	return m
+}
+
+// ParseIDs reads the object IDs and unique names of a successful export of a web module (ExportXML).
+func ParseIDs(result string) RegisteredIDs {
+	var r RegisteredIDs
+	if t := exportedWebApp.FindString(result); t != "" {
+		r.WebModuleOID = attrs(t)["objectid"]
+	}
+	if t := exportedPortletApp.FindString(result); t != "" {
+		r.PortletAppOID = attrs(t)["objectid"]
+	}
+	for _, t := range exportedPortletTag.FindAllString(result, -1) {
+		a := attrs(t)
+		if a["name"] == "" {
+			continue
+		}
+		r.Portlets = append(r.Portlets, RegisteredPortlet{Name: a["name"], UniqueName: a["uniquename"], ObjectID: a["objectid"]})
+	}
+	sort.Slice(r.Portlets, func(i, j int) bool { return r.Portlets[i].Name < r.Portlets[j].Name })
+	return r
+}
+
+// MissingUniqueNames lists the portlets registered without their unique name (or with another one).
+func MissingUniqueNames(appUID string, got RegisteredIDs) []string {
+	var out []string
+	for _, p := range got.Portlets {
+		if p.UniqueName != PortletUniqueName(appUID, p.Name) {
+			out = append(out, p.Name)
+		}
+	}
+	return out
 }
 
 // SameSet compares two sorted lists.
