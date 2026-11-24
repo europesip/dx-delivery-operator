@@ -606,7 +606,8 @@ func (r *DXJavaExtensionReconciler) rollback(ctx context.Context, e *dxv1.DXJava
 // register runs XMLAccess predeployed only when the web module is missing, its portlets differ, or what is
 // registered (uid, portlets, file, context root, page) changed since the last time.
 func (r *DXJavaExtensionReconciler) register(ctx context.Context, e *dxv1.DXJavaExtension, app *javaext.PortletApp) error {
-	reg := javaext.Registration{App: *app, File: e.File(), ContextRoot: e.Context(), DisplayName: e.Name}
+	reg := javaext.Registration{App: *app, File: e.File(), ContextRoot: e.Context(), DisplayName: e.Name,
+		IDs: javaext.Identifiers{UniqueNames: e.UniqueNames()}}
 	if p := e.Spec.Page; p != nil {
 		titles := map[string]string{"en": p.Title}
 		for l, t := range p.Titles {
@@ -616,7 +617,8 @@ func (r *DXJavaExtensionReconciler) register(ctx context.Context, e *dxv1.DXJava
 			FriendlyName: p.FriendlyName, Anonymous: p.Anonymous == nil || *p.Anonymous}
 	}
 	pageJSON, _ := json.Marshal(reg.Page)
-	want := hashOf(app.UID, strings.Join(app.Portlets, ","), reg.File, reg.ContextRoot, string(pageJSON))
+	idsJSON, _ := json.Marshal(reg.IDs)
+	want := hashOf(app.UID, strings.Join(app.Portlets, ","), reg.File, reg.ContextRoot, string(pageJSON), string(idsJSON))
 	if e.Status.RegisteredHash == want && meta.IsStatusConditionTrue(e.Status.Conditions, dxv1.ConditionRegistered) {
 		return nil
 	}
@@ -632,7 +634,9 @@ func (r *DXJavaExtensionReconciler) register(ctx context.Context, e *dxv1.DXJava
 	if err != nil {
 		return err
 	}
-	if !exists || !javaext.SameSet(portlets, app.Portlets) || reg.Page != nil {
+	ids := javaext.ParseIDs(out)
+	missingNames := reg.IDs.UniqueNames && len(javaext.MissingUniqueNames(app.UID, ids)) > 0
+	if !exists || !javaext.SameSet(portlets, app.Portlets) || reg.Page != nil || missingNames {
 		res, err := conn.Client.XMLAccess(ctx, javaext.RegisterXML(reg))
 		if err != nil {
 			return err
@@ -641,6 +645,17 @@ func (r *DXJavaExtensionReconciler) register(ctx context.Context, e *dxv1.DXJava
 			return fmt.Errorf("XMLAccess predeployed registration failed: %s", msg)
 		}
 		r.Recorder.Eventf(e, nil, corev1.EventTypeNormal, "Registered", "Register", "web module %s with %d portlet(s) registered in DX", javaext.WebModuleUID(app.UID), len(app.Portlets))
+		// read back what DX has: its object IDs and the unique names (for the status)
+		if out, err = conn.Client.XMLAccess(ctx, javaext.ExportXML(app.UID)); err != nil {
+			return err
+		}
+		ids = javaext.ParseIDs(out)
+	}
+	e.Status.WebModuleObjectID = ids.WebModuleOID
+	e.Status.PortletAppObjectID = ids.PortletAppOID
+	e.Status.PortletIDs = nil
+	for _, p := range ids.Portlets {
+		e.Status.PortletIDs = append(e.Status.PortletIDs, dxv1.RegisteredPortletID{Name: p.Name, UniqueName: p.UniqueName, ObjectID: p.ObjectID})
 	}
 	e.Status.PortletAppUID = app.UID
 	e.Status.Portlets = app.Portlets

@@ -209,3 +209,42 @@ func TestInjectSameUserAsWebEngine(t *testing.T) {
 		t.Fatalf("no UID: want none, got %+v", sc)
 	}
 }
+
+// Issue #69: stable unique names and the IDs DX reports.
+func TestStableIdentifiers(t *testing.T) {
+	r := Registration{App: PortletApp{UID: "com.x", Portlets: []string{"P1", "P2"}}, File: "x.war", ContextRoot: "/x", DisplayName: "x",
+		IDs: Identifiers{UniqueNames: true}}
+	x := RegisterXML(r)
+	for _, want := range []string{`name="P1" objectid="jx.portlet.0" uniquename="com.x.P1"`, `name="P2" objectid="jx.portlet.1" uniquename="com.x.P2"`} {
+		if !strings.Contains(x, want) {
+			t.Fatalf("missing %q in\n%s", want, x)
+		}
+	}
+	r.IDs.UniqueNames = false
+	if strings.Contains(RegisterXML(r), "uniquename=") {
+		t.Fatal("no unique names when disabled")
+	}
+	export := `<request><portal action="locate">
+<web-app action="update" active="true" domain="rel" objectid="Z1_AAA" predeployed="true" uid="com.x.webmod">
+<portlet-app action="update" active="true" name="com.x" objectid="Z2_BBB" uid="com.x">
+<portlet action="update" active="true" name="P2" objectid="Z3_DDD" servletref="ZV_1">
+<portlet action="update" active="true" name="P1" objectid="Z3_CCC" uniquename="com.x.P1" provided="false">
+</portlet-app></web-app></portal><status element="all" result="ok"/></request>`
+	ids := ParseIDs(export)
+	if ids.WebModuleOID != "Z1_AAA" || ids.PortletAppOID != "Z2_BBB" || len(ids.Portlets) != 2 ||
+		ids.Portlets[0] != (RegisteredPortlet{Name: "P1", UniqueName: "com.x.P1", ObjectID: "Z3_CCC"}) ||
+		ids.Portlet("P2").ObjectID != "Z3_DDD" {
+		t.Fatalf("ids %+v", ids)
+	}
+	if m := MissingUniqueNames("com.x", ids); len(m) != 1 || m[0] != "P2" {
+		t.Fatalf("missing unique names %v", m)
+	}
+}
+
+// Issue #69: the schema wants web-app before content-node, or nothing is deleted.
+func TestUnregisterOrder(t *testing.T) {
+	x := UnregisterXML("com.x", "com.x.page")
+	if strings.Index(x, "<web-app") > strings.Index(x, "<content-node") {
+		t.Fatalf("web-app must come first:\n%s", x)
+	}
+}

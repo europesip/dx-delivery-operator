@@ -46,3 +46,10 @@ Requisitos: el operador con `javaExtensions.enabled=true`, el namespace con la e
 kubectl apply -n <namespace-del-portal> -f dxjavaextension.yaml   # antes cambia connectionRef, ref y pullSecrets
 kubectl get dxjx -n <namespace-del-portal> -w                       # RollingOut → Ready
 ```
+
+El portlet se registra con el nombre único `com.europesip.showcase.ShowcasePortlet.ShowcasePortlet`, el mismo en
+todos los portales (0.16.0, [Los mismos identificadores en todos los entornos](../../docs/java-extensions.es.md#los-mismos-identificadores-en-todos-los-entornos)):
+
+```bash
+kubectl get dxjx europesip-showcase -n <namespace-del-portal> -o jsonpath='{.status.portletIDs}'
+```

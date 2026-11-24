@@ -124,6 +124,30 @@ Una versión nueva del código con los mismos identificadores (1.0.0 → 1.1.0) 
 El ejemplo de CR, las anotaciones y la estructura de carpetas recomendada en el registro están en la
 [versión en inglés](java-extensions.md#deploy-an-extension).
 
+## Los mismos identificadores en todos los entornos
+
+Las páginas, las peticiones XMLAccess y el contenido se refieren a un portlet por un identificador. Para que una
+promoción entre entornos (desarrollo, preproducción, producción) funcione, ese identificador tiene que ser **el mismo
+en todos los portales** (issue #69, 0.16.0):
+
+| Identificador | Ejemplo | ¿El mismo en todos los entornos? |
+|---|---|---|
+| `uid` del módulo web y de la aplicación de portlets | `com.europesip.showcase.ShowcasePortlet.webmod` | **Sí**: sale de `<portlet-app id>` en `portlet.xml` (o de `spec.portletAppUID`) |
+| **Nombre único** (*unique name*) de cada portlet | `com.europesip.showcase.ShowcasePortlet.ShowcasePortlet` | **Sí** (nuevo): `<uid de la portlet-app>.<portlet-name>`, lo pone el operador |
+| Object ID de cada objeto | `Z3_4G9I0G01110000M8G31CLH0006` | **No**: DX lo genera en cada portal |
+
+- El operador registra cada portlet con su **nombre único** (`spec.identifiers.uniqueNames`, por defecto `true`).
+  Los portlets registrados por una versión anterior lo reciben en la siguiente reconciliación, sin reiniciar el Web
+  Engine.
+- En tus peticiones XMLAccess y scripts, localiza el portlet por su nombre único (o por el `uid` de su aplicación y
+  su nombre), nunca por su object ID (ejemplo en la [versión en inglés](java-extensions.md#same-ids-in-every-environment)).
+- El status muestra lo que tiene DX: `webModuleObjectID`, `portletAppObjectID` y `portletIDs` (nombre, nombre único
+  y object ID de cada portlet), para diagnóstico.
+- **No se pueden fijar los object ID** de los portlets registrados así: probado en DX Compose CF239, DX ignora el
+  `objectid` de un módulo web `predeployed`, de su aplicación de portlets y de sus portlets (también con
+  `create-oids="true"`) y genera los suyos; con `action="create"` la petición falla porque el despliegue ya creó la
+  aplicación de portlets a partir de `portlet.xml`. Por eso el operador se apoya en el `uid` y en los nombres únicos.
+
 ## Activarlo
 
 ```bash
