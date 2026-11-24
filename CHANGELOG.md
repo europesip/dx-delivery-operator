@@ -6,7 +6,7 @@ To go back to an earlier release: `helm upgrade dxop oci://ghcr.io/europesip/cha
 for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` for 0.12.x and earlier
 (0.3.0 renamed the resources: see its notes).
 
-## 0.17.0 · unreleased · DXJavaExtension: second delivery mode through the HCL customer startup folder
+## 0.17.0 · 2026-11-24 · DXJavaExtension: second delivery mode through the HCL customer startup folder
 
 **New** (#72, suggested by Jordi Urrea, HCL): `spec.delivery: startupHook` delivers the Java extensions without the
 admission webhook, staying inside the values the HCL chart supports. See
