@@ -118,12 +118,13 @@ docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bi
 ```
 
 ```bash
-helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.14.2 \
+helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.15.0 \
   -n dxop-system --create-namespace --set dxclient.acceptLicense=true
 ```
 
 Valores: [values.yaml](charts/dx-delivery-operator/values.yaml), por ejemplo `watchNamespaces` para limitar
-el operador a algunos namespaces.
+el operador a algunos namespaces. El mismo chart funciona en **OpenShift** sin ningún valor extra:
+[OpenShift y otras plataformas](docs/openshift.es.md).
 
 ## Uso
 

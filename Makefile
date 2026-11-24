@@ -152,6 +152,25 @@ build-installer: manifests generate kustomize ## Generate a consolidated YAML wi
 	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${IMG}
 	"$(KUSTOMIZE)" build config/default > dist/install.yaml
 
+##@ OLM bundle (issue #63)
+
+OPERATOR_SDK_VERSION ?= v1.42.3
+OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk-$(OPERATOR_SDK_VERSION)
+BUNDLE_VERSION ?= $(shell sed -n 's/^appVersion: "\(.*\)"/\1/p' charts/dx-delivery-operator/Chart.yaml)
+
+.PHONY: bundle
+bundle: operator-sdk ## Generate the OLM bundle from the Helm chart (bundle/<version>) and validate it.
+	python3 hack/olm-bundle.py
+	"$(OPERATOR_SDK)" bundle validate bundle/$(BUNDLE_VERSION) --select-optional suite=operatorframework
+
+.PHONY: operator-sdk
+operator-sdk: $(OPERATOR_SDK) ## Download operator-sdk locally if necessary (checksum verified).
+$(OPERATOR_SDK): $(LOCALBIN)
+	curl -sSLo "$(OPERATOR_SDK).tmp" https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_linux_amd64
+	curl -sSL https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/checksums.txt \
+	  | awk '$$2=="operator-sdk_linux_amd64" {print $$1"  $(OPERATOR_SDK).tmp"}' | sha256sum -c -
+	chmod +x "$(OPERATOR_SDK).tmp" && mv "$(OPERATOR_SDK).tmp" "$(OPERATOR_SDK)"
+
 ##@ Deployment
 
 ifndef ignore-not-found

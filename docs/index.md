@@ -70,7 +70,7 @@ declared.
 ## Install, in short
 
 ```bash
-helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.14.2 \
+helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.15.0 \
   -n dxop-system --create-namespace --set dxclient.acceptLicense=true
 ```
 

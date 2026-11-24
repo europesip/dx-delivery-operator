@@ -1,19 +1,27 @@
 {{- if (.Values.javaExtensions).enabled }}
 {{- $fullname := include "dxop.fullname" . }}
 {{- $issuer := ternary (printf "%s-selfsigned" $fullname) .Values.javaExtensions.certManager.issuerName .Values.javaExtensions.certManager.createSelfSignedIssuer }}
+{{- $provider := include "dxop.webhookCertProvider" . }}
 # DXJavaExtension (issue #54): the mutating admission webhook that adds the init container of the Java extensions
 # to the DX Compose Web Engine pods. The API server calls it (Service below → the operator pod, port 9443) before it
-# creates a Web Engine pod in a namespace with the label of namespaceSelector. Certificate: cert-manager.
+# creates a Web Engine pod in a namespace with the label of namespaceSelector.
+# Certificate issued by {{ $provider }} (cert-manager or the service CA of OpenShift, issue #63), in the Secret
+# {{ $fullname }}-webhook-cert either way (tls.crt, tls.key).
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ $fullname }}-webhook
   labels: {{- include "dxop.labels" . | nindent 4 }}
+  {{- if eq $provider "openshift-service-ca" }}
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: {{ $fullname }}-webhook-cert
+  {{- end }}
 spec:
   selector: {{- include "dxop.selector" . | nindent 4 }}
   ports:
     - { name: https, port: 443, targetPort: webhook }
 ---
+{{- if eq $provider "cert-manager" }}
 {{- if .Values.javaExtensions.certManager.createSelfSignedIssuer }}
 apiVersion: cert-manager.io/v1
 kind: Issuer
@@ -38,13 +46,18 @@ spec:
     name: {{ $issuer }}
     kind: {{ ternary "Issuer" .Values.javaExtensions.certManager.issuerKind .Values.javaExtensions.certManager.createSelfSignedIssuer }}
 ---
+{{- end }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: {{ $fullname }}-java-extensions
   labels: {{- include "dxop.labels" . | nindent 4 }}
   annotations:
+    {{- if eq $provider "cert-manager" }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ $fullname }}-webhook
+    {{- else }}
+    service.beta.openshift.io/inject-cabundle: "true"
+    {{- end }}
 webhooks:
   - name: java-extensions.dx.europesip.com
     admissionReviewVersions: [v1]

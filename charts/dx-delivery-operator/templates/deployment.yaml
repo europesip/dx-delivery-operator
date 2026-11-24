@@ -25,12 +25,9 @@ spec:
       {{- with .Values.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-        seccompProfile: { type: RuntimeDefault }
+      {{- with .Values.podSecurityContext }}
+      securityContext: {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: manager
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -51,6 +48,8 @@ spec:
           env:
             - { name: DXCLIENT_ACCEPT_LICENSE, value: "true" }
             - { name: WORK_DIR, value: /work }
+            # 0.15.0 (#63): a writable HOME for any UID (the HOME of the image is /home/dx_user, only for UID 1000)
+            - { name: HOME, value: /tmp }
             - { name: OPERATOR_VERSION, value: {{ .Chart.AppVersion | quote }} }
             - { name: LOG_EVENTS, value: {{ .Values.logEvents | quote }} }
             - { name: WATCH_NAMESPACES, value: {{ join "," .Values.watchNamespaces | quote }} }
@@ -81,12 +80,15 @@ spec:
             periodSeconds: 10
             timeoutSeconds: {{ (.Values.probes).timeoutSeconds | default 5 }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities: { drop: [ALL] }
+          {{- with .Values.containerSecurityContext }}
+          securityContext: {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - { name: work, mountPath: /work }
             - { name: tmp, mountPath: /tmp }
+            # 0.15.0 (#63): DXClient writes its configuration here; an emptyDir, so it does not depend on the
+            # permissions HCL gives /dxclient in its image
+            - { name: dxclient-store, mountPath: /dxclient/store }
             {{- if (.Values.javaExtensions).enabled }}
             - { name: webhook-cert, mountPath: /tmp/k8s-webhook-server/serving-certs, readOnly: true }
             {{- end }}
@@ -95,6 +97,8 @@ spec:
           emptyDir: { sizeLimit: {{ .Values.workDir.sizeLimit }} }
         - name: tmp
           emptyDir: { sizeLimit: 256Mi }
+        - name: dxclient-store
+          emptyDir: { sizeLimit: 16Mi }
         {{- if (.Values.javaExtensions).enabled }}
         - name: webhook-cert
           secret: { secretName: {{ include "dxop.fullname" . }}-webhook-cert }

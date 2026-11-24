@@ -6,6 +6,29 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
 desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para la 0.12.x y anteriores
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## 0.15.0 · sin publicar · OpenShift sin flag, bundle de OLM
+
+**Nuevo** (#63): el mismo chart y los mismos valores funcionan en k3s, en otros Kubernetes y en **OpenShift** (SCC
+`restricted-v2`), sin ningún valor específico de OpenShift. Mira [OpenShift y otras plataformas](docs/openshift.es.md).
+- **Sin UID fijo**: el pod ya no pone `runAsUser`/`runAsGroup`/`fsGroup` 1000 (`restricted-v2` lo rechaza). En
+  Kubernetes el proceso sigue corriendo con el UID 1000 (el de la imagen); en OpenShift la SCC pone el UID del
+  namespace. Valores nuevos `podSecurityContext` y `containerSecurityContext` (por defecto: `runAsNonRoot`, seccomp
+  `RuntimeDefault`, sin escalada de privilegios, quitar `ALL`); pon ahí `runAsUser: 1000`, etc. para mantener el pod
+  anterior.
+- **Rutas escribibles con cualquier UID**: `HOME=/tmp` y un emptyDir en `/dxclient/store` (configuración y logs de
+  DXClient).
+- **Certificado del webhook detectado** (`javaExtensions.certificate.provider: auto`): el service CA de OpenShift en
+  OpenShift sin cert-manager, cert-manager en todos los demás casos (como antes). Se puede forzar `cert-manager` u
+  `openshift-service-ca` (`helm template`, Argo CD).
+- **Init container de las extensiones Java**: si el pod del Web Engine no tiene UID a nivel de pod pero su contenedor
+  sí, el init container toma ese, así que siempre corre con el usuario de DX.
+- **Bundle de OLM** (`hack/olm-bundle.py`, `make bundle`): se genera a partir del chart para los catálogos
+  comunitarios (OperatorHub.io, OperatorHub de OpenShift); validado con `operator-sdk bundle validate`. Aún sin
+  publicar.
+
+Para actualizar desde la 0.14.2: aplica las CRD (sin cambios) y `helm upgrade` con tu fichero de valores. El pod del
+operador se reinicia (comprueba que no haya ninguna importación ni exportación en marcha); en DX no cambia nada.
+
 ## 0.14.2 · 2026-11-24 · DXJavaExtension: sin falsos WebhookNotActive
 
 **Corregido** (#61): un `DXJavaExtension` decía `WebhookNotActive` aunque el webhook funcionaba, en el momento en que

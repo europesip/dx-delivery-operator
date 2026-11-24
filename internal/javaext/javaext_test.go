@@ -170,3 +170,40 @@ func TestRegisterXMLAndExport(t *testing.T) {
 		t.Fatal("unregister")
 	}
 }
+
+// Issue #63: the init container runs as the user of DX (pod level, or the Web Engine container when the pod has none).
+func TestInjectSameUserAsWebEngine(t *testing.T) {
+	i64 := func(v int64) *int64 { return &v }
+	es := []Entry{{Name: "p", Type: "portlet", Ref: "h/r/p@sha256:aa", File: "p.war", ContextRoot: "/p"}}
+	opts := InjectOptions{Container: "web-engine", InitImage: "init:1"}
+
+	// HCL chart: UID/GID at pod level, the init container inherits them (nothing set on it)
+	pod := &corev1.Pod{Spec: corev1.PodSpec{
+		SecurityContext: &corev1.PodSecurityContext{RunAsUser: i64(1000), RunAsGroup: i64(1001)},
+		Containers:      []corev1.Container{{Name: "web-engine"}}}}
+	if _, err := Inject(pod, es, opts); err != nil {
+		t.Fatal(err)
+	}
+	if sc := pod.Spec.InitContainers[0].SecurityContext; sc.RunAsUser != nil || sc.RunAsGroup != nil {
+		t.Fatalf("pod level UID: the init container must inherit it, got %+v", sc)
+	}
+
+	// only the Web Engine container has a UID: the init container takes it
+	pod = &corev1.Pod{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "web-engine",
+		SecurityContext: &corev1.SecurityContext{RunAsUser: i64(1000), RunAsGroup: i64(1001)}}}}}
+	if _, err := Inject(pod, es, opts); err != nil {
+		t.Fatal(err)
+	}
+	if sc := pod.Spec.InitContainers[0].SecurityContext; sc.RunAsUser == nil || *sc.RunAsUser != 1000 || sc.RunAsGroup == nil || *sc.RunAsGroup != 1001 {
+		t.Fatalf("container level UID: want 1000/1001, got %+v", sc)
+	}
+
+	// no UID anywhere (OpenShift without the HCL annotations): nothing is set, the SCC decides
+	pod = &corev1.Pod{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "web-engine"}}}}
+	if _, err := Inject(pod, es, opts); err != nil {
+		t.Fatal(err)
+	}
+	if sc := pod.Spec.InitContainers[0].SecurityContext; sc.RunAsUser != nil {
+		t.Fatalf("no UID: want none, got %+v", sc)
+	}
+}
