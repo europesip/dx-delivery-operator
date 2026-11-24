@@ -159,7 +159,7 @@ Pages, XMLAccess requests and content refer to a portlet by an identifier. For a
 | Identifier | Example | Same in every environment? |
 |---|---|---|
 | `uid` of the web module and of the portlet application | `com.europesip.showcase.ShowcasePortlet.webmod` | **Yes**: from `<portlet-app id>` in `portlet.xml` (or `spec.portletAppUID`) |
-| **Unique name** of each portlet | `com.europesip.showcase.ShowcasePortlet.ShowcasePortlet` | **Yes** (new): `<portlet-app uid>.<portlet-name>`, set by the operator |
+| **Unique name** of each portlet | `com.europesip.showcase.ShowcasePortlet.ShowcasePortlet` | **Yes** (new): `<portlet-app uid>.<portlet-name>`, set by the operator (helps your own XMLAccess requests; see the note below) |
 | Object ID of each object | `Z3_4G9I0G01110000M8G31CLH0006` | **No**: DX generates it in each portal |
 
 - The operator registers every portlet with its **unique name** (`spec.identifiers.uniqueNames`, default `true`).
@@ -182,6 +182,15 @@ Pages, XMLAccess requests and content refer to a portlet by an identifier. For a
   the `objectid` of a predeployed web module, its portlet application and its portlets (with `create-oids="true"`
   too) and generates its own; with `action="create"` the request fails because the deployment already created the
   portlet application from `portlet.xml`. That is why the operator relies on `uid` and unique names.
+- **Important — unique names do not replace stable object IDs.** In HCL DX the object ID is *the* identifier:
+  release exports and imports, ReleaseBuilder, URLs with portlet IDs and references from content or rules use it, and
+  the usual promotion between environments expects the same object in every environment to have the **same object
+  ID**. Unique names only help when *your own* XMLAccess requests locate the portlet (as above). With this mode, the
+  same portlet still gets a different object ID in each environment, which matters if you promote releases or pages
+  that reference it by object ID. We are checking with HCL how to keep the object IDs identical (for example
+  importing the reference environment's XML with `create-oids="true"` on the `<request>`); until then, plan your
+  page promotion around unique names, or deploy that portlet with HCL's documented method. Thanks to Jordi Urrea
+  (HCL) for the review.
 
 ## Enable it
 
