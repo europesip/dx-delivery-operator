@@ -133,7 +133,18 @@ paso a paso: [Migrar un portal](docs/migration-guide.es.md) · [Extensiones Java
 | ![kubectl: exportaciones e importaciones de librerías WCM y paquetes portables](docs/images/kubectl-transfer.png) | **Contenido entre portales.** Exportaciones de librerías WCM a artefactos OCI, importaciones con simulación previa (`DryRun`) y avisos, y paquetes portables, todo como recursos de una sola vez |
 | ![Los ejemplos 03, 05 y 01 en la página del ejemplo 08](docs/images/showcase.png) | **En el portal.** Tres Script Applications de ejemplo en una página creada por el operador: una imagen del DAM, una aplicación con carpetas de ficheros y otra desde un ConfigMap |
 
-Vídeo: [Portlets Java en HCL DX Compose sin imagen propia](https://youtu.be/ncVQlSORBOg) (7 min, subtítulos EN/ES).
+Vídeos (en inglés, con subtítulos EN/ES):
+
+| Vídeo | Qué se ve |
+|---|---|
+| [DX Delivery Operator: Your Whole Portal, Declared in Git](https://youtu.be/4eD-UtWonbA) | El operador en pocos minutos: aplicaciones, páginas, DAM y temas declarados en Git |
+| [DX Delivery Operator: the Complete Tour](https://youtu.be/KrAI2CTEM6Y) (9:29) | Todos los recursos, la corrección de cambios en DX, importaciones y exportaciones entre portales |
+| [Java Portlets on HCL DX Compose Without a Custom Image](https://youtu.be/ncVQlSORBOg) (7:11) | `DXJavaExtension`: un portlet JSR 286 cargado desde un registro sobre la imagen oficial |
+| [Lucía's First Day: HCL DX Compose, Truly Integrated with Your Architecture](https://youtu.be/Aj6zETHoi4k) (9:00) | La historia de una desarrolladora: de Backstage a una aplicación entregada por el operador |
+| [DX Backstage, by EUROPESIP](https://youtu.be/1vgqlGoHJeU) | El plugin de Backstage, que muestra el estado GitOps de las aplicaciones y páginas que gestiona el operador |
+| [DX Transfer Studio: Move HCL DX Content Between Portals](https://youtu.be/dsfNOOeCLg4) (6:16) | La herramienta de escritorio que lee y escribe los mismos artefactos que el operador ([versión en español](https://youtu.be/TD91yjNlveg)) |
+| [HCL DX Portals for Your POCs, from Backstage](https://youtu.be/GObX-VtAEP8) | Portales de autoservicio; el operador importa el contenido WCM en el portal nuevo |
+| [The EUROPESIP Vision: HCL DX Compose, Truly Native to Kubernetes](https://youtu.be/rce-btJ927A) | Dónde encaja el operador en una plataforma DX nativa de Kubernetes |
 
 ## Ejemplos
 

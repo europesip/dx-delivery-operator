@@ -133,7 +133,18 @@ Step-by-step guides: [Migrate a portal](docs/migration-guide.md) · [Java extens
 | ![kubectl: WCM library exports, imports and portable bundles](docs/images/kubectl-transfer.png) | **Content between portals.** WCM library exports to OCI artifacts, imports with a dry run first (`DryRun`) and warnings reported, and portable bundles, all as one-shot resources |
 | ![Samples 03, 05 and 01 on the page of sample 08](docs/images/showcase.png) | **In the portal.** Three sample Script Applications on one page created by the operator: a DAM image, an application with folders of files and a ConfigMap one |
 
-Video: [Java portlets on HCL DX Compose without a custom image](https://youtu.be/ncVQlSORBOg) (7 min, subtitles EN/ES).
+Videos (English, subtitles EN/ES):
+
+| Video | What you see |
+|---|---|
+| [DX Delivery Operator: Your Whole Portal, Declared in Git](https://youtu.be/4eD-UtWonbA) | The operator in a few minutes: applications, pages, DAM and themes declared in Git |
+| [DX Delivery Operator: the Complete Tour](https://youtu.be/KrAI2CTEM6Y) (9:29) | Every resource, drift correction, imports and exports between portals |
+| [Java Portlets on HCL DX Compose Without a Custom Image](https://youtu.be/ncVQlSORBOg) (7:11) | `DXJavaExtension`: a JSR 286 portlet loaded from a registry onto the official image |
+| [Lucía's First Day: HCL DX Compose, Truly Integrated with Your Architecture](https://youtu.be/Aj6zETHoi4k) (9:00) | A developer story: from Backstage to an application delivered by the operator |
+| [DX Backstage, by EUROPESIP](https://youtu.be/1vgqlGoHJeU) | The Backstage plugin, which shows the GitOps state of the applications and pages the operator manages |
+| [DX Transfer Studio: Move HCL DX Content Between Portals](https://youtu.be/dsfNOOeCLg4) (6:16) | The desktop tool that reads and writes the same artifacts as the operator |
+| [HCL DX Portals for Your POCs, from Backstage](https://youtu.be/GObX-VtAEP8) | Self-service portals; the operator imports the WCM content into the new portal |
+| [The EUROPESIP Vision: HCL DX Compose, Truly Native to Kubernetes](https://youtu.be/rce-btJ927A) | Where the operator fits in a Kubernetes-native DX platform |
 
 ## Samples
 
