@@ -3,7 +3,7 @@
 # Artifact Hub repository metadata (issue #77). Pushed to the OCI repository of the chart with the special tag
 # `artifacthub.io` (see docs/artifact-hub.md). Fill repositoryID with the ID shown on the repository card in the
 # Artifact Hub control panel (it enables the "Verified publisher" label).
-repositoryID: REPLACE-WITH-ARTIFACT-HUB-REPOSITORY-ID
+repositoryID: f37a3f74-34f9-4bef-9b5e-8c48cd4ca95b
 owners:
   - name: EUROPESIP
     email: info@europesip.com
