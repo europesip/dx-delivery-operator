@@ -137,8 +137,8 @@ Videos (English, subtitles EN/ES):
 
 | Video | What you see |
 |---|---|
-| [DX Delivery Operator: Your Whole Portal, Declared in Git](https://youtu.be/4eD-UtWonbA) | The operator in a few minutes: applications, pages, DAM and themes declared in Git |
-| [DX Delivery Operator: the Complete Tour](https://youtu.be/KrAI2CTEM6Y) (9:29) | Every resource, drift correction, imports and exports between portals |
+| [DX Delivery Operator: Your Whole Portal, Declared in Git](https://youtu.be/JEFRzCmjCtw) | The operator in a few minutes: applications, pages, DAM and themes declared in Git |
+| [DX Delivery Operator: the Complete Tour](https://youtu.be/mY2rUPd9cSU) (9:27) | Every resource, drift correction, imports and exports between portals |
 | [Java Portlets on HCL DX Compose Without a Custom Image](https://youtu.be/bvTHifIU8nA) (8:23) | `DXJavaExtension`: a JSR 286 portlet loaded from a registry onto the official image |
 | [Lucía's First Day: HCL DX Compose, Truly Integrated with Your Architecture](https://youtu.be/Aj6zETHoi4k) (9:00) | A developer story: from Backstage to an application delivered by the operator |
 
