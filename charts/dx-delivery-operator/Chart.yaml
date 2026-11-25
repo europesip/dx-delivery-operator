@@ -11,6 +11,7 @@ type: application
 version: 0.17.0
 appVersion: "0.17.0"
 home: https://github.com/europesip/dx-delivery-operator
+icon: https://raw.githubusercontent.com/europesip/dx-delivery-operator/main/docs/images/europesip-icon.svg
 sources: [https://github.com/europesip/dx-delivery-operator]
 keywords: [hcl, dx, digital-experience, delivery, script-application, wcm, operator, gitops]
 maintainers:
@@ -18,3 +19,108 @@ maintainers:
     url: https://www.europesip.com
 annotations:
   artifacthub.io/license: MIT
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/operator: "true"
+  artifacthub.io/operatorCapabilities: Basic Install
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/links: |
+    - name: Source code
+      url: https://github.com/europesip/dx-delivery-operator
+    - name: Documentation
+      url: https://github.com/europesip/dx-delivery-operator#readme
+    - name: Release history
+      url: https://github.com/europesip/dx-delivery-operator/blob/main/CHANGELOG.md
+    - name: Support
+      url: https://github.com/europesip/dx-delivery-operator/issues
+  artifacthub.io/maintainers: |
+    - name: EUROPESIP
+      email: info@europesip.com
+  # Images of this chart version (update with every release, like appVersion)
+  artifacthub.io/images: |
+    - name: manager
+      image: ghcr.io/europesip/dx-delivery-operator:0.17.0
+      platforms:
+        - linux/amd64
+    - name: dx-extensions-init
+      image: ghcr.io/europesip/dx-delivery-operator/dx-extensions-init:0.17.0
+      platforms:
+        - linux/amd64
+  # Changes of this chart version, from CHANGELOG.md (replace with every release)
+  artifacthub.io/changes: |
+    - kind: added
+      description: "DXJavaExtension: second delivery mode through the HCL customer startup folder (spec.delivery: startupHook); webhook stays the default"
+      links:
+        - name: Issue 72
+          url: https://github.com/europesip/dx-delivery-operator/issues/72
+    - kind: added
+      description: "DXJavaExtension: stable portlet unique names in every environment (0.16.0)"
+      links:
+        - name: Issue 69
+          url: https://github.com/europesip/dx-delivery-operator/issues/69
+    - kind: added
+      description: "Runs on OpenShift without a flag; OLM bundle for the community catalogs (0.15.0)"
+      links:
+        - name: Issue 63
+          url: https://github.com/europesip/dx-delivery-operator/issues/63
+  artifacthub.io/crds: |
+    - kind: DXConnection
+      version: v1alpha1
+      name: dxconnections.dx.europesip.com
+      displayName: DXConnection
+      description: Connection to an HCL DX portal (URL, credentials, CA)
+    - kind: DXScriptApplication
+      version: v1alpha1
+      name: dxscriptapplications.dx.europesip.com
+      displayName: DXScriptApplication
+      description: Script Application pushed to WCM from an image, Git or a URL
+    - kind: DXPage
+      version: v1alpha1
+      name: dxpages.dx.europesip.com
+      displayName: DXPage
+      description: Portal page for a Script Application
+    - kind: DXDamCollection
+      version: v1alpha1
+      name: dxdamcollections.dx.europesip.com
+      displayName: DXDamCollection
+      description: DAM collection uploaded from files
+    - kind: DXDatabase
+      version: v1alpha1
+      name: dxdatabases.dx.europesip.com
+      displayName: DXDatabase
+      description: Database and user for an application backend (PostgreSQL, Oracle, SQL Server)
+    - kind: DXTheme
+      version: v1alpha1
+      name: dxthemes.dx.europesip.com
+      displayName: DXTheme
+      description: Theme deployed to a portal
+    - kind: DXXMLAccess
+      version: v1alpha1
+      name: dxxmlaccesses.dx.europesip.com
+      displayName: DXXMLAccess
+      description: XMLAccess request applied to a portal
+    - kind: DXWCMLibraryExport
+      version: v1alpha1
+      name: dxwcmlibraryexports.dx.europesip.com
+      displayName: DXWCMLibraryExport
+      description: Export of WCM libraries to an OCI artifact
+    - kind: DXWCMLibraryImport
+      version: v1alpha1
+      name: dxwcmlibraryimports.dx.europesip.com
+      displayName: DXWCMLibraryImport
+      description: Import of WCM libraries from an OCI artifact
+    - kind: DXExport
+      version: v1alpha1
+      name: dxexports.dx.europesip.com
+      displayName: DXExport
+      description: Portable bundle of a portal (libraries, themes, pages, apps)
+    - kind: DXWCMAdminTask
+      version: v1alpha1
+      name: dxwcmadmintasks.dx.europesip.com
+      displayName: DXWCMAdminTask
+      description: WCM maintenance module run on a portal
+    - kind: DXJavaExtension
+      version: v1alpha1
+      name: dxjavaextensions.dx.europesip.com
+      displayName: DXJavaExtension
+      description: Java extension (portlet WAR, shared-library JAR) loaded onto the official Web Engine image

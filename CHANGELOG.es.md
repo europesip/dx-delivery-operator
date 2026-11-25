@@ -6,6 +6,13 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
 desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para la 0.12.x y anteriores
 (la 0.3.0 renombró los recursos: mira sus notas).
 
+## Sin publicar
+
+**Empaquetado** (#77): publicación del chart en Artifact Hub: icono y anotaciones `artifacthub.io/*` en `Chart.yaml`
+(categoría, enlaces, mantenedores, imágenes, cambios, CRD), un `README.md` del chart (EN/ES) y
+`hack/artifacthub/artifacthub-repo.yml` (publicador verificado). Sin cambios en el operador. Mira
+[Publicación en Artifact Hub](docs/artifact-hub.es.md).
+
 ## 0.17.0 · 2026-11-24 · DXJavaExtension: segundo modo de entrega por la carpeta de arranque de cliente de HCL
 
 **Nuevo** (#72, propuesto por Jordi Urrea): `spec.delivery: startupHook` entrega las extensiones Java sin el
