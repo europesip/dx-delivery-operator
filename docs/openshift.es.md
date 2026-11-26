@@ -89,7 +89,38 @@ formato de los catálogos comunitarios (OperatorHub.io y el OperatorHub que trae
   operador.
 
 Se valida con `bin/operator-sdk bundle validate bundle/<versión> --select-optional suite=operatorframework`.
-El bundle todavía no está publicado en los catálogos.
+
+### Dónde está publicado
+
+- **OperatorHub.io**: publicado, [https://operatorhub.io/operator/dx-delivery-operator](https://operatorhub.io/operator/dx-delivery-operator) (primera versión 0.15.0, ahora 0.17.0, canal `alpha`).
+- **Catálogo comunitario de OpenShift** (el OperatorHub que trae OpenShift, catálogos v4.16 a v4.22): enviado con la
+  0.17.0, ha pasado el pipeline de Red Hat y **está pendiente de la aprobación de un mantenedor**
+  ([community-operators-prod#12110](https://github.com/redhat-openshift-ecosystem/community-operators-prod/pull/12110)). Esta página se actualizará cuando se acepte.
+
+### Instalar desde OperatorHub.io
+
+En un clúster con OLM (OperatorHub.io da los comandos para instalar OLM), crea la Subscription con la licencia de HCL
+DXClient aceptada:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: dx-delivery-operator
+  namespace: operators
+spec:
+  channel: alpha
+  name: dx-delivery-operator
+  source: operatorhubio-catalog
+  sourceNamespace: olm
+  config:
+    env:
+      - name: DXCLIENT_ACCEPT_LICENSE
+        value: "true"
+```
+
+Sin `DXCLIENT_ACCEPT_LICENSE=true` el operador se instala pero no ejecuta DXClient. El aviso de **probado solo en
+k3s** del principio de esta página también vale para el bundle.
 
 ## Probado
 

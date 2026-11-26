@@ -88,7 +88,38 @@ chart:
   `namespaceSelector` itself: a Web Engine pod of a namespace without `DXJavaExtension` never waits for the operator.
 
 Validate it with `bin/operator-sdk bundle validate bundle/<version> --select-optional suite=operatorframework`.
-The bundle is not published in the catalogs yet.
+
+### Where it is published
+
+- **OperatorHub.io**: published, [https://operatorhub.io/operator/dx-delivery-operator](https://operatorhub.io/operator/dx-delivery-operator) (first version 0.15.0, now 0.17.0, channel `alpha`).
+- **OpenShift community catalog** (the OperatorHub embedded in OpenShift, catalogs v4.16 to v4.22): submitted with
+  0.17.0, it passed the Red Hat pipeline and is **waiting for a maintainer approval**
+  ([community-operators-prod#12110](https://github.com/redhat-openshift-ecosystem/community-operators-prod/pull/12110)). This page will be updated when it is merged.
+
+### Install from OperatorHub.io
+
+On a cluster with OLM (OperatorHub.io gives the commands to install OLM), create the Subscription with the HCL
+DXClient licence accepted:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: dx-delivery-operator
+  namespace: operators
+spec:
+  channel: alpha
+  name: dx-delivery-operator
+  source: operatorhubio-catalog
+  sourceNamespace: olm
+  config:
+    env:
+      - name: DXCLIENT_ACCEPT_LICENSE
+        value: "true"
+```
+
+Without `DXCLIENT_ACCEPT_LICENSE=true` the operator installs but does not run DXClient. The **tested on k3s only**
+warning at the top of this page applies to the bundle too.
 
 ## Tested
 

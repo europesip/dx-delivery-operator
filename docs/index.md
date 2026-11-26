@@ -137,7 +137,7 @@ Video: [Java portlets on HCL DX Compose without a custom image](https://youtu.be
 |---|---|
 | **DX** | DX Compose (default, tested on CF239); [DX Core](dx-core.md) (`runtime: core`); traditional DX on WebSphere as source or target of exports and imports |
 | **Kubernetes** | 1.28+; tested on k3s. The same chart runs on **OpenShift** (`restricted-v2`, no fixed UID, OpenShift service CA) without extra values, but it **has not been tested on OpenShift yet**: [OpenShift and other platforms](openshift.md) |
-| **Install** | Helm chart `oci://ghcr.io/europesip/charts/dx-delivery-operator`; an OLM bundle for OperatorHub is generated from it (`make bundle`) |
+| **Install** | Helm chart `oci://ghcr.io/europesip/charts/dx-delivery-operator`; an OLM bundle generated from it (`make bundle`) is published on [OperatorHub.io](https://operatorhub.io/operator/dx-delivery-operator); the OpenShift community catalog submission is in review ([details](openshift.md#operatorhub-olm-bundle)) |
 | **Databases** (`DXDatabase`) | PostgreSQL, Oracle, SQL Server (existing servers) |
 
 ## Documentation

@@ -196,7 +196,7 @@ operador: [Por qué un operador](docs/why.es.md).
 |---|---|
 | **DX** | DX Compose (por defecto, probado en CF239); [DX Core](docs/dx-core.es.md) (`runtime: core`); el DX tradicional sobre WebSphere como origen o destino de exportaciones e importaciones |
 | **Kubernetes** | 1.28+; probado en k3s. El mismo chart funciona en **OpenShift** (`restricted-v2`, sin UID fijo, service CA de OpenShift) sin valores extra, pero **todavía no se ha probado en OpenShift**: [OpenShift y otras plataformas](docs/openshift.es.md) |
-| **Instalación** | Chart de Helm `oci://ghcr.io/europesip/charts/dx-delivery-operator`; a partir de él se genera un bundle de OLM para OperatorHub (`make bundle`) |
+| **Instalación** | Chart de Helm `oci://ghcr.io/europesip/charts/dx-delivery-operator`; el bundle de OLM que se genera a partir de él (`make bundle`) está publicado en [OperatorHub.io](https://operatorhub.io/operator/dx-delivery-operator); el envío al catálogo comunitario de OpenShift está en revisión ([detalles](docs/openshift.es.md#operatorhub-bundle-de-olm)) |
 | **Bases de datos** (`DXDatabase`) | PostgreSQL, Oracle, SQL Server (servidores existentes) |
 
 ## Documentación

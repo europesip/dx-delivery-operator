@@ -12,6 +12,10 @@ for 0.13.0 and later, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator`
 links, maintainers, images, changes, CRDs), a chart `README.md` (EN/ES) and `hack/artifacthub/artifacthub-repo.yml`
 (verified publisher). No change to the operator. See [Artifact Hub listing](docs/artifact-hub.md).
 
+**Catalogs**: the OLM bundle is published on [OperatorHub.io](https://operatorhub.io/operator/dx-delivery-operator) (0.15.0, then 0.17.0); the OpenShift community
+catalog submission ([community-operators-prod#12110](https://github.com/redhat-openshift-ecosystem/community-operators-prod/pull/12110), 0.17.0, v4.16 to v4.22) is waiting for a maintainer
+approval. Docs updated: [OperatorHub (OLM bundle)](docs/openshift.md#operatorhub-olm-bundle). Still tested on k3s only.
+
 ## 0.17.0 · 2026-11-24 · DXJavaExtension: second delivery mode through the HCL customer startup folder
 
 **New** (#72, suggested by Jordi Urrea): `spec.delivery: startupHook` delivers the Java extensions without the
