@@ -3,6 +3,8 @@
 [![CI](https://github.com/europesip/dx-delivery-operator/actions/workflows/ci.yml/badge.svg)](https://github.com/europesip/dx-delivery-operator/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/europesip/dx-delivery-operator)](CHANGELOG.md)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/dx-delivery-operator)](https://artifacthub.io/packages/helm/dx-delivery-operator/dx-delivery-operator)
+[![OperatorHub.io](https://img.shields.io/badge/OperatorHub.io-dx--delivery--operator-blue)](https://operatorhub.io/operator/dx-delivery-operator)
 
 [Español](README.es.md) · [Documentation](docs/index.md) · [Release history](CHANGELOG.md) · [Roadmap](https://github.com/orgs/europesip/projects/3)
 
@@ -66,7 +68,7 @@ DX administrator). **No registry login**: the chart and the images are public.
    ([LICENSE-DXClient.md](LICENSE-DXClient.md)): read it (`docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bin/dxclient accept-license`) and accept it.
 
    ```bash
-   helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.15.0 \
+   helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.17.0 \
      -n dxop-system --create-namespace --set dxclient.acceptLicense=true
    ```
 
@@ -124,6 +126,45 @@ DX administrator). **No registry login**: the chart and the images are public.
 Values of the chart: [values.yaml](charts/dx-delivery-operator/values.yaml) (for example `watchNamespaces`).
 Step-by-step guides: [Migrate a portal](docs/migration-guide.md) · [Java extensions](docs/java-extensions.md) ·
 [DX Core](docs/dx-core.md).
+
+## Install from a catalog: OperatorHub.io or Artifact Hub
+
+The same operator is published in two public catalogs. Use the one that fits how you run your cluster; the Helm
+command of the quick start keeps working as well.
+
+| | [OperatorHub.io](https://operatorhub.io/operator/dx-delivery-operator) (OLM) | [Artifact Hub](https://artifacthub.io/packages/helm/dx-delivery-operator/dx-delivery-operator) (Helm chart) |
+|---|---|---|
+| **What you install** | The OLM bundle, through a `Subscription` | The Helm chart `oci://ghcr.io/europesip/charts/dx-delivery-operator` |
+| **Upgrades** | **Automatic** from channel `alpha` (or with manual approval: `installPlanApproval: Manual`) | You choose when: `helm upgrade --version …`; Artifact Hub can e-mail you when a new version is out |
+| **CRDs and RBAC** | Installed and upgraded by OLM | Installed by the chart |
+| **Best for** | Clusters that already use OLM, and OpenShift (where OperatorHub is built into the console) | Helm and Argo CD users; teams that want to read the values, the CRDs and the images before installing |
+| **Extra** | One standard way to install and update all your operators | Verified publisher, security report of the images, values and CRD reference, release history |
+
+**From OperatorHub.io.** On a cluster with OLM (OperatorHub.io gives the commands to install it), create the
+Subscription; the HCL DXClient licence is accepted here (see step 1 of the quick start):
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: dx-delivery-operator
+  namespace: operators
+spec:
+  channel: alpha
+  name: dx-delivery-operator
+  source: operatorhubio-catalog
+  sourceNamespace: olm
+  config:
+    env:
+      - name: DXCLIENT_ACCEPT_LICENSE
+        value: "true"
+```
+
+**From Artifact Hub.** Open the package page, press *Install* and copy the command: it is the same chart as in the
+quick start, published by the verified publisher EUROPESIP. Press *Subscribe* (bell icon) to be told about new versions.
+
+The OpenShift community catalog (OperatorHub inside the OpenShift console) is in review:
+[OpenShift and other platforms](docs/openshift.md#operatorhub-olm-bundle).
 
 ## See it working
 
@@ -196,7 +237,7 @@ The Helm chart is still a good choice for a single application installed once. T
 |---|---|
 | **DX** | DX Compose (default, tested on CF239); [DX Core](docs/dx-core.md) (`runtime: core`); traditional DX on WebSphere as source or target of exports and imports |
 | **Kubernetes** | 1.28+; tested on k3s. The same chart runs on **OpenShift** (`restricted-v2`, no fixed UID, OpenShift service CA) without extra values, but it **has not been tested on OpenShift yet**: [OpenShift and other platforms](docs/openshift.md) |
-| **Install** | Helm chart `oci://ghcr.io/europesip/charts/dx-delivery-operator`; an OLM bundle generated from it (`make bundle`) is published on [OperatorHub.io](https://operatorhub.io/operator/dx-delivery-operator); the OpenShift community catalog submission is in review ([details](docs/openshift.md#operatorhub-olm-bundle)) |
+| **Install** | Helm chart `oci://ghcr.io/europesip/charts/dx-delivery-operator`; an OLM bundle generated from it (`make bundle`) is published on [OperatorHub.io](https://operatorhub.io/operator/dx-delivery-operator) and the chart on [Artifact Hub](https://artifacthub.io/packages/helm/dx-delivery-operator/dx-delivery-operator) ([which one to use](#install-from-a-catalog-operatorhubio-or-artifact-hub)); the OpenShift community catalog submission is in review ([details](docs/openshift.md#operatorhub-olm-bundle)) |
 | **Databases** (`DXDatabase`) | PostgreSQL, Oracle, SQL Server (existing servers) |
 
 ## Documentation
