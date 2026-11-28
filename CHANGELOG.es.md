@@ -6,7 +6,13 @@ Para volver a una versión anterior: `helm upgrade dxop oci://ghcr.io/europesip/
 desde la 0.13.0, `oci://ghcr.io/europesip/charts/hcl-dx-scriptapp-operator` para la 0.12.x y anteriores
 (la 0.3.0 renombró los recursos: mira sus notas).
 
-## Sin publicar
+## 0.17.1 · 2026-11-28 · Ficha en Artifact Hub y catálogos (sin cambios en el operador)
+
+El mismo código del operador que la 0.17.0: esta versión publica los metadatos del chart en Artifact Hub (los lee de
+cada versión nueva del chart) y documenta los catálogos.
+
+**README** (#80): sección nueva *Instalar desde un catálogo: OperatorHub.io o Artifact Hub* (EN/ES) con las ventajas
+de cada uno, insignias e inicio rápido en la versión actual.
 
 **Empaquetado** (#77): publicación del chart en Artifact Hub: icono y anotaciones `artifacthub.io/*` en `Chart.yaml`
 (categoría, enlaces, mantenedores, imágenes, cambios, CRD), un `README.md` del chart (EN/ES) y

@@ -68,7 +68,7 @@ necesitan un administrador de DX). **Sin login en ningún registro**: el chart y
    ([LICENSE-DXClient.md](LICENSE-DXClient.md)): léela (`docker run --rm hclcr.io/dx-public/dxclient:v95_CF239_20261103-1404 /dxclient/bin/dxclient accept-license`) y acéptala.
 
    ```bash
-   helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.17.0 \
+   helm upgrade --install dxop oci://ghcr.io/europesip/charts/dx-delivery-operator --version 0.17.1 \
      -n dxop-system --create-namespace --set dxclient.acceptLicense=true
    ```
 

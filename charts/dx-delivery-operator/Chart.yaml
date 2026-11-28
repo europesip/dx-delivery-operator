@@ -8,8 +8,8 @@ description: >-
   of their backend, moves WCM libraries, themes, pages and portal bundles between portals, and keeps everything
   as declared (drift correction). Not an HCL product.
 type: application
-version: 0.17.0
-appVersion: "0.17.0"
+version: 0.17.1
+appVersion: "0.17.1"
 home: https://github.com/europesip/dx-delivery-operator
 icon: https://raw.githubusercontent.com/europesip/dx-delivery-operator/main/docs/images/europesip-icon.svg
 sources: [https://github.com/europesip/dx-delivery-operator]
@@ -39,30 +39,30 @@ annotations:
   # Images of this chart version (update with every release, like appVersion)
   artifacthub.io/images: |
     - name: manager
-      image: ghcr.io/europesip/dx-delivery-operator:0.17.0
+      image: ghcr.io/europesip/dx-delivery-operator:0.17.1
       platforms:
         - linux/amd64
     - name: dx-extensions-init
-      image: ghcr.io/europesip/dx-delivery-operator/dx-extensions-init:0.17.0
+      image: ghcr.io/europesip/dx-delivery-operator/dx-extensions-init:0.17.1
       platforms:
         - linux/amd64
   # Changes of this chart version, from CHANGELOG.md (replace with every release)
   artifacthub.io/changes: |
     - kind: added
-      description: "DXJavaExtension: second delivery mode through the HCL customer startup folder (spec.delivery: startupHook); webhook stays the default"
+      description: "Artifact Hub listing: icon, chart README, images, CRDs and links; verified publisher. No change to the operator"
+      links:
+        - name: Issue 77
+          url: https://github.com/europesip/dx-delivery-operator/issues/77
+    - kind: changed
+      description: "README: install from OperatorHub.io (OLM) or Artifact Hub (Helm), and which one to choose"
+      links:
+        - name: Issue 80
+          url: https://github.com/europesip/dx-delivery-operator/issues/80
+    - kind: added
+      description: "DXJavaExtension: delivery through the HCL customer startup folder (spec.delivery: startupHook) (0.17.0)"
       links:
         - name: Issue 72
           url: https://github.com/europesip/dx-delivery-operator/issues/72
-    - kind: added
-      description: "DXJavaExtension: stable portlet unique names in every environment (0.16.0)"
-      links:
-        - name: Issue 69
-          url: https://github.com/europesip/dx-delivery-operator/issues/69
-    - kind: added
-      description: "Runs on OpenShift without a flag; OLM bundle for the community catalogs (0.15.0)"
-      links:
-        - name: Issue 63
-          url: https://github.com/europesip/dx-delivery-operator/issues/63
   artifacthub.io/crds: |
     - kind: DXConnection
       version: v1alpha1
